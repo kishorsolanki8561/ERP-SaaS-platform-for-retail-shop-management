@@ -1,5 +1,7 @@
 using ErpSaas.Infrastructure.Data;
 using ErpSaas.Infrastructure.Data.Interceptors;
+using ErpSaas.Infrastructure.Seeds;
+using ErpSaas.Shared.Seeds;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -38,6 +40,17 @@ public static class InfrastructureServiceExtensions
                 configuration.GetConnectionString("LogDb"),
                 sql => sql.MigrationsAssembly(typeof(LogDbContext).Assembly.FullName)));
 
+        // Seeder infrastructure — modules register their seeders via AddDataSeeder<T>()
+        services.AddScoped<DatabaseSeeder>();
+        services.AddDataSeeder<DdlDataSeeder>();
+
+        return services;
+    }
+
+    public static IServiceCollection AddDataSeeder<TSeeder>(this IServiceCollection services)
+        where TSeeder : class, IDataSeeder
+    {
+        services.AddScoped<IDataSeeder, TSeeder>();
         return services;
     }
 }

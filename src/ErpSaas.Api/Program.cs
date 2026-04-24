@@ -10,7 +10,6 @@ using ErpSaas.Shared.Catalog;
 using ErpSaas.Shared.Data;
 using ErpSaas.Shared.Services;
 using Hangfire;
-using Hangfire.SqlServer;
 using Serilog;
 
 Log.Logger = new LoggerConfiguration()
@@ -71,7 +70,7 @@ try
     catalog.Register(new ServiceDescriptorEntry("ErrorLogger", "Async error logging to LogDb", "1.0"));
     catalog.Register(new ServiceDescriptorEntry("AuditLogger", "Mutation audit trail to LogDb", "1.0"));
 
-    // ── Deploy stored procedures + seed DDL ───────────────────────────────────
+    // ── Deploy stored procedures + seed all data ──────────────────────────────
     using (var scope = app.Services.CreateScope())
     {
         var sp = scope.ServiceProvider;
@@ -82,13 +81,14 @@ try
 
             var platformDb = sp.GetRequiredService<ErpSaas.Infrastructure.Data.PlatformDbContext>();
             await platformDb.Database.EnsureCreatedAsync();
-            await DdlSeed.SeedAsync(platformDb);
 
             var tenantDb = sp.GetRequiredService<ErpSaas.Infrastructure.Data.TenantDbContext>();
             await tenantDb.Database.EnsureCreatedAsync();
 
             var logDb = sp.GetRequiredService<ErpSaas.Infrastructure.Data.LogDbContext>();
             await logDb.Database.EnsureCreatedAsync();
+
+            await sp.GetRequiredService<DatabaseSeeder>().SeedAllAsync();
         }
         catch (Exception ex)
         {
