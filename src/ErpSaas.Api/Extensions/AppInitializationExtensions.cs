@@ -21,11 +21,11 @@ public static class AppInitializationExtensions
         {
             await sp.GetRequiredService<ISqlObjectMigrator>().DeployAsync();
 
-            await sp.GetRequiredService<PlatformDbContext>().Database.EnsureCreatedAsync();
-            await sp.GetRequiredService<TenantDbContext>().Database.EnsureCreatedAsync();
+            await sp.GetRequiredService<PlatformDbContext>().Database.MigrateAsync();
+            await sp.GetRequiredService<TenantDbContext>().Database.MigrateAsync();
             await sp.GetRequiredService<AnalyticsDbContext>().Database.EnsureCreatedAsync();
-            await sp.GetRequiredService<LogDbContext>().Database.EnsureCreatedAsync();
-            await sp.GetRequiredService<NotificationsDbContext>().Database.EnsureCreatedAsync();
+            await sp.GetRequiredService<LogDbContext>().Database.MigrateAsync();
+            await sp.GetRequiredService<NotificationsDbContext>().Database.MigrateAsync();
 
             await sp.GetRequiredService<DatabaseSeeder>().SeedAllAsync();
 
