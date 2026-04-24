@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <PackageReference Include="Bogus" Version="35.6.5" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="8.0.*" />
     <PackageReference Include="coverlet.collector" Version="10.0.0">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
@@ -23,6 +24,13 @@
     <PackageReference Include="Testcontainers.MsSql" Version="4.11.0" />
     <PackageReference Include="xunit" Version="2.5.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.5.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <ProjectReference Include="..\ErpSaas.Api\ErpSaas.Api.csproj" />
+    <ProjectReference Include="..\ErpSaas.Infrastructure\ErpSaas.Infrastructure.csproj" />
+    <ProjectReference Include="..\ErpSaas.Shared\ErpSaas.Shared.csproj" />
   </ItemGroup>
 
   <ItemGroup>
