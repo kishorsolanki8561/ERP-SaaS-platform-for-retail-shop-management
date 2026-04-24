@@ -2,6 +2,7 @@
 using ErpSaas.Infrastructure.Data;
 using ErpSaas.Infrastructure.Services;
 using ErpSaas.Modules.Inventory.Entities;
+using ErpSaas.Shared.Messages;
 using ErpSaas.Shared.Services;
 using Microsoft.EntityFrameworkCore;
 
@@ -93,7 +94,7 @@ public sealed class InventoryService(
             var entity = await Products
                 .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted, ct);
             if (entity is null)
-                return Result<bool>.NotFound($"Product {id} not found.");
+                return Result<bool>.NotFound(Errors.Inventory.ProductConflict(id));
 
             entity.Name = dto.Name;
             entity.Description = dto.Description;
@@ -115,7 +116,7 @@ public sealed class InventoryService(
             var entity = await Products
                 .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted, ct);
             if (entity is null)
-                return Result<bool>.NotFound($"Product {id} not found.");
+                return Result<bool>.NotFound(Errors.Inventory.ProductConflict(id));
 
             entity.IsActive = false;
             await db.SaveChangesAsync(ct);
@@ -137,7 +138,7 @@ public sealed class InventoryService(
         => await ExecuteAsync<long>("Inventory.CreateWarehouse", async () =>
         {
             if (await Warehouses.AnyAsync(w => w.Code == code && !w.IsDeleted, ct))
-                return Result<long>.Conflict($"Warehouse code '{code}' already exists.");
+                return Result<long>.Conflict(Errors.Inventory.WarehouseConflict(code));
 
             var entity = new Warehouse
             {
@@ -182,7 +183,7 @@ public sealed class InventoryService(
             var unit = await ProductUnits
                 .FirstOrDefaultAsync(u => u.Id == dto.ProductUnitId && !u.IsDeleted, ct);
             if (unit is null)
-                return Result<bool>.NotFound($"ProductUnit {dto.ProductUnitId} not found.");
+                return Result<bool>.NotFound(Errors.Inventory.UnitConflict(dto.ProductUnitId));
 
             var movement = new StockMovement
             {

@@ -7,6 +7,7 @@ import { PasswordModule } from 'primeng/password';
 import { ButtonModule } from 'primeng/button';
 import { MessageModule } from 'primeng/message';
 import { AuthService } from '../../../core/auth/auth.service';
+import { AppMessages } from '../../../shared/messages/app-messages';
 
 @Component({
   selector: 'app-login',
@@ -78,7 +79,7 @@ export class LoginComponent {
       await this.router.navigate(['/dashboard']);
     } catch (err: unknown) {
       const msg = (err as { error?: { errors?: string[] } })?.error?.errors?.[0]
-        ?? 'Login failed. Please check your credentials.';
+        ?? AppMessages.auth.loginFailed;
       this.error.set(msg);
     } finally {
       this.loading.set(false);

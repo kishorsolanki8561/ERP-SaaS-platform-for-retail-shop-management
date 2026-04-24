@@ -4,6 +4,7 @@ using ErpSaas.Infrastructure.Data;
 using ErpSaas.Infrastructure.Data.Entities.Identity;
 using ErpSaas.Infrastructure.Data.Entities.Subscription;
 using ErpSaas.Infrastructure.Services;
+using ErpSaas.Shared.Messages;
 using ErpSaas.Shared.Services;
 using Microsoft.EntityFrameworkCore;
 
@@ -19,13 +20,13 @@ public sealed class ShopOnboardingService(
         return await ExecuteAsync<long>("Identity.OnboardShop", async () =>
         {
             if (await db.Shops.AnyAsync(s => s.ShopCode == request.ShopCode, ct))
-                return Result<long>.Conflict($"ShopCode '{request.ShopCode}' already exists.");
+                return Result<long>.Conflict(Errors.Shop.CodeConflict(request.ShopCode));
 
             var starterPlan = await db.SubscriptionPlans
                 .FirstOrDefaultAsync(p => p.Code == "Starter" && p.IsActive, ct);
 
             if (starterPlan is null)
-                return Result<long>.Failure("Starter subscription plan not found. Run seed first.");
+                return Result<long>.Failure(Errors.Shop.StarterPlanMissing);
 
             var shop = new Shop
             {

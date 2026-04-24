@@ -2,6 +2,7 @@
 using ErpSaas.Infrastructure.Data;
 using ErpSaas.Infrastructure.Services;
 using ErpSaas.Modules.Crm.Entities;
+using ErpSaas.Shared.Messages;
 using ErpSaas.Shared.Services;
 using Microsoft.EntityFrameworkCore;
 
@@ -63,7 +64,7 @@ public sealed class CrmService(
             if (dto.Phone is not null &&
                 await db.Set<Customer>().AnyAsync(c => c.Phone == dto.Phone && !c.IsDeleted, ct))
             {
-                return Result<long>.Conflict($"Customer with phone '{dto.Phone}' already exists.");
+                return Result<long>.Conflict(Errors.Crm.PhoneConflict(dto.Phone!));
             }
 
             var code = await GenerateCustomerCodeAsync(ct);
@@ -92,7 +93,7 @@ public sealed class CrmService(
             var entity = await db.Set<Customer>()
                 .FirstOrDefaultAsync(c => c.Id == id && !c.IsDeleted, ct);
             if (entity is null)
-                return Result<bool>.NotFound("Customer not found.");
+                return Result<bool>.NotFound(Errors.Crm.CustomerNotFound);
 
             entity.DisplayName = dto.DisplayName;
             entity.Email = dto.Email;
@@ -111,7 +112,7 @@ public sealed class CrmService(
             var entity = await db.Set<Customer>()
                 .FirstOrDefaultAsync(c => c.Id == id && !c.IsDeleted, ct);
             if (entity is null)
-                return Result<bool>.NotFound("Customer not found.");
+                return Result<bool>.NotFound(Errors.Crm.CustomerNotFound);
 
             entity.IsActive = false;
             await db.SaveChangesAsync(ct);
@@ -131,7 +132,7 @@ public sealed class CrmService(
         => await ExecuteAsync<long>("Crm.CreateGroup", async () =>
         {
             if (await db.Set<CustomerGroup>().AnyAsync(g => g.Code == code && !g.IsDeleted, ct))
-                return Result<long>.Conflict($"Group code '{code}' already exists.");
+                return Result<long>.Conflict(Errors.Crm.GroupConflict(code));
 
             var entity = new CustomerGroup
             {

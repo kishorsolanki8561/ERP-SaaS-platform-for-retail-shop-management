@@ -3,6 +3,7 @@ using ErpSaas.Infrastructure.Data;
 using ErpSaas.Infrastructure.Sequence;
 using ErpSaas.Infrastructure.Services;
 using ErpSaas.Modules.Billing.Entities;
+using ErpSaas.Shared.Messages;
 using ErpSaas.Shared.Services;
 using Microsoft.EntityFrameworkCore;
 
@@ -110,10 +111,10 @@ public sealed class BillingService(
                 .FirstOrDefaultAsync(i => i.Id == invoiceId && !i.IsDeleted, ct);
 
             if (invoice is null)
-                return Result<bool>.NotFound("Invoice not found.");
+                return Result<bool>.NotFound(Errors.Billing.InvoiceNotFound);
 
             if (invoice.Status != "Draft")
-                return Result<bool>.Conflict("Cannot add lines to a non-draft invoice.");
+                return Result<bool>.Conflict(Errors.Billing.InvoiceNotDraft);
 
             // TODO: load product + unit snapshots from Inventory when that module is wired.
             // ConversionFactorSnapshot defaults to 1 until Inventory is available.
@@ -168,10 +169,10 @@ public sealed class BillingService(
                 .FirstOrDefaultAsync(i => i.Id == id && !i.IsDeleted, ct);
 
             if (invoice is null)
-                return Result<bool>.NotFound("Invoice not found.");
+                return Result<bool>.NotFound(Errors.Billing.InvoiceNotFound);
 
             if (invoice.Status != "Draft")
-                return Result<bool>.Conflict("Only draft invoices can be finalized.");
+                return Result<bool>.Conflict(Errors.Billing.InvoiceNotDraft);
 
             invoice.Status = "Finalized";
             await db.SaveChangesAsync(ct);
@@ -188,10 +189,10 @@ public sealed class BillingService(
                 .FirstOrDefaultAsync(i => i.Id == id && !i.IsDeleted, ct);
 
             if (invoice is null)
-                return Result<bool>.NotFound("Invoice not found.");
+                return Result<bool>.NotFound(Errors.Billing.InvoiceNotFound);
 
             if (invoice.Status == "Cancelled")
-                return Result<bool>.Conflict("Invoice is already cancelled.");
+                return Result<bool>.Conflict(Errors.Billing.InvoiceAlreadyCancelled);
 
             invoice.Status = "Cancelled";
             invoice.Notes = string.IsNullOrWhiteSpace(invoice.Notes)

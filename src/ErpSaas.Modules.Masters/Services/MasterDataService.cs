@@ -2,6 +2,7 @@
 using ErpSaas.Infrastructure.Data;
 using ErpSaas.Infrastructure.Data.Entities.Masters;
 using ErpSaas.Infrastructure.Services;
+using ErpSaas.Shared.Messages;
 using ErpSaas.Shared.Services;
 using Microsoft.EntityFrameworkCore;
 
@@ -59,7 +60,7 @@ public sealed class MasterDataService(
         return await ExecuteAsync<long>("Masters.CreateCountry", async () =>
         {
             if (await db.Countries.AnyAsync(c => c.Code == code, ct))
-                return Result<long>.Conflict($"Country code '{code}' already exists.");
+                return Result<long>.Conflict(Errors.Masters.CountryConflict(code));
 
             var entity = new Country
             {
@@ -79,7 +80,7 @@ public sealed class MasterDataService(
         return await ExecuteAsync<long>("Masters.CreateState", async () =>
         {
             if (await db.States.AnyAsync(s => s.CountryId == countryId && s.Code == code, ct))
-                return Result<long>.Conflict($"State code '{code}' already exists in this country.");
+                return Result<long>.Conflict(Errors.Masters.StateConflict(code));
 
             var entity = new State
             {
@@ -98,7 +99,7 @@ public sealed class MasterDataService(
         return await ExecuteAsync<long>("Masters.CreateCity", async () =>
         {
             if (await db.Cities.AnyAsync(c => c.StateId == stateId && c.Name == name, ct))
-                return Result<long>.Conflict($"City '{name}' already exists in this state.");
+                return Result<long>.Conflict(Errors.Masters.CityConflict(name));
 
             var entity = new City
             {

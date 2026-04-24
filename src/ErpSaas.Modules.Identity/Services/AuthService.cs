@@ -3,6 +3,7 @@ using BCrypt.Net;
 using ErpSaas.Infrastructure.Data;
 using ErpSaas.Infrastructure.Data.Entities.Identity;
 using ErpSaas.Infrastructure.Services;
+using ErpSaas.Shared.Messages;
 using ErpSaas.Shared.Services;
 using Microsoft.EntityFrameworkCore;
 
@@ -24,13 +25,13 @@ public sealed class AuthService(
         {
             var user = await FindUserAsync(request.Identifier, ct);
             if (user is null)
-                return Result<object>.NotFound("User not found.");
+                return Result<object>.NotFound(Errors.Auth.UserNotFound);
 
             if (!user.IsActive)
-                return Result<object>.Forbidden("Account is inactive.");
+                return Result<object>.Forbidden(Errors.Auth.AccountInactive);
 
             if (user.LockoutUntilUtc.HasValue && user.LockoutUntilUtc > DateTime.UtcNow)
-                return Result<object>.Forbidden($"Account locked until {user.LockoutUntilUtc:O}.");
+                return Result<object>.Forbidden(Errors.Auth.AccountLockedUntil(user.LockoutUntilUtc.Value));
 
             if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
             {
@@ -39,7 +40,7 @@ public sealed class AuthService(
                     user.LockoutUntilUtc = DateTime.UtcNow.Add(LockoutDuration);
 
                 await db.SaveChangesAsync(ct);
-                return Result<object>.Forbidden("Invalid credentials.");
+                return Result<object>.Forbidden(Errors.Auth.InvalidCredentials);
             }
 
             // Reset lockout on success
@@ -95,13 +96,13 @@ public sealed class AuthService(
                     t.ExpiresAtUtc > DateTime.UtcNow, ct);
 
             if (stored is null)
-                return Result<LoginResponse>.Forbidden("Invalid or expired refresh token.");
+                return Result<LoginResponse>.Forbidden(Errors.Auth.InvalidRefreshToken);
 
             stored.ConsumedAtUtc = DateTime.UtcNow;
 
             var user = stored.User;
             if (!user.IsActive)
-                return Result<LoginResponse>.Forbidden("Account is inactive.");
+                return Result<LoginResponse>.Forbidden(Errors.Auth.AccountInactive);
 
             var shopId = await GetDefaultShopIdAsync(user.Id, ct);
             var perms = await permissionService.GetPermissionCodesAsync(user.Id, shopId, ct);

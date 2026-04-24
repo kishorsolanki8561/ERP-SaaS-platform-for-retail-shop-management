@@ -1,5 +1,6 @@
 using ErpSaas.Infrastructure.Ddl;
 using ErpSaas.Shared.Controllers;
+using ErpSaas.Shared.Messages;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -25,7 +26,7 @@ public class DdlController(IDdlService ddlService) : BaseController
         CancellationToken ct)
     {
         if (keys.Length == 0)
-            return BadRequest("At least one key is required.");
+            return BadRequest(Errors.Masters.KeyRequired);
 
         var result = await ddlService.GetBatchAsync(keys, CurrentShopId, ct);
         return Ok(result);
