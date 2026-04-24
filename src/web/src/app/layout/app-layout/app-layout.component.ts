@@ -7,6 +7,7 @@ import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
 import { AuthService } from '../../core/auth/auth.service';
 import { MenuStore, MenuItemDto } from '../../core/menu/menu.store';
+import { AppLabels } from '../../shared/messages/app-messages';
 
 @Component({
   selector: 'app-app-layout',
@@ -20,7 +21,7 @@ import { MenuStore, MenuItemDto } from '../../core/menu/menu.store';
       <!-- Sidebar -->
       <aside class="w-64 bg-surface-900 text-white flex flex-col shrink-0">
         <div class="p-4 text-xl font-semibold border-b border-surface-700">
-          ShopEarth ERP
+          {{ labels.appName }}
         </div>
         <nav class="flex-1 overflow-y-auto p-2">
           <ng-container *ngFor="let group of menuStore.tree()">
@@ -38,7 +39,7 @@ import { MenuStore, MenuItemDto } from '../../core/menu/menu.store';
         </nav>
         <div class="p-4 border-t border-surface-700">
           <div class="text-sm text-surface-300 mb-2">{{ auth.currentUser()?.displayName }}</div>
-          <button pButton label="Logout" severity="secondary" size="small"
+          <button pButton [label]="labels.layout.logout" severity="secondary" size="small"
                   class="w-full" (click)="logout()"></button>
         </div>
       </aside>
@@ -53,6 +54,7 @@ import { MenuStore, MenuItemDto } from '../../core/menu/menu.store';
 export class AppLayoutComponent implements OnInit {
   protected readonly auth = inject(AuthService);
   protected readonly menuStore = inject(MenuStore);
+  protected readonly labels = AppLabels;
 
   ngOnInit(): void {
     this.menuStore.load();

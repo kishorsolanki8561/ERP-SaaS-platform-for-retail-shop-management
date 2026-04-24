@@ -6,6 +6,7 @@ using ErpSaas.Infrastructure.Services;
 using ErpSaas.Shared.Messages;
 using ErpSaas.Shared.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace ErpSaas.Modules.Identity.Services;
 
@@ -13,11 +14,25 @@ public sealed class AuthService(
     PlatformDbContext db,
     IErrorLogger errorLogger,
     ITokenService tokenService,
-    IPermissionService permissionService)
+    IPermissionService permissionService,
+    IConfiguration configuration)
     : BaseService<PlatformDbContext>(db, errorLogger), IAuthService
 {
-    private const int MaxFailedAttempts = 5;
-    private static readonly TimeSpan LockoutDuration = TimeSpan.FromMinutes(15);
+    private int MaxFailedAttempts => int.Parse(
+        configuration[Constants.Security.MaxFailedLoginAttemptsKey]
+        ?? Constants.Security.DefaultMaxFailedLoginAttempts.ToString());
+
+    private TimeSpan LockoutDuration => TimeSpan.FromMinutes(int.Parse(
+        configuration[Constants.Security.LockoutDurationMinutesKey]
+        ?? Constants.Security.DefaultLockoutDurationMinutes.ToString()));
+
+    private int TotpChallengeMinutes => int.Parse(
+        configuration[Constants.Security.TotpChallengeMinutesKey]
+        ?? Constants.Security.DefaultTotpChallengeMinutes.ToString());
+
+    private int RefreshTokenDays => int.Parse(
+        configuration[Constants.Security.RefreshTokenDaysKey]
+        ?? Constants.Security.DefaultRefreshTokenDays.ToString());
 
     public async Task<Result<object>> LoginAsync(LoginRequest request, CancellationToken ct = default)
     {
@@ -57,7 +72,7 @@ public sealed class AuthService(
                     UserId = user.Id,
                     TokenHash = challengeHash,
                     Purpose = SecurityTokenPurpose.TotpChallenge,
-                    ExpiresAtUtc = DateTime.UtcNow.AddMinutes(5)
+                    ExpiresAtUtc = DateTime.UtcNow.AddMinutes(TotpChallengeMinutes)
                 });
                 await db.SaveChangesAsync(ct);
                 return Result<object>.Success((object)new TotpChallengeResponse(challengeRaw));
@@ -74,7 +89,7 @@ public sealed class AuthService(
                 UserId = user.Id,
                 TokenHash = tokenService.HashToken(pair.RefreshToken),
                 Purpose = SecurityTokenPurpose.RefreshToken,
-                ExpiresAtUtc = DateTime.UtcNow.AddDays(30)
+                ExpiresAtUtc = DateTime.UtcNow.AddDays(RefreshTokenDays)
             });
 
             await db.SaveChangesAsync(ct);
@@ -115,7 +130,7 @@ public sealed class AuthService(
                 UserId = user.Id,
                 TokenHash = tokenService.HashToken(pair.RefreshToken),
                 Purpose = SecurityTokenPurpose.RefreshToken,
-                ExpiresAtUtc = DateTime.UtcNow.AddDays(30)
+                ExpiresAtUtc = DateTime.UtcNow.AddDays(RefreshTokenDays)
             });
 
             await db.SaveChangesAsync(ct);

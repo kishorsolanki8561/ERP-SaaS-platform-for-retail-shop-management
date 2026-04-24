@@ -2,6 +2,8 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
+import { ApiEndpoints } from '../../shared/messages/app-api';
+import { AppRoutePaths } from '../../shared/messages/app-routes';
 
 export interface AuthUser {
   userId: number;
@@ -37,7 +39,7 @@ export class AuthService {
 
   async login(request: LoginRequest): Promise<void> {
     const resp = await firstValueFrom(
-      this.http.post<LoginResponse>('/api/auth/login', request)
+      this.http.post<LoginResponse>(ApiEndpoints.auth.login, request)
     );
     this.storeSession(resp);
   }
@@ -48,7 +50,7 @@ export class AuthService {
 
     try {
       const resp = await firstValueFrom(
-        this.http.post<LoginResponse>('/api/auth/refresh', { refreshToken })
+        this.http.post<LoginResponse>(ApiEndpoints.auth.refresh, { refreshToken })
       );
       this.storeSession(resp);
       return true;
@@ -62,11 +64,11 @@ export class AuthService {
     const refreshToken = localStorage.getItem('refresh_token');
     if (refreshToken) {
       try {
-        await firstValueFrom(this.http.post('/api/auth/logout', { refreshToken }));
+        await firstValueFrom(this.http.post(ApiEndpoints.auth.logout, { refreshToken }));
       } catch { /* best-effort */ }
     }
     this.clearSession();
-    await this.router.navigate(['/login']);
+    await this.router.navigate([AppRoutePaths.login]);
   }
 
   private storeSession(resp: LoginResponse): void {

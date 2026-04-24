@@ -1,4 +1,5 @@
 using ErpSaas.Infrastructure.Data;
+using ErpSaas.Shared.Messages;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -12,8 +13,8 @@ public sealed class NotificationDrainJob(
     NotificationsDbContext db,
     ILogger<NotificationDrainJob> logger)
 {
-    private const int BatchSize = 50;
-    private const int MaxAttempts = 5;
+    private static int BatchSize   => Constants.Pagination.NotificationBatch;
+    private static int MaxAttempts => Constants.Notifications.MaxAttempts;
 
     public async Task ExecuteAsync(CancellationToken ct = default)
     {

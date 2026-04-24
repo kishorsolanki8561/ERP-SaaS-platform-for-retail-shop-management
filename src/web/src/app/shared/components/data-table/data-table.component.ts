@@ -10,6 +10,8 @@ import { InputTextModule } from 'primeng/inputtext';
 import { TooltipModule } from 'primeng/tooltip';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
+import { AppConstants } from '../../messages/app-constants';
+import { AppLabels } from '../../messages/app-messages';
 
 export interface TableColumn {
   field: string;
@@ -46,7 +48,7 @@ export interface RowAction {
           <span class="p-input-icon-left">
             <i class="pi pi-search"></i>
             <input pInputText [ngModel]="searchQuery()" (ngModelChange)="onSearch($event)"
-                   placeholder="Search..." class="w-64" />
+                   [placeholder]="labels.shared.search" class="w-64" />
           </span>
         } @else { <span></span> }
 
@@ -62,7 +64,7 @@ export interface RowAction {
         [totalRecords]="totalCount()"
         [rows]="pageSize()"
         [paginator]="true"
-        [rowsPerPageOptions]="[10, 25, 50]"
+        [rowsPerPageOptions]="pageSizeOptions"
         [loading]="loading()"
         (onLazyLoad)="onLazyLoad($event)"
         [sortField]="currentSortField()"
@@ -79,7 +81,7 @@ export interface RowAction {
                 @if (col.sortable) { <p-sortIcon [field]="col.field" /> }
               </th>
             }
-            @if (rowActions().length) { <th style="width:120px">Actions</th> }
+            @if (rowActions().length) { <th [style.width]="actionsColWidth">Actions</th> }
           </tr>
         </ng-template>
 
@@ -122,13 +124,17 @@ export class DataTableComponent<T extends Record<string, unknown>> implements On
 
   private readonly http = inject(HttpClient);
 
+  protected readonly labels = AppLabels;
+  protected readonly pageSizeOptions: number[] = [...AppConstants.pagination.pageSizeOptions];
+  protected readonly actionsColWidth = AppConstants.table.actionsColumnWidth;
+
   protected readonly rows = signal<T[]>([]);
   protected readonly totalCount = signal(0);
   protected readonly loading = signal(false);
-  protected readonly pageSize = signal(10);
+  protected readonly pageSize = signal<number>(AppConstants.pagination.defaultPageSize);
   protected readonly searchQuery = signal('');
   protected readonly currentSortField = signal('');
-  protected readonly currentSortOrder = signal(1);
+  protected readonly currentSortOrder = signal<number>(AppConstants.table.initialSortOrder);
 
   private currentFirst = 0;
 
@@ -141,12 +147,12 @@ export class DataTableComponent<T extends Record<string, unknown>> implements On
 
   protected onLazyLoad(event: TableLazyLoadEvent): void {
     const first = event.first ?? 0;
-    const rows = event.rows ?? 10;
+    const rows: number = event.rows ?? AppConstants.pagination.defaultPageSize;
     this.pageSize.set(rows);
     this.currentSortField.set(String(event.sortField ?? ''));
-    this.currentSortOrder.set(event.sortOrder ?? 1);
+    this.currentSortOrder.set(event.sortOrder ?? AppConstants.table.initialSortOrder);
     this.currentFirst = first;
-    this.fetch(first, rows, this.searchQuery(), String(event.sortField ?? ''), event.sortOrder ?? 1);
+    this.fetch(first, rows, this.searchQuery(), String(event.sortField ?? ''), event.sortOrder ?? AppConstants.table.initialSortOrder);
   }
 
   private async fetch(

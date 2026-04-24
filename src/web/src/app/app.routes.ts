@@ -1,6 +1,8 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/auth/auth.guard';
 import { permissionGuard } from './core/auth/permission.guard';
+import { AppRoutes } from './shared/messages/app-routes';
+import { Permissions } from './shared/messages/app-permissions';
 
 export const routes: Routes = [
   {
@@ -9,37 +11,37 @@ export const routes: Routes = [
       import('./layout/app-layout/app-layout.component').then(m => m.AppLayoutComponent),
     canActivate: [authGuard],
     children: [
-      { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+      { path: '', redirectTo: AppRoutes.dashboard, pathMatch: 'full' },
       {
-        path: 'dashboard',
+        path: AppRoutes.dashboard,
         loadComponent: () =>
           import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent)
       },
       {
-        path: 'admin/users',
+        path: AppRoutes.admin.users,
         loadComponent: () =>
           import('./features/admin/users/users.component').then(m => m.UsersComponent),
-        canActivate: [permissionGuard('Users.View')]
+        canActivate: [permissionGuard(Permissions.users.view)]
       },
       {
-        path: 'admin/shop-profile',
+        path: AppRoutes.admin.shopProfile,
         loadComponent: () =>
           import('./features/admin/shop-profile/shop-profile.component').then(m => m.ShopProfileComponent),
-        canActivate: [permissionGuard('ShopProfile.View')]
+        canActivate: [permissionGuard(Permissions.shopProfile.view)]
       }
     ]
   },
   {
-    path: 'login',
+    path: AppRoutes.login,
     loadComponent: () =>
       import('./layout/auth-layout/auth-layout.component').then(m => m.AuthLayoutComponent)
   },
   {
-    path: 'forgot-password',
+    path: AppRoutes.forgotPassword,
     loadComponent: () =>
       import('./features/auth/forgot-password/forgot-password.component').then(m => m.ForgotPasswordComponent)
   },
-  { path: 'unauthorized', loadComponent: () => import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent) },
-  { path: 'feature-unavailable', loadComponent: () => import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent) },
+  { path: AppRoutes.unauthorized, loadComponent: () => import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent) },
+  { path: AppRoutes.featureUnavailable, loadComponent: () => import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent) },
   { path: '**', redirectTo: '' }
 ];

@@ -6,6 +6,7 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { DropdownModule } from 'primeng/dropdown';
 import { FormsModule } from '@angular/forms';
 import { DdlKeyStore } from '../../../core/ddl/ddl.store';
+import { AppLabels } from '../../messages/app-messages';
 
 @Component({
   selector: 'app-ddl-dropdown',
@@ -31,7 +32,7 @@ import { DdlKeyStore } from '../../../core/ddl/ddl.store';
 })
 export class DdlDropdownComponent implements ControlValueAccessor, OnInit {
   readonly dkey = input.required<string>();
-  readonly placeholder = input('Select...');
+  readonly placeholder = input(AppLabels.shared.selectPlaceholder);
 
   protected readonly store = inject(DdlKeyStore);
 

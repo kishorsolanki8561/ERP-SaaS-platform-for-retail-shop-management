@@ -49,7 +49,7 @@ public sealed class MasterDataService(
         => db.HsnSacCodes
             .Where(h => h.IsActive && (h.Code.Contains(query) || h.Description.Contains(query)))
             .OrderBy(h => h.Code)
-            .Take(50)
+            .Take(Constants.Pagination.HsnSearchLimit)
             .Select(h => new HsnSacDto(h.Id, h.Code, h.Description, h.Type.ToString(), h.GstRate))
             .ToListAsync(ct)
             .ContinueWith(t => (IReadOnlyList<HsnSacDto>)t.Result, ct);

@@ -1,6 +1,7 @@
 import { Injectable, Signal, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
+import { ApiEndpoints } from '../../shared/messages/app-api';
 
 export interface DdlItem {
   code: string;
@@ -29,7 +30,7 @@ export class DdlKeyStore {
   private async load(key: string, sig: ReturnType<typeof signal<DdlItem[]>>): Promise<void> {
     try {
       const items = await firstValueFrom(
-        this.http.get<DdlItem[]>(`/api/ddl/${key}`)
+        this.http.get<DdlItem[]>(ApiEndpoints.ddl.single(key))
       );
       sig.set(items);
     } catch { /* silently fail — empty list is safe */ }

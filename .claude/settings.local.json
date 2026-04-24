@@ -25,7 +25,11 @@
       "Bash(ng new *)",
       "Bash(xargs cat *)",
       "Bash(xargs ls *)",
-      "Bash(dotnet tool *)"
+      "Bash(dotnet tool *)",
+      "Bash(dotnet ef *)",
+      "Bash(npm ci *)",
+      "Bash(grep -E \"CreateTable.*name:\" \"D:/Project/ERP-SaaS-platform-for-retail-shop-management/src/ErpSaas.Infrastructure/Migrations/Platform/$\\(ls D:/Project/ERP-SaaS-platform-for-retail-shop-management/src/ErpSaas.Infrastructure/Migrations/Platform/)",
+      "Bash(npm pack *)"
     ]
   }
 }

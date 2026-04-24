@@ -7,12 +7,14 @@ using ErpSaas.Infrastructure.Services;
 using ErpSaas.Shared.Messages;
 using ErpSaas.Shared.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace ErpSaas.Modules.Identity.Services;
 
 public sealed class ShopOnboardingService(
     PlatformDbContext db,
-    IErrorLogger errorLogger)
+    IErrorLogger errorLogger,
+    IConfiguration configuration)
     : BaseService<PlatformDbContext>(db, errorLogger), IShopOnboardingService
 {
     public async Task<Result<long>> OnboardAsync(OnboardShopRequest request, CancellationToken ct = default)
@@ -23,7 +25,7 @@ public sealed class ShopOnboardingService(
                 return Result<long>.Conflict(Errors.Shop.CodeConflict(request.ShopCode));
 
             var starterPlan = await db.SubscriptionPlans
-                .FirstOrDefaultAsync(p => p.Code == "Starter" && p.IsActive, ct);
+                .FirstOrDefaultAsync(p => p.Code == Constants.Plans.Starter && p.IsActive, ct);
 
             if (starterPlan is null)
                 return Result<long>.Failure(Errors.Shop.StarterPlanMissing);
@@ -43,7 +45,10 @@ public sealed class ShopOnboardingService(
             {
                 Email = request.AdminEmail,
                 DisplayName = request.AdminDisplayName,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.AdminPassword, workFactor: 12),
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.AdminPassword,
+                    workFactor: int.Parse(
+                        configuration[Constants.Security.BcryptWorkFactorKey]
+                        ?? Constants.Security.DefaultBcryptWorkFactor.ToString())),
                 IsActive = true,
                 CreatedAtUtc = DateTime.UtcNow
             };

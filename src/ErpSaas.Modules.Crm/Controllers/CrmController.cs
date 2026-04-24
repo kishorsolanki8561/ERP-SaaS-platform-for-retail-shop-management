@@ -1,6 +1,7 @@
 using ErpSaas.Modules.Crm.Services;
 using ErpSaas.Shared.Authorization;
 using ErpSaas.Shared.Controllers;
+using ErpSaas.Shared.Messages;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -14,7 +15,7 @@ public sealed class CrmController(ICrmService crm) : BaseController
     [RequirePermission("Crm.View")]
     public async Task<IActionResult> ListCustomers(
         [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 25,
+        [FromQuery] int pageSize = Constants.Pagination.DefaultPageSize,
         [FromQuery] string? search = null,
         CancellationToken ct = default)
         => Ok(await crm.ListCustomersAsync(page, pageSize, search, ct));

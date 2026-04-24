@@ -2,6 +2,7 @@ using ErpSaas.Infrastructure.Data;
 using ErpSaas.Infrastructure.Data.Entities.Identity;
 using ErpSaas.Infrastructure.Data.Entities.Masters;
 using ErpSaas.Infrastructure.Data.Entities.Menu;
+using ErpSaas.Shared.Messages;
 using ErpSaas.Shared.Seeds;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -65,7 +66,7 @@ public sealed class InventorySystemSeeder(
 
     private async Task SeedDdlCatalogAsync(CancellationToken ct)
     {
-        const string key = "PRODUCT_CATEGORY";
+        const string key = Constants.DdlKeys.ProductCategory;
 
         if (await db.DdlCatalogs.AnyAsync(c => c.Key == key, ct))
             return;

@@ -3,14 +3,17 @@ using BCrypt.Net;
 using ErpSaas.Infrastructure.Data;
 using ErpSaas.Infrastructure.Data.Entities.Identity;
 using ErpSaas.Infrastructure.Services;
+using ErpSaas.Shared.Messages;
 using ErpSaas.Shared.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace ErpSaas.Modules.Identity.Services;
 
 public sealed class BootstrapService(
     PlatformDbContext db,
-    IErrorLogger errorLogger)
+    IErrorLogger errorLogger,
+    IConfiguration configuration)
     : BaseService<PlatformDbContext>(db, errorLogger), IBootstrapService
 {
     public async Task<bool> HasProductOwnerAsync(CancellationToken ct = default)
@@ -22,13 +25,17 @@ public sealed class BootstrapService(
         return await ExecuteAsync<long>("Identity.RegisterProductOwner", async () =>
         {
             if (await db.Users.AnyAsync(u => u.IsPlatformAdmin, ct))
-                return Result<long>.Conflict("A product owner already exists.");
+                return Result<long>.Conflict(Errors.Auth.BootstrapAlreadyDone);
+
+            var bcryptCost = int.Parse(
+                configuration[Constants.Security.BcryptWorkFactorKey]
+                ?? Constants.Security.DefaultBcryptWorkFactor.ToString());
 
             var user = new User
             {
                 Email = dto.Email,
                 DisplayName = dto.Name,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password, workFactor: 12),
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password, workFactor: bcryptCost),
                 IsActive = true,
                 IsPlatformAdmin = true,
                 CreatedAtUtc = DateTime.UtcNow

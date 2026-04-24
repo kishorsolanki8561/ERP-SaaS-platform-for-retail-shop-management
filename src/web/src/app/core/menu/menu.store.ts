@@ -1,6 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
+import { ApiEndpoints } from '../../shared/messages/app-api';
 
 export interface MenuItemDto {
   code: string;
@@ -22,7 +23,7 @@ export class MenuStore {
   async load(): Promise<void> {
     this.loading.set(true);
     try {
-      const items = await firstValueFrom(this.http.get<MenuItemDto[]>('/api/menu/tree'));
+      const items = await firstValueFrom(this.http.get<MenuItemDto[]>(ApiEndpoints.menu.tree));
       this.tree.set(items);
     } catch { /* cleared on logout */ } finally {
       this.loading.set(false);

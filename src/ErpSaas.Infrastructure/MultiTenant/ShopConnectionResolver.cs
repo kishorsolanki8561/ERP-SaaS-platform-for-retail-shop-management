@@ -1,4 +1,5 @@
 using ErpSaas.Infrastructure.Data;
+using ErpSaas.Shared.Messages;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
@@ -24,7 +25,7 @@ public sealed class ShopConnectionResolver(
             .Select(s => new { s.Plan.Code })
             .FirstOrDefaultAsync(ct);
 
-        var connString = subscription?.Code is "Enterprise"
+        var connString = subscription?.Code is Constants.Plans.Enterprise
             ? configuration.GetConnectionString($"TenantDb_Shop_{shopId}")
               ?? configuration.GetConnectionString("TenantDb")!
             : configuration.GetConnectionString("TenantDb")!;

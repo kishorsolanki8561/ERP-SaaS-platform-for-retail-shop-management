@@ -2,6 +2,7 @@ using BCrypt.Net;
 using ErpSaas.Infrastructure.Data;
 using ErpSaas.Infrastructure.Data.Entities.Identity;
 using ErpSaas.Infrastructure.Data.Entities.Subscription;
+using ErpSaas.Shared.Messages;
 using ErpSaas.Shared.Seeds;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -37,9 +38,9 @@ public sealed class IdentityDataSeeder(
     {
         var plans = new[]
         {
-            ("Starter",    "Starter",    0m,    0m,    2),
-            ("Growth",     "Growth",     999m,  9990m, 10),
-            ("Enterprise", "Enterprise", 2999m, 29990m, 100),
+            (Constants.Plans.Starter,    "Starter",    0m,    0m,    2),
+            (Constants.Plans.Growth,     "Growth",     999m,  9990m, 10),
+            (Constants.Plans.Enterprise, "Enterprise", 2999m, 29990m, 100),
         };
 
         foreach (var (code, label, monthly, annual, maxUsers) in plans)
@@ -78,7 +79,10 @@ public sealed class IdentityDataSeeder(
         {
             Email = email,
             DisplayName = name ?? "Product Owner",
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(password, workFactor: 12),
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(password,
+                workFactor: int.Parse(
+                    configuration[Constants.Security.BcryptWorkFactorKey]
+                    ?? Constants.Security.DefaultBcryptWorkFactor.ToString())),
             IsActive = true, IsPlatformAdmin = true,
             CreatedAtUtc = DateTime.UtcNow
         };
@@ -87,7 +91,7 @@ public sealed class IdentityDataSeeder(
 
         var role = new Role
         {
-            Code = "PlatformOwner", Label = "Platform Owner",
+            Code = Constants.Roles.PlatformOwner, Label = "Platform Owner",
             IsSystemRole = true, CreatedAtUtc = DateTime.UtcNow
         };
         db.Roles.Add(role);

@@ -3,6 +3,7 @@ import { inject } from '@angular/core';
 import { catchError, throwError } from 'rxjs';
 import { MessageService } from 'primeng/api';
 import { AppMessages } from '../../shared/messages/app-messages';
+import { AppConstants } from '../../shared/messages/app-constants';
 
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const messageService = inject(MessageService, { optional: true });
@@ -12,7 +13,7 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
       const message = err?.error?.errors?.[0] ?? err?.error?.message ?? AppMessages.common.error;
 
       if (messageService) {
-        messageService.add({ severity: 'error', summary: AppMessages.toast.errorSummary, detail: message, life: 5000 });
+        messageService.add({ severity: 'error', summary: AppMessages.toast.errorSummary, detail: message, life: AppConstants.toast.defaultLife });
       }
 
       return throwError(() => err);

@@ -1,6 +1,7 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { AuthService } from './auth.service';
+import { AppRoutePaths } from '../../shared/messages/app-routes';
 
 export const authGuard: CanActivateFn = async () => {
   const auth = inject(AuthService);
@@ -11,5 +12,5 @@ export const authGuard: CanActivateFn = async () => {
   const refreshed = await auth.refresh();
   if (refreshed) return true;
 
-  return router.createUrlTree(['/login']);
+  return router.createUrlTree([AppRoutePaths.login]);
 };

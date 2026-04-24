@@ -2,6 +2,7 @@ using ErpSaas.Infrastructure.Data;
 using ErpSaas.Infrastructure.Data.Entities.Identity;
 using ErpSaas.Infrastructure.Data.Entities.Masters;
 using ErpSaas.Infrastructure.Data.Entities.Menu;
+using ErpSaas.Shared.Messages;
 using ErpSaas.Shared.Seeds;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -66,7 +67,7 @@ public sealed class CrmSystemSeeder(
 
     private async Task SeedDdlCatalogsAsync(CancellationToken ct)
     {
-        await EnsureCatalogAsync("CUSTOMER_TYPE", "Customer Type",
+        await EnsureCatalogAsync(Constants.DdlKeys.CustomerType, "Customer Type",
             new[] { ("Retail", "Retail", 10), ("Wholesale", "Wholesale", 20) }, ct);
     }
 

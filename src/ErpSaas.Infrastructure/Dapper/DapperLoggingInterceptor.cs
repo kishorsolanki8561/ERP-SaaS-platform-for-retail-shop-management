@@ -3,6 +3,7 @@ using System.Data.Common;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using ErpSaas.Infrastructure.Data;
+using ErpSaas.Shared.Messages;
 using ErpSaas.Infrastructure.Data.Entities.Log;
 using ErpSaas.Shared.Data;
 using Microsoft.Extensions.Logging;
@@ -18,7 +19,7 @@ public sealed class DapperLoggingInterceptor(
     ITenantContext tenantContext,
     ILogger<DapperLoggingInterceptor> logger)
 {
-    private const int SlowQueryThresholdMs = 500;
+    private static int SlowQueryThresholdMs => Constants.Performance.SlowQueryThresholdMs;
 
     public async Task<IEnumerable<T>> QueryAsync<T>(
         Func<Task<IEnumerable<T>>> query,

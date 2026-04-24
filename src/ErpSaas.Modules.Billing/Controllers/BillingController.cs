@@ -1,6 +1,7 @@
 using ErpSaas.Modules.Billing.Services;
 using ErpSaas.Shared.Authorization;
 using ErpSaas.Shared.Controllers;
+using ErpSaas.Shared.Messages;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -16,7 +17,7 @@ public sealed class BillingController(IBillingService billingService) : BaseCont
     [RequirePermission("Billing.View")]
     public async Task<IActionResult> ListInvoices(
         [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20,
+        [FromQuery] int pageSize = Constants.Pagination.DefaultPageSize,
         [FromQuery] string? search = null,
         CancellationToken ct = default)
     {

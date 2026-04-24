@@ -3,6 +3,7 @@ using ErpSaas.Infrastructure.Data.Entities.Identity;
 using ErpSaas.Infrastructure.Data.Entities.Masters;
 using ErpSaas.Infrastructure.Data.Entities.Menu;
 using ErpSaas.Infrastructure.Data.Entities.Sequence;
+using ErpSaas.Shared.Messages;
 using ErpSaas.Shared.Seeds;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -137,7 +138,7 @@ public sealed class BillingSystemSeeder(
         {
             // INVOICE_STATUS is already partially seeded by DdlDataSeeder (Draft, Finalized,
             // Paid, Cancelled, Partially Paid). We ensure the exact set required by this module.
-            const string catalogKey = "INVOICE_STATUS";
+            const string catalogKey = Constants.DdlKeys.InvoiceStatus;
             var catalog = await platformDb.DdlCatalogs
                 .Include(c => c.Items)
                 .FirstOrDefaultAsync(c => c.Key == catalogKey, ct);
@@ -194,7 +195,7 @@ public sealed class BillingSystemSeeder(
         await using var tx = await tenantDb.Database.BeginTransactionAsync(ct);
         try
         {
-            const string seqCode = "INVOICE_RETAIL";
+            const string seqCode = Constants.SequenceCodes.InvoiceRetail;
             const long platformShopId = 0L;
 
             // IgnoreQueryFilters so we can seed the ShopId=0 platform default
@@ -209,7 +210,7 @@ public sealed class BillingSystemSeeder(
                 {
                     ShopId = platformShopId,
                     Code = seqCode,
-                    Prefix = "INV",
+                    Prefix = Constants.SequencePrefixes.InvoiceRetail,
                     Suffix = null,
                     PadLength = 5,
                     LastNumber = 0,
