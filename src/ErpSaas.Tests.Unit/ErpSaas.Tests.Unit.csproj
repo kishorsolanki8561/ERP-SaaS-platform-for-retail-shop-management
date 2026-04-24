@@ -11,6 +11,8 @@
 
   <ItemGroup>
     <PackageReference Include="Bogus" Version="35.6.5" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="8.0.*" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.*" />
     <PackageReference Include="NSubstitute" Version="5.3.0" />
     <PackageReference Include="coverlet.collector" Version="10.0.0">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -33,6 +35,11 @@
 
   <ItemGroup>
     <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ErpSaas.Modules.Inventory\ErpSaas.Modules.Inventory.csproj" />
+    <ProjectReference Include="..\ErpSaas.Modules.Billing\ErpSaas.Modules.Billing.csproj" />
   </ItemGroup>
 
 </Project>

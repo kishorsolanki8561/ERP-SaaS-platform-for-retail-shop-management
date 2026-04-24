@@ -1,3 +1,4 @@
+using ErpSaas.Api.Middleware;
 using Hangfire;
 using Microsoft.AspNetCore.Builder;
 using Serilog;
@@ -16,6 +17,8 @@ public static class ErpPipelineExtensions
         }
 
         app.UseSerilogRequestLogging();
+        app.UseAuthentication();
+        app.UseTenantContext();
         app.UseAuthorization();
         app.MapControllers();
         app.MapHangfireDashboard("/hangfire");

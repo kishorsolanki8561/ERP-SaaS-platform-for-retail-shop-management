@@ -1,6 +1,8 @@
 using ErpSaas.Infrastructure.Data;
+using ErpSaas.Infrastructure.Messaging;
 using ErpSaas.Infrastructure.Seeds;
 using ErpSaas.Infrastructure.Sql;
+using Hangfire;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -21,9 +23,16 @@ public static class AppInitializationExtensions
 
             await sp.GetRequiredService<PlatformDbContext>().Database.EnsureCreatedAsync();
             await sp.GetRequiredService<TenantDbContext>().Database.EnsureCreatedAsync();
+            await sp.GetRequiredService<AnalyticsDbContext>().Database.EnsureCreatedAsync();
             await sp.GetRequiredService<LogDbContext>().Database.EnsureCreatedAsync();
+            await sp.GetRequiredService<NotificationsDbContext>().Database.EnsureCreatedAsync();
 
             await sp.GetRequiredService<DatabaseSeeder>().SeedAllAsync();
+
+            RecurringJob.AddOrUpdate<NotificationDrainJob>(
+                "notification-drain",
+                job => job.ExecuteAsync(CancellationToken.None),
+                Cron.Minutely);
         }
         catch (Exception ex)
         {

@@ -2,10 +2,13 @@ using ErpSaas.Infrastructure.Data;
 using ErpSaas.Infrastructure.Data.Entities.Masters;
 using ErpSaas.Shared.Seeds;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace ErpSaas.Infrastructure.Seeds;
 
-public sealed class DdlDataSeeder(PlatformDbContext db) : IDataSeeder
+public sealed class DdlDataSeeder(
+    PlatformDbContext db,
+    ILogger<DdlDataSeeder> logger) : IDataSeeder
 {
     public int Order => 10;
 
@@ -13,69 +16,63 @@ public sealed class DdlDataSeeder(PlatformDbContext db) : IDataSeeder
     [
         ("PAYMENT_MODE", "Payment Mode",
         [
-            ("CASH", "Cash"),
-            ("CARD", "Card"),
-            ("UPI", "UPI"),
-            ("BANK_TRANSFER", "Bank Transfer"),
-            ("CREDIT", "Credit"),
+            ("CASH", "Cash"), ("CARD", "Card"), ("UPI", "UPI"),
+            ("BANK_TRANSFER", "Bank Transfer"), ("CREDIT", "Credit"),
         ]),
         ("INVOICE_STATUS", "Invoice Status",
         [
-            ("DRAFT", "Draft"),
-            ("FINALIZED", "Finalized"),
-            ("PAID", "Paid"),
-            ("CANCELLED", "Cancelled"),
-            ("PARTIALLY_PAID", "Partially Paid"),
+            ("DRAFT", "Draft"), ("FINALIZED", "Finalized"), ("PAID", "Paid"),
+            ("CANCELLED", "Cancelled"), ("PARTIALLY_PAID", "Partially Paid"),
         ]),
         ("WARRANTY_STATUS", "Warranty Status",
         [
-            ("ACTIVE", "Active"),
-            ("CLAIMED", "Claimed"),
-            ("EXPIRED", "Expired"),
-            ("VOIDED", "Voided"),
+            ("ACTIVE", "Active"), ("CLAIMED", "Claimed"),
+            ("EXPIRED", "Expired"), ("VOIDED", "Voided"),
         ]),
         ("STOCK_MOVEMENT_TYPE", "Stock Movement Type",
         [
-            ("PURCHASE", "Purchase"),
-            ("SALE", "Sale"),
-            ("RETURN", "Return"),
-            ("ADJUSTMENT", "Adjustment"),
-            ("TRANSFER", "Transfer"),
+            ("PURCHASE", "Purchase"), ("SALE", "Sale"), ("RETURN", "Return"),
+            ("ADJUSTMENT", "Adjustment"), ("TRANSFER", "Transfer"),
         ]),
         ("CUSTOMER_TYPE", "Customer Type",
         [
-            ("RETAIL", "Retail"),
-            ("WHOLESALE", "Wholesale"),
-            ("DEALER", "Dealer"),
-            ("ONLINE", "Online"),
+            ("RETAIL", "Retail"), ("WHOLESALE", "Wholesale"),
+            ("DEALER", "Dealer"), ("ONLINE", "Online"),
         ]),
     ];
 
     public async Task SeedAsync(CancellationToken ct = default)
     {
-        var existingKeys = await db.DdlCatalogs.Select(c => c.Key).ToListAsync(ct);
-
-        foreach (var (key, label, items) in Catalogs)
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        try
         {
-            if (existingKeys.Contains(key))
-                continue;
+            var existingKeys = await db.DdlCatalogs.Select(c => c.Key).ToListAsync(ct);
 
-            var catalog = new DdlCatalog { Key = key, Label = label, IsActive = true };
-
-            for (int i = 0; i < items.Length; i++)
+            foreach (var (key, label, items) in Catalogs)
             {
-                catalog.Items.Add(new DdlItem
+                if (existingKeys.Contains(key)) continue;
+
+                var catalog = new DdlCatalog { Key = key, Label = label, IsActive = true };
+                for (int i = 0; i < items.Length; i++)
                 {
-                    Code = items[i].Code,
-                    Label = items[i].Label,
-                    SortOrder = (i + 1) * 10,
-                    IsActive = true
-                });
+                    catalog.Items.Add(new DdlItem
+                    {
+                        Code = items[i].Code, Label = items[i].Label,
+                        SortOrder = (i + 1) * 10, IsActive = true
+                    });
+                }
+                db.DdlCatalogs.Add(catalog);
+                logger.LogInformation("Seeding DDL catalog: {Key}", key);
             }
 
-            db.DdlCatalogs.Add(catalog);
+            await db.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
         }
-
-        await db.SaveChangesAsync(ct);
+        catch (Exception ex)
+        {
+            await tx.RollbackAsync(ct);
+            logger.LogError(ex, "DdlDataSeeder failed — rolled back");
+            throw;
+        }
     }
 }

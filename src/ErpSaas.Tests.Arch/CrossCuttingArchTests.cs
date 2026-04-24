@@ -22,7 +22,7 @@ public class CrossCuttingArchTests
         // Interceptors are not needed here — just checking model configuration.
         var auditInterceptor = new ErpSaas.Infrastructure.Data.Interceptors.AuditSaveChangesInterceptor(stubCtx);
         var tenantInterceptor = new ErpSaas.Infrastructure.Data.Interceptors.TenantSaveChangesInterceptor(stubCtx);
-        using var db = new TenantDbContext(opts, stubCtx, auditInterceptor, tenantInterceptor);
+        using var db = new TenantDbContext(opts, stubCtx, auditInterceptor, tenantInterceptor, []);
 
         var entityTypes = db.Model.GetEntityTypes()
             .Where(et => typeof(TenantEntity).IsAssignableFrom(et.ClrType))
@@ -48,7 +48,7 @@ public class CrossCuttingArchTests
                 var ctx = new StubTenantContext();
                 var ai = new ErpSaas.Infrastructure.Data.Interceptors.AuditSaveChangesInterceptor(ctx);
                 var ti = new ErpSaas.Infrastructure.Data.Interceptors.TenantSaveChangesInterceptor(ctx);
-                return new TenantDbContext(opts, ctx, ai, ti);
+                return new TenantDbContext(opts, ctx, ai, ti, []);
             });
     }
 

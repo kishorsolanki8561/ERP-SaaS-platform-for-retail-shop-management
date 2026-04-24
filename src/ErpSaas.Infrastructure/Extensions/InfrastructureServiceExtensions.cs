@@ -2,6 +2,10 @@ using ErpSaas.Infrastructure.Catalog;
 using ErpSaas.Infrastructure.Data;
 using ErpSaas.Infrastructure.Data.Interceptors;
 using ErpSaas.Infrastructure.Ddl;
+using ErpSaas.Infrastructure.Dapper;
+using ErpSaas.Infrastructure.Files;
+using ErpSaas.Infrastructure.MultiTenant;
+using ErpSaas.Infrastructure.Messaging;
 using ErpSaas.Infrastructure.Seeds;
 using ErpSaas.Infrastructure.Sequence;
 using ErpSaas.Infrastructure.Services;
@@ -47,6 +51,18 @@ public static class InfrastructureServiceExtensions
                 configuration.GetConnectionString("LogDb"),
                 sql => sql.MigrationsAssembly(typeof(LogDbContext).Assembly.FullName)));
 
+        services.AddDbContext<NotificationsDbContext>(opts =>
+            opts.UseSqlServer(
+                configuration.GetConnectionString("NotificationsDb"),
+                sql => sql.MigrationsAssembly(typeof(NotificationsDbContext).Assembly.FullName)));
+
+        // ── File storage ───────────────────────────────────────────────────────
+        var useAzure = !string.IsNullOrEmpty(configuration.GetConnectionString("AzureStorage"));
+        if (useAzure)
+            services.AddSingleton<IFileStorage, AzureBlobFileStorage>();
+        else
+            services.AddSingleton<IFileStorage, LocalFileStorage>();
+
         // ── Cross-cutting services ─────────────────────────────────────────────
         services.AddMemoryCache();
         services.AddSingleton<IErrorLogger, ErrorLogger>();
@@ -66,6 +82,17 @@ public static class InfrastructureServiceExtensions
         services.AddSingleton(new ServiceDescriptorEntry("ServiceCatalog", "Registered service registry", "1.0"));
         services.AddSingleton(new ServiceDescriptorEntry("ErrorLogger", "Async error logging to LogDb", "1.0"));
         services.AddSingleton(new ServiceDescriptorEntry("AuditLogger", "Mutation audit trail to LogDb", "1.0"));
+
+        // ── Multi-tenant connection resolution ─────────────────────────────────
+        services.AddScoped<IShopConnectionResolver, ShopConnectionResolver>();
+
+        // ── Dapper context + slow-query logging ────────────────────────────────
+        services.AddScoped<IDapperContext, TenantDapperContext>();
+        services.AddScoped<DapperLoggingInterceptor>();
+
+        // ── Messaging ──────────────────────────────────────────────────────────
+        services.AddScoped<INotificationService, NotificationService>();
+        services.AddScoped<NotificationDrainJob>();
 
         // ── Seeders ────────────────────────────────────────────────────────────
         services.AddScoped<DatabaseSeeder>();

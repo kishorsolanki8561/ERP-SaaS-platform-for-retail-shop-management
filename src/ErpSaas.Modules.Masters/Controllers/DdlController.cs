@@ -1,14 +1,13 @@
 using ErpSaas.Infrastructure.Ddl;
-using ErpSaas.Shared.Data;
+using ErpSaas.Shared.Controllers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ErpSaas.Modules.Masters.Controllers;
 
-[ApiController]
 [Route("api/ddl")]
 [Authorize]
-public class DdlController(IDdlService ddlService, ITenantContext tenantContext) : ControllerBase
+public class DdlController(IDdlService ddlService) : BaseController
 {
     [HttpGet("{key}")]
     public async Task<IActionResult> GetItems(
@@ -16,7 +15,7 @@ public class DdlController(IDdlService ddlService, ITenantContext tenantContext)
         [FromQuery] string? parentCode,
         CancellationToken ct)
     {
-        var items = await ddlService.GetItemsAsync(key, tenantContext.ShopId, parentCode, ct);
+        var items = await ddlService.GetItemsAsync(key, CurrentShopId, parentCode, ct);
         return Ok(items);
     }
 
@@ -28,7 +27,7 @@ public class DdlController(IDdlService ddlService, ITenantContext tenantContext)
         if (keys.Length == 0)
             return BadRequest("At least one key is required.");
 
-        var result = await ddlService.GetBatchAsync(keys, tenantContext.ShopId, ct);
+        var result = await ddlService.GetBatchAsync(keys, CurrentShopId, ct);
         return Ok(result);
     }
 }

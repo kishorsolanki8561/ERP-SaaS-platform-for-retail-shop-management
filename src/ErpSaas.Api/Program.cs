@@ -1,5 +1,5 @@
 using ErpSaas.Api.Extensions;
-using ErpSaas.Api.Infrastructure;
+using ErpSaas.Api.Middleware;
 using ErpSaas.Infrastructure.Extensions;
 using ErpSaas.Shared.Data;
 using Serilog;
@@ -19,7 +19,8 @@ try
 
     builder.Services.AddInfrastructure(builder.Configuration);
     builder.Services.AddApiServices(builder.Configuration);
-    builder.Services.AddScoped<ITenantContext, StubTenantContext>(); // replaced in Phase 1
+    builder.Services.AddScoped<RequestTenantContext>();
+    builder.Services.AddScoped<ITenantContext>(sp => sp.GetRequiredService<RequestTenantContext>());
 
     var app = builder.Build();
 

@@ -20,8 +20,8 @@ public class Result
     public static Result Validation(IEnumerable<string> errors) =>
         new() { IsSuccess = false, StatusCode = HttpStatusCode.UnprocessableEntity, Errors = [..errors] };
 
-    public static Result Forbidden() =>
-        new() { IsSuccess = false, StatusCode = HttpStatusCode.Forbidden, Errors = ["Access denied."] };
+    public static Result Forbidden(string? message = null) =>
+        new() { IsSuccess = false, StatusCode = HttpStatusCode.Forbidden, Errors = [message ?? "Access denied."] };
 
     public static Result Cancelled() =>
         new() { IsSuccess = false, StatusCode = HttpStatusCode.Gone, Errors = ["Operation was cancelled."] };
@@ -46,8 +46,8 @@ public sealed class Result<T> : Result
     public new static Result<T> Validation(IEnumerable<string> errors) =>
         new() { IsSuccess = false, StatusCode = HttpStatusCode.UnprocessableEntity, Errors = [..errors] };
 
-    public new static Result<T> Forbidden() =>
-        new() { IsSuccess = false, StatusCode = HttpStatusCode.Forbidden, Errors = ["Access denied."] };
+    public new static Result<T> Forbidden(string? message = null) =>
+        new() { IsSuccess = false, StatusCode = HttpStatusCode.Forbidden, Errors = [message ?? "Access denied."] };
 
     public new static Result<T> Cancelled() =>
         new() { IsSuccess = false, StatusCode = HttpStatusCode.Gone, Errors = ["Operation was cancelled."] };

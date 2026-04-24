@@ -1,0 +1,124 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  DOTNET_VERSION: '8.0.x'
+  NODE_VERSION: '20.x'
+
+jobs:
+  backend:
+    name: Backend (.NET)
+    runs-on: ubuntu-latest
+
+    services:
+      sqlserver:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: Y
+          SA_PASSWORD: Test@1234!
+          MSSQL_PID: Developer
+        ports:
+          - 1433:1433
+        options: --health-cmd "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'Test@1234!' -Q 'SELECT 1' -No" --health-interval 10s --health-timeout 5s --health-retries 10
+
+    env:
+      ConnectionStrings__PlatformDb: "Server=localhost,1433;Database=ErpPlatform_Test;User Id=sa;Password=Test@1234!;TrustServerCertificate=true"
+      ConnectionStrings__TenantDb: "Server=localhost,1433;Database=ErpTenant_Test;User Id=sa;Password=Test@1234!;TrustServerCertificate=true"
+      ConnectionStrings__AnalyticsDb: "Server=localhost,1433;Database=ErpAnalytics_Test;User Id=sa;Password=Test@1234!;TrustServerCertificate=true"
+      ConnectionStrings__LogDb: "Server=localhost,1433;Database=ErpLog_Test;User Id=sa;Password=Test@1234!;TrustServerCertificate=true"
+      ConnectionStrings__NotificationsDb: "Server=localhost,1433;Database=ErpNotifications_Test;User Id=sa;Password=Test@1234!;TrustServerCertificate=true"
+      Jwt__Secret: "ci-test-secret-minimum-32-chars-long!!"
+      Jwt__Issuer: "shopearth-erp-ci"
+      Jwt__Audience: "shopearth-erp-clients"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore
+        run: dotnet restore src/ErpSaas.sln
+
+      - name: Build (Release)
+        run: dotnet build src/ErpSaas.sln --configuration Release --no-restore --warnaserror
+
+      - name: Unit tests
+        run: dotnet test src/ErpSaas.sln --configuration Release --no-build --filter "Category=Unit" --logger "trx;LogFileName=unit-results.trx" --collect:"XPlat Code Coverage"
+
+      - name: Architecture tests
+        run: dotnet test src/ErpSaas.Tests.Arch --configuration Release --no-build --logger "trx;LogFileName=arch-results.trx"
+
+      - name: Integration tests
+        run: dotnet test src/ErpSaas.sln --configuration Release --no-build --filter "Category=Integration" --logger "trx;LogFileName=integration-results.trx"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-results
+          path: |
+            **/TestResults/*.trx
+            **/TestResults/*.xml
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          files: '**/coverage.cobertura.xml'
+          flags: backend
+
+  frontend-staff:
+    name: Frontend — Staff App (Angular)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: src/web/package-lock.json
+
+      - name: Install
+        working-directory: src/web
+        run: npm ci
+
+      - name: Build
+        working-directory: src/web
+        run: npm run build -- --configuration production
+
+      - name: Lint
+        working-directory: src/web
+        run: npm run lint -- --max-warnings=0
+        continue-on-error: true
+
+  frontend-portal:
+    name: Frontend — Customer Portal (Angular)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: src/web-portal/package-lock.json
+
+      - name: Install
+        working-directory: src/web-portal
+        run: npm ci
+
+      - name: Build
+        working-directory: src/web-portal
+        run: npm run build -- --configuration production

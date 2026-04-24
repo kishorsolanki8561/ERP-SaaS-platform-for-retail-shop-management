@@ -28,6 +28,7 @@
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <ProjectReference Include="..\ErpSaas.Api\ErpSaas.Api.csproj" />
+    <ProjectReference Include="..\ErpSaas.Modules.Billing\ErpSaas.Modules.Billing.csproj" />
   </ItemGroup>
 
   <ItemGroup>

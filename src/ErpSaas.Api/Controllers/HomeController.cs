@@ -1,11 +1,11 @@
 using ErpSaas.Shared.Catalog;
+using ErpSaas.Shared.Controllers;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ErpSaas.Api.Controllers;
 
-[ApiController]
 [Route("")]
-public class HomeController(IServiceCatalog catalog) : ControllerBase
+public class HomeController(IServiceCatalog catalog) : BaseController
 {
     [HttpGet]
     [Produces("text/html")]

@@ -9,6 +9,7 @@ public class LogDbContext(DbContextOptions<LogDbContext> options) : DbContext(op
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<ThirdPartyApiLog> ThirdPartyApiLogs => Set<ThirdPartyApiLog>();
     public DbSet<SequenceAllocation> SequenceAllocations => Set<SequenceAllocation>();
+    public DbSet<SlowQueryLog> SlowQueryLogs => Set<SlowQueryLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -47,6 +48,13 @@ public class LogDbContext(DbContextOptions<LogDbContext> options) : DbContext(op
             b.ToTable("SequenceAllocation", schema: "log");
             b.HasKey(e => e.Id);
             b.Property(e => e.Code).HasMaxLength(50).IsRequired();
+        });
+
+        modelBuilder.Entity<SlowQueryLog>(b =>
+        {
+            b.ToTable("SlowQueryLog", schema: "log");
+            b.HasKey(e => e.Id);
+            b.Property(e => e.CallerName).HasMaxLength(200);
         });
     }
 }

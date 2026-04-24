@@ -257,8 +257,8 @@ dotnet test --filter Category=Architecture
 
 > **Update this section at the end of every session.** It's the one piece of state that survives between sessions.
 
-- [ ] **Phase 0 — Foundation** (in progress / not started / done)
-- [ ] **Phase 1 — Core Retail Loop**
+- [x] **Phase 0 — Foundation** — ✅ DONE (2026-04-24)
+- [ ] **Phase 1 — Core Retail Loop** ← current
 - [ ] **Phase 2 — Financial Core**
 - [ ] **Phase 3 — Operations**
 - [ ] **Phase 4 — HR + Marketplace**
@@ -266,9 +266,9 @@ dotnet test --filter Category=Architecture
 - [ ] **Phase 6 — Multi-Platform Shells**
 - [ ] **Phase 7 — Vertical Packs**
 
-**Current sprint:** _(fill in at session start)_
-**Blockers:** _(none / list them)_
-**Next action:** _(one concrete task — not a sentence, a command)_
+**Current sprint:** Phase 1 — Week 1: Customer entity (CRM schema) + Product/Inventory entity (inventory schema) + basic Invoice (sales schema) skeleton
+**Blockers:** Staging deployment + full integration test suite + Cloudflare Turnstile CAPTCHA still pending (deferred to Phase 1 kickoff)
+**Next action:** `dotnet new classlib -n ErpSaas.Modules.Crm` — scaffold CRM module per `erp-scaffold-module` skill
 
 ---
 

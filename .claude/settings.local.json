@@ -10,7 +10,22 @@
       "Bash(dotnet add *)",
       "Bash(dotnet build *)",
       "Bash(dotnet user-secrets *)",
-      "Bash(dotnet test *)"
+      "Bash(dotnet test *)",
+      "Bash(dotnet restore *)",
+      "Bash(npx @angular/cli@18 version)",
+      "Bash(npx @angular/cli@18 new web --routing --style=scss --standalone --skip-tests --skip-git)",
+      "Bash(npm install *)",
+      "Bash(node -e \"const p = require\\('./node_modules/primeng/package.json'\\); console.log\\(p.version\\)\")",
+      "Bash(node -e \"try { require\\('./node_modules/primeng/config'\\); console.log\\('config ok'\\); } catch\\(e\\) { console.log\\(e.message.slice\\(0,80\\)\\); }\")",
+      "Bash(node -e \"const p = require\\('./node_modules/@primeng/themes/package.json'\\); console.log\\(p.version\\)\")",
+      "Bash(npm view *)",
+      "Bash(node -e \"const v=require\\('fs'\\).readFileSync\\('/dev/stdin','utf8'\\); const versions=JSON.parse\\(v\\); console.log\\(versions.filter\\(x=>x.startsWith\\('17'\\)||x.startsWith\\('18'\\)||x.startsWith\\('19'\\)||x.startsWith\\('20'\\)||x.startsWith\\('21'\\)\\).slice\\(-10\\).join\\('\\\\n'\\)\\)\")",
+      "Bash(node -e \"console.log\\(require\\('./node_modules/primeng/package.json'\\).version, require\\('./node_modules/@primeng/themes/package.json'\\).version\\)\")",
+      "Bash(npm run *)",
+      "Bash(ng new *)",
+      "Bash(xargs cat *)",
+      "Bash(xargs ls *)",
+      "Bash(dotnet tool *)"
     ]
   }
 }

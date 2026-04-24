@@ -30,11 +30,17 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <ProjectReference Include="..\ErpSaas.Api\ErpSaas.Api.csproj" />
     <ProjectReference Include="..\ErpSaas.Infrastructure\ErpSaas.Infrastructure.csproj" />
+    <ProjectReference Include="..\ErpSaas.Modules.Crm\ErpSaas.Modules.Crm.csproj" />
     <ProjectReference Include="..\ErpSaas.Shared\ErpSaas.Shared.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ErpSaas.Modules.Inventory\ErpSaas.Modules.Inventory.csproj" />
+    <ProjectReference Include="..\ErpSaas.Modules.Billing\ErpSaas.Modules.Billing.csproj" />
   </ItemGroup>
 
 </Project>
