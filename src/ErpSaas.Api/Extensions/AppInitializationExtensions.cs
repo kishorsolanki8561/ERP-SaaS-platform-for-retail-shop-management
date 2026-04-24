@@ -3,6 +3,7 @@ using ErpSaas.Infrastructure.Messaging;
 using ErpSaas.Infrastructure.Seeds;
 using ErpSaas.Infrastructure.Sql;
 using Hangfire;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
