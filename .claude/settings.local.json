@@ -29,7 +29,10 @@
       "Bash(dotnet ef *)",
       "Bash(npm ci *)",
       "Bash(grep -E \"CreateTable.*name:\" \"D:/Project/ERP-SaaS-platform-for-retail-shop-management/src/ErpSaas.Infrastructure/Migrations/Platform/$\\(ls D:/Project/ERP-SaaS-platform-for-retail-shop-management/src/ErpSaas.Infrastructure/Migrations/Platform/)",
-      "Bash(npm pack *)"
+      "Bash(npm pack *)",
+      "Bash(git commit -m ' *)",
+      "Bash(npm show *)",
+      "Bash(node -e \"console.log\\(require\\('./node_modules/primeng/package.json'\\).version\\)\")"
     ]
   }
 }
