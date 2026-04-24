@@ -1,3 +1,9 @@
+using ErpSaas.Infrastructure.Authorization;
+using ErpSaas.Modules.Billing.Extensions;
+using ErpSaas.Modules.Crm.Extensions;
+using ErpSaas.Modules.Identity.Extensions;
+using ErpSaas.Modules.Inventory.Extensions;
+using ErpSaas.Modules.Masters.Extensions;
 using Hangfire;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -10,14 +16,24 @@ public static class ApiServiceExtensions
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        services.AddControllers()
-            .AddApplicationPart(typeof(Modules.Masters.Controllers.DdlController).Assembly);
+        services.AddScoped<CaptchaValidationFilter>();
+
+        services.AddControllers(opts => opts.Filters.AddService<CaptchaValidationFilter>())
+            .AddApplicationPart(typeof(Modules.Masters.Controllers.DdlController).Assembly)
+            .AddApplicationPart(typeof(Modules.Identity.Controllers.AuthController).Assembly)
+            .AddApplicationPart(typeof(Modules.Crm.Controllers.CrmController).Assembly)
+            .AddApplicationPart(typeof(Modules.Inventory.Controllers.InventoryController).Assembly)
+            .AddApplicationPart(typeof(Modules.Billing.Controllers.BillingController).Assembly);
 
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen(c =>
             c.SwaggerDoc("v1", new() { Title = "ShopEarth ERP API", Version = "v1" }));
 
-        services.AddAuthorization();
+        services.AddIdentityModule(configuration);
+        services.AddMastersModule();
+        services.AddCrmModule();
+        services.AddInventoryModule();
+        services.AddBillingModule();
 
         services.AddHangfire(cfg => cfg
             .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)

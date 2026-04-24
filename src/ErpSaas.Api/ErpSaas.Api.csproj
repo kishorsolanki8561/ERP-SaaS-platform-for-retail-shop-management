@@ -18,8 +18,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\ErpSaas.Shared\ErpSaas.Shared.csproj" />
     <ProjectReference Include="..\ErpSaas.Modules.Identity\ErpSaas.Modules.Identity.csproj" />
     <ProjectReference Include="..\ErpSaas.Modules.Masters\ErpSaas.Modules.Masters.csproj" />
+    <ProjectReference Include="..\ErpSaas.Modules.Crm\ErpSaas.Modules.Crm.csproj" />
+    <ProjectReference Include="..\ErpSaas.Modules.Inventory\ErpSaas.Modules.Inventory.csproj" />
+    <ProjectReference Include="..\ErpSaas.Modules.Billing\ErpSaas.Modules.Billing.csproj" />
   </ItemGroup>
 
 </Project>

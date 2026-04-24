@@ -15,11 +15,17 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ErpSaas.Modules.Identity", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ErpSaas.Modules.Masters", "ErpSaas.Modules.Masters\ErpSaas.Modules.Masters.csproj", "{3800EBA4-2ED9-4539-AC7F-B0E42FFD60BA}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ErpSaas.Modules.Crm", "ErpSaas.Modules.Crm\ErpSaas.Modules.Crm.csproj", "{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ErpSaas.Tests.Unit", "ErpSaas.Tests.Unit\ErpSaas.Tests.Unit.csproj", "{E33103FD-D093-41C0-9AE2-BBB3D43A4AA4}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ErpSaas.Tests.Integration", "ErpSaas.Tests.Integration\ErpSaas.Tests.Integration.csproj", "{50BD9565-A3AE-4CF3-B47C-A2D344EB1040}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ErpSaas.Tests.Arch", "ErpSaas.Tests.Arch\ErpSaas.Tests.Arch.csproj", "{7DC38379-D958-494D-BD15-B555F8248173}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ErpSaas.Modules.Inventory", "ErpSaas.Modules.Inventory\ErpSaas.Modules.Inventory.csproj", "{BECCE3F6-7571-409B-9588-40F183CC0376}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ErpSaas.Modules.Billing", "ErpSaas.Modules.Billing\ErpSaas.Modules.Billing.csproj", "{D5E6F7A8-B9C0-1234-5678-90ABCDEF1234}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -54,6 +60,10 @@ Global
 		{3800EBA4-2ED9-4539-AC7F-B0E42FFD60BA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3800EBA4-2ED9-4539-AC7F-B0E42FFD60BA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3800EBA4-2ED9-4539-AC7F-B0E42FFD60BA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Release|Any CPU.Build.0 = Release|Any CPU
 		{E33103FD-D093-41C0-9AE2-BBB3D43A4AA4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{E33103FD-D093-41C0-9AE2-BBB3D43A4AA4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E33103FD-D093-41C0-9AE2-BBB3D43A4AA4}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -66,5 +76,13 @@ Global
 		{7DC38379-D958-494D-BD15-B555F8248173}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7DC38379-D958-494D-BD15-B555F8248173}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7DC38379-D958-494D-BD15-B555F8248173}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BECCE3F6-7571-409B-9588-40F183CC0376}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BECCE3F6-7571-409B-9588-40F183CC0376}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BECCE3F6-7571-409B-9588-40F183CC0376}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BECCE3F6-7571-409B-9588-40F183CC0376}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D5E6F7A8-B9C0-1234-5678-90ABCDEF1234}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D5E6F7A8-B9C0-1234-5678-90ABCDEF1234}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D5E6F7A8-B9C0-1234-5678-90ABCDEF1234}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D5E6F7A8-B9C0-1234-5678-90ABCDEF1234}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
