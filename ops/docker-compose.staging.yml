@@ -1,0 +1,43 @@
+services:
+  sqlserver-staging:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: erp-sqlserver-staging
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "${SQLSERVER_SA_PASSWORD}"
+    ports:
+      - "1434:1433"       # staging uses port 1434 on the host
+    volumes:
+      - mssql-staging-data:/var/opt/mssql
+    healthcheck:
+      test: >
+        /opt/mssql-tools18/bin/sqlcmd
+        -S localhost -U sa -P "$$MSSQL_SA_PASSWORD"
+        -Q "SELECT 1" -No
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  redis-staging:
+    image: redis:7-alpine
+    container_name: erp-redis-staging
+    ports:
+      - "6380:6379"       # staging uses port 6380 on the host
+    volumes:
+      - redis-staging-data:/data
+
+  seq-staging:
+    image: datalust/seq:latest
+    container_name: erp-seq-staging
+    ports:
+      - "5342:80"         # staging Seq on port 5342
+    environment:
+      ACCEPT_EULA: "Y"
+    volumes:
+      - seq-staging-data:/data
+
+volumes:
+  mssql-staging-data:
+  redis-staging-data:
+  seq-staging-data:

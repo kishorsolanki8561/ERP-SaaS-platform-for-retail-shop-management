@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  apiBaseUrl: 'https://erp-saas-api.azurewebsites.net',
+  apiBaseUrl: 'http://YOUR_SERVER_IP:5000',  // production API port
 };

@@ -1,0 +1,43 @@
+services:
+  sqlserver-production:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: erp-sqlserver-production
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "${SQLSERVER_SA_PASSWORD}"
+    ports:
+      - "1433:1433"       # production uses the standard port 1433
+    volumes:
+      - mssql-production-data:/var/opt/mssql
+    healthcheck:
+      test: >
+        /opt/mssql-tools18/bin/sqlcmd
+        -S localhost -U sa -P "$$MSSQL_SA_PASSWORD"
+        -Q "SELECT 1" -No
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  redis-production:
+    image: redis:7-alpine
+    container_name: erp-redis-production
+    ports:
+      - "6379:6379"       # production uses the standard port 6379
+    volumes:
+      - redis-production-data:/data
+
+  seq-production:
+    image: datalust/seq:latest
+    container_name: erp-seq-production
+    ports:
+      - "5341:80"         # production Seq on standard port 5341
+    environment:
+      ACCEPT_EULA: "Y"
+    volumes:
+      - seq-production-data:/data
+
+volumes:
+  mssql-production-data:
+  redis-production-data:
+  seq-production-data:
