@@ -146,25 +146,34 @@ jobs:
           sudo chown -R erp-staging:erp-staging /opt/erp-staging/api
           sudo chmod 600 /opt/erp-staging/api/.env.staging
           sudo systemctl start erp-staging
-          echo "Waiting for service to become active (migrations may take up to 60s)..."
-          for i in $(seq 1 12); do
-            STATUS=$(sudo systemctl is-active erp-staging || true)
-            echo "  check $i/12: $STATUS"
+          dump_logs() {
+            # sudo -n: non-interactive, fail silently if password required
+            sudo -n journalctl -u erp-staging --no-pager -n 80 2>/dev/null \
+              || journalctl -u erp-staging --no-pager -n 80 2>/dev/null \
+              || echo "(journal unavailable — check VPS sudoers or systemd-journal group)"
+          }
+          echo "Waiting for service to become active (migrations may take up to 90s)..."
+          REACHED_ACTIVE=0
+          for i in $(seq 1 18); do
+            # systemctl is-active is unprivileged — no sudo needed
+            STATUS=$(systemctl is-active erp-staging 2>/dev/null || true)
+            echo "  check $i/18: $STATUS"
             if [ "$STATUS" = "active" ]; then
               echo "Service is active."
+              REACHED_ACTIVE=1
               break
             fi
             if [ "$STATUS" = "failed" ]; then
-              echo "Service failed to start. Last 50 log lines:"
-              sudo journalctl -u erp-staging --no-pager -n 50
+              echo "Service failed to start. Last 80 log lines:"
+              dump_logs
               exit 1
             fi
             sleep 5
           done
-          FINAL=$(sudo systemctl is-active erp-staging || true)
-          if [ "$FINAL" != "active" ]; then
-            echo "Service did not become active within 60s (status: $FINAL). Logs:"
-            sudo journalctl -u erp-staging --no-pager -n 50
+          if [ "$REACHED_ACTIVE" = "0" ]; then
+            FINAL=$(systemctl is-active erp-staging 2>/dev/null || true)
+            echo "Service did not become active within 90s (status: $FINAL). Last 80 log lines:"
+            dump_logs
             exit 1
           fi
           rm -rf /tmp/erp-staging-api-deploy
