@@ -29,15 +29,23 @@ public sealed class IdentityDataSeeder(
         ("Users.Invite",      "Admin",     "Invite Users"),
         ("Users.Deactivate",  "Admin",     "Deactivate Users"),
         ("MasterData.Manage", "Admin",     "Manage Master Data"),
-        ("Invoice.View",      "Billing",   "View Invoices"),
-        ("Invoice.Create",    "Billing",   "Create Invoices"),
-        ("Invoice.Edit",      "Billing",   "Edit Invoices"),
-        ("Invoice.Cancel",    "Billing",   "Cancel Invoices"),
-        ("Invoice.Finalize",  "Billing",   "Finalize Invoices"),
-        ("Product.View",      "Inventory", "View Products"),
-        ("Product.Manage",    "Inventory", "Manage Products"),
-        ("Customer.View",     "CRM",       "View Customers"),
-        ("Customer.Manage",   "CRM",       "Manage Customers"),
+        // Billing — codes must match BillingController [RequirePermission(...)]
+        ("Billing.View",      "Billing",   "View invoices and billing records"),
+        ("Billing.Create",    "Billing",   "Create draft invoices and add lines"),
+        ("Billing.Edit",      "Billing",   "Edit and finalize invoices"),
+        ("Billing.Cancel",    "Billing",   "Cancel invoices"),
+        // Inventory — codes must match InventoryController [RequirePermission(...)]
+        ("Inventory.View",    "Inventory", "View products, warehouses, and stock levels"),
+        ("Inventory.Manage",  "Inventory", "Create and update products, warehouses, and stock"),
+        // CRM — codes must match CrmController [RequirePermission(...)]
+        ("Crm.View",          "CRM",       "View CRM records"),
+        ("Crm.Create",        "CRM",       "Create customers"),
+        ("Crm.Edit",          "CRM",       "Edit / deactivate customers"),
+        ("Crm.Manage",        "CRM",       "Manage customer groups and CRM settings"),
+        // Wallet
+        ("Wallet.View",       "Wallet",    "View customer wallet balances and transactions"),
+        ("Wallet.Credit",     "Wallet",    "Credit a customer wallet"),
+        ("Wallet.Debit",      "Wallet",    "Debit from a customer wallet"),
     ];
 
     // Shop Admin gets everything except platform-only permissions.

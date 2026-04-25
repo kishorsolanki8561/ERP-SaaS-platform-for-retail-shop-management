@@ -70,4 +70,11 @@ public static class Errors
     {
         public const string ShopNotFound = "ADMIN_001";
     }
+
+    public static class Wallet
+    {
+        public const string CustomerNotFound    = "WALLET_001";
+        public const string InsufficientBalance = "WALLET_002";
+        public const string InvalidAmount       = "WALLET_003";
+    }
 }

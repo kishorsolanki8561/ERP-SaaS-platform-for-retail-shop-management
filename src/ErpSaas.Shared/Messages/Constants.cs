@@ -17,12 +17,13 @@ public static class Constants
 
     public static class DdlKeys
     {
-        public const string InvoiceStatus   = "INVOICE_STATUS";
-        public const string CustomerType    = "CUSTOMER_TYPE";
-        public const string ProductCategory = "PRODUCT_CATEGORY";
-        public const string PaymentMode     = "PAYMENT_MODE";
-        public const string IndianState     = "INDIAN_STATE";
-        public const string Currency        = "CURRENCY";
+        public const string InvoiceStatus       = "INVOICE_STATUS";
+        public const string CustomerType        = "CUSTOMER_TYPE";
+        public const string ProductCategory     = "PRODUCT_CATEGORY";
+        public const string PaymentMode         = "PAYMENT_MODE";
+        public const string IndianState         = "INDIAN_STATE";
+        public const string Currency            = "CURRENCY";
+        public const string WalletReferenceType = "WALLET_REFERENCE_TYPE";
     }
 
     public static class SequenceCodes

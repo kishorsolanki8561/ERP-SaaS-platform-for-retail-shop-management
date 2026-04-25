@@ -4,6 +4,7 @@ using ErpSaas.Modules.Crm.Extensions;
 using ErpSaas.Modules.Identity.Extensions;
 using ErpSaas.Modules.Inventory.Extensions;
 using ErpSaas.Modules.Masters.Extensions;
+using ErpSaas.Modules.Wallet.Extensions;
 using Hangfire;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -23,7 +24,8 @@ public static class ApiServiceExtensions
             .AddApplicationPart(typeof(Modules.Identity.Controllers.AuthController).Assembly)
             .AddApplicationPart(typeof(Modules.Crm.Controllers.CrmController).Assembly)
             .AddApplicationPart(typeof(Modules.Inventory.Controllers.InventoryController).Assembly)
-            .AddApplicationPart(typeof(Modules.Billing.Controllers.BillingController).Assembly);
+            .AddApplicationPart(typeof(Modules.Billing.Controllers.BillingController).Assembly)
+            .AddApplicationPart(typeof(Modules.Wallet.Controllers.WalletController).Assembly);
 
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen(c =>
@@ -34,6 +36,7 @@ public static class ApiServiceExtensions
         services.AddCrmModule();
         services.AddInventoryModule();
         services.AddBillingModule();
+        services.AddWalletModule();
 
         services.AddHangfire(cfg => cfg
             .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
