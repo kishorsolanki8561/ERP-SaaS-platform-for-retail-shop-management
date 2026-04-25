@@ -21,5 +21,8 @@ export const ApiEndpoints = {
     users:       '/api/admin/users',
     shopProfile: '/api/admin/shop-profile',
   },
+  dashboard: {
+    summary: '/api/dashboard/summary',
+  },
   services: '/api/services',
 } as const;

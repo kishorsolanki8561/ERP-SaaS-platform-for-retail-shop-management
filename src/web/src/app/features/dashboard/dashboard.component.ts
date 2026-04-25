@@ -1,5 +1,21 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy, Component, OnInit,
+  inject, signal
+} from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
+import { ApiEndpoints } from '../../shared/messages/app-api';
+
+interface DashboardSummary {
+  todaySalesAmount: number;
+  todayInvoiceCount: number;
+  todaySalesTrend: string;
+  todaySalesTrendUp: boolean;
+  activeProductCount: number;
+  customerCount: number;
+}
 
 interface StatCard {
   label: string;
@@ -15,6 +31,7 @@ interface StatCard {
   selector: 'app-dashboard',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [CommonModule],
   template: `
     <div class="p-6 space-y-6 max-w-7xl mx-auto">
 
@@ -30,7 +47,7 @@ interface StatCard {
 
       <!-- KPI cards -->
       <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        @for (card of stats; track card.label) {
+        @for (card of stats(); track card.label) {
           <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 hover:shadow-md hover:shadow-slate-200/60 dark:hover:shadow-slate-900/60 transition-all duration-200">
             <div class="flex items-start justify-between mb-4">
               <div class="p-2.5 rounded-xl" [class]="card.bg">
@@ -45,7 +62,11 @@ interface StatCard {
                 </span>
               }
             </div>
-            <div class="text-2xl font-bold text-slate-900 dark:text-white mb-1">{{ card.value }}</div>
+            @if (loading()) {
+              <div class="h-8 w-24 rounded-lg bg-slate-100 dark:bg-slate-800 animate-pulse mb-1"></div>
+            } @else {
+              <div class="text-2xl font-bold text-slate-900 dark:text-white mb-1">{{ card.value }}</div>
+            }
             <div class="text-sm text-slate-500 dark:text-slate-400">{{ card.label }}</div>
           </div>
         }
@@ -54,7 +75,7 @@ interface StatCard {
       <!-- Placeholder panels -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
-        <!-- Recent activity -->
+        <!-- Recent invoices -->
         <div class="lg:col-span-2 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
           <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800">
             <h3 class="font-semibold text-slate-900 dark:text-white text-sm">Recent Invoices</h3>
@@ -111,8 +132,12 @@ interface StatCard {
     </div>
   `
 })
-export class DashboardComponent {
+export class DashboardComponent implements OnInit {
   protected readonly auth = inject(AuthService);
+  private readonly http = inject(HttpClient);
+
+  protected readonly loading = signal(true);
+  protected readonly stats = signal<StatCard[]>(this.blankStats());
 
   protected greeting(): string {
     const h = new Date().getHours();
@@ -125,17 +150,60 @@ export class DashboardComponent {
     return this.auth.currentUser()?.displayName?.split(' ')[0] ?? 'there';
   }
 
-  protected readonly stats: StatCard[] = [
-    { label: 'Total Sales Today',  value: '₹ —',  icon: 'pi-indian-rupee', color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-950/40', trend: '—' , trendUp: true  },
-    { label: 'Invoices Today',     value: '—',    icon: 'pi-file-edit',    color: 'text-violet-600 dark:text-violet-400', bg: 'bg-violet-50 dark:bg-violet-950/40', trend: '—' , trendUp: true  },
-    { label: 'Active Products',    value: '—',    icon: 'pi-box',          color: 'text-sky-600 dark:text-sky-400',    bg: 'bg-sky-50 dark:bg-sky-950/40'                                         },
-    { label: 'Customers',          value: '—',    icon: 'pi-users',        color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/40'                            },
-  ];
+  async ngOnInit(): Promise<void> {
+    try {
+      const s = await firstValueFrom(
+        this.http.get<DashboardSummary>(ApiEndpoints.dashboard.summary)
+      );
+      this.stats.set([
+        {
+          label: 'Total Sales Today',
+          value: `₹ ${s.todaySalesAmount.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
+          icon: 'pi-indian-rupee',
+          color: 'text-indigo-600 dark:text-indigo-400',
+          bg: 'bg-indigo-50 dark:bg-indigo-950/40',
+          trend: s.todaySalesTrend,
+          trendUp: s.todaySalesTrendUp,
+        },
+        {
+          label: 'Invoices Today',
+          value: String(s.todayInvoiceCount),
+          icon: 'pi-file-edit',
+          color: 'text-violet-600 dark:text-violet-400',
+          bg: 'bg-violet-50 dark:bg-violet-950/40',
+        },
+        {
+          label: 'Active Products',
+          value: String(s.activeProductCount),
+          icon: 'pi-box',
+          color: 'text-sky-600 dark:text-sky-400',
+          bg: 'bg-sky-50 dark:bg-sky-950/40',
+        },
+        {
+          label: 'Customers',
+          value: String(s.customerCount),
+          icon: 'pi-users',
+          color: 'text-emerald-600 dark:text-emerald-400',
+          bg: 'bg-emerald-50 dark:bg-emerald-950/40',
+        },
+      ]);
+    } catch { /* errorInterceptor shows toast */ }
+    finally { this.loading.set(false); }
+  }
+
+  private blankStats(): StatCard[] {
+    return [
+      { label: 'Total Sales Today', value: '₹ —', icon: 'pi-indian-rupee', color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-950/40' },
+      { label: 'Invoices Today',    value: '—',    icon: 'pi-file-edit',    color: 'text-violet-600 dark:text-violet-400', bg: 'bg-violet-50 dark:bg-violet-950/40' },
+      { label: 'Active Products',   value: '—',    icon: 'pi-box',          color: 'text-sky-600 dark:text-sky-400',       bg: 'bg-sky-50 dark:bg-sky-950/40' },
+      { label: 'Customers',         value: '—',    icon: 'pi-users',        color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/40' },
+    ];
+  }
 
   protected readonly quickActions = [
-    { label: 'New Invoice',    icon: 'pi-plus',       color: 'text-indigo-600', bg: 'bg-indigo-50 dark:bg-indigo-950/50'  },
-    { label: 'Add Product',   icon: 'pi-box',        color: 'text-sky-600',    bg: 'bg-sky-50 dark:bg-sky-950/50'         },
-    { label: 'Add Customer',  icon: 'pi-user-plus',  color: 'text-emerald-600',bg: 'bg-emerald-50 dark:bg-emerald-950/50' },
-    { label: 'Stock Entry',   icon: 'pi-database',   color: 'text-violet-600', bg: 'bg-violet-50 dark:bg-violet-950/50'   },
+    { label: 'New Invoice',   icon: 'pi-plus',      color: 'text-indigo-600', bg: 'bg-indigo-50 dark:bg-indigo-950/50'  },
+    { label: 'Add Product',   icon: 'pi-box',       color: 'text-sky-600',    bg: 'bg-sky-50 dark:bg-sky-950/50'         },
+    { label: 'Add Customer',  icon: 'pi-user-plus', color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-950/50' },
+    { label: 'Stock Entry',   icon: 'pi-database',  color: 'text-violet-600', bg: 'bg-violet-50 dark:bg-violet-950/50'   },
   ];
 }
