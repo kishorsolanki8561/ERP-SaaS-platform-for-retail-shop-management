@@ -1,8 +1,8 @@
 export const Permissions = {
   users: {
-    view:     'Users.View',
-    manage:   'Users.Manage',
-    invite:   'Users.Invite',
+    view:       'Users.View',
+    manage:     'Users.Manage',
+    invite:     'Users.Invite',
     deactivate: 'Users.Deactivate',
   },
   shopProfile: {
@@ -12,19 +12,29 @@ export const Permissions = {
   dashboard: {
     view:   'Dashboard.View',
   },
-  invoice: {
-    view:     'Invoice.View',
-    create:   'Invoice.Create',
-    edit:     'Invoice.Edit',
-    cancel:   'Invoice.Cancel',
-    finalize: 'Invoice.Finalize',
+  // Billing — must match [RequirePermission] on BillingController
+  billing: {
+    view:   'Billing.View',
+    create: 'Billing.Create',
+    edit:   'Billing.Edit',
+    cancel: 'Billing.Cancel',
   },
-  product: {
-    view:   'Product.View',
-    manage: 'Product.Manage',
+  // Inventory — must match [RequirePermission] on InventoryController
+  inventory: {
+    view:   'Inventory.View',
+    manage: 'Inventory.Manage',
   },
-  customer: {
-    view:   'Customer.View',
-    manage: 'Customer.Manage',
+  // CRM — must match [RequirePermission] on CrmController
+  crm: {
+    view:   'Crm.View',
+    create: 'Crm.Create',
+    edit:   'Crm.Edit',
+    manage: 'Crm.Manage',
+  },
+  // Wallet
+  wallet: {
+    view:   'Wallet.View',
+    credit: 'Wallet.Credit',
+    debit:  'Wallet.Debit',
   },
 } as const;

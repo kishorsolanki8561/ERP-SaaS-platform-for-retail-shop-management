@@ -46,7 +46,7 @@ public record CustomerGroupDto(
 
 public interface ICrmService
 {
-    Task<IReadOnlyList<CustomerDto>> ListCustomersAsync(
+    Task<PagedResult<CustomerDto>> ListCustomersAsync(
         int page, int pageSize, string? search, CancellationToken ct = default);
 
     Task<CustomerDto?> GetCustomerAsync(long id, CancellationToken ct = default);

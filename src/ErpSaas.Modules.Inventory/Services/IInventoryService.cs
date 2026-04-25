@@ -71,7 +71,7 @@ public record AdjustStockDto(
 
 public interface IInventoryService
 {
-    Task<IReadOnlyList<ProductListDto>> ListProductsAsync(
+    Task<PagedResult<ProductListDto>> ListProductsAsync(
         int page, int pageSize, string? search, CancellationToken ct = default);
 
     Task<ProductDetailDto?> GetProductAsync(long id, CancellationToken ct = default);

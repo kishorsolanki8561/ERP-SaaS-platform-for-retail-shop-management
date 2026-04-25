@@ -22,19 +22,25 @@ public sealed class InventoryService(
 
     // ── Products ──────────────────────────────────────────────────────────────
 
-    public Task<IReadOnlyList<ProductListDto>> ListProductsAsync(
+    public async Task<PagedResult<ProductListDto>> ListProductsAsync(
         int page, int pageSize, string? search, CancellationToken ct = default)
-        => Products
+    {
+        var query = Products
             .Where(p => !p.IsDeleted
-                && (search == null || p.Name.Contains(search) || p.ProductCode.Contains(search)))
+                && (search == null || p.Name.Contains(search) || p.ProductCode.Contains(search)));
+
+        var total = await query.CountAsync(ct);
+        var items = await query
             .OrderBy(p => p.Name)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .Select(p => new ProductListDto(
                 p.Id, p.ProductCode, p.Name,
                 p.CategoryCode, p.BaseUnitCode, p.SalePrice, p.IsActive))
-            .ToListAsync(ct)
-            .ContinueWith(t => (IReadOnlyList<ProductListDto>)t.Result, ct);
+            .ToListAsync(ct);
+
+        return new PagedResult<ProductListDto>(items, total, page, pageSize);
+    }
 
     public Task<ProductDetailDto?> GetProductAsync(long id, CancellationToken ct = default)
         => Products

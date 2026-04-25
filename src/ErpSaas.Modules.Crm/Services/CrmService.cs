@@ -13,13 +13,17 @@ public sealed class CrmService(
     IErrorLogger errorLogger)
     : BaseService<TenantDbContext>(db, errorLogger), ICrmService
 {
-    public Task<IReadOnlyList<CustomerDto>> ListCustomersAsync(
+    public async Task<PagedResult<CustomerDto>> ListCustomersAsync(
         int page, int pageSize, string? search, CancellationToken ct = default)
-        => db.Set<Customer>()
+    {
+        var query = db.Set<Customer>()
             .Where(c => !c.IsDeleted &&
                 (search == null
                     || c.DisplayName.Contains(search)
-                    || (c.Phone != null && c.Phone.Contains(search))))
+                    || (c.Phone != null && c.Phone.Contains(search))));
+
+        var total = await query.CountAsync(ct);
+        var items = await query
             .OrderBy(c => c.DisplayName)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
@@ -36,8 +40,10 @@ public sealed class CrmService(
                 c.IsActive,
                 c.CustomerGroupId,
                 c.CustomerGroup != null ? c.CustomerGroup.Name : null))
-            .ToListAsync(ct)
-            .ContinueWith(t => (IReadOnlyList<CustomerDto>)t.Result, ct);
+            .ToListAsync(ct);
+
+        return new PagedResult<CustomerDto>(items, total, page, pageSize);
+    }
 
     public Task<CustomerDto?> GetCustomerAsync(long id, CancellationToken ct = default)
         => db.Set<Customer>()

@@ -16,16 +16,20 @@ public sealed class BillingService(
     ISequenceService sequence)
     : BaseService<TenantDbContext>(db, errorLogger), IBillingService
 {
-    public Task<IReadOnlyList<InvoiceListDto>> ListInvoicesAsync(
+    public async Task<PagedResult<InvoiceListDto>> ListInvoicesAsync(
         int page,
         int pageSize,
         string? search,
         CancellationToken ct = default)
-        => db.Set<Invoice>()
+    {
+        var query = db.Set<Invoice>()
             .Where(i => !i.IsDeleted
                 && (search == null
                     || i.InvoiceNumber.Contains(search)
-                    || i.CustomerNameSnapshot.Contains(search)))
+                    || i.CustomerNameSnapshot.Contains(search)));
+
+        var total = await query.CountAsync(ct);
+        var items = await query
             .OrderByDescending(i => i.InvoiceDate)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
@@ -36,10 +40,10 @@ public sealed class BillingService(
                 i.CustomerNameSnapshot,
                 i.Status,
                 i.GrandTotal))
-            .ToListAsync(ct)
-            .ContinueWith(t => (IReadOnlyList<InvoiceListDto>)t.Result, ct,
-                TaskContinuationOptions.OnlyOnRanToCompletion,
-                TaskScheduler.Default);
+            .ToListAsync(ct);
+
+        return new PagedResult<InvoiceListDto>(items, total, page, pageSize);
+    }
 
     public Task<InvoiceDetailDto?> GetInvoiceAsync(long id, CancellationToken ct = default)
         => db.Set<Invoice>()

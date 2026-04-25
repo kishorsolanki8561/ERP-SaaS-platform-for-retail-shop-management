@@ -17,11 +17,12 @@ export const AppConstants = {
     searchMs: 300,
   },
   ddlKeys: {
-    invoiceStatus:   'INVOICE_STATUS',
-    customerType:    'CUSTOMER_TYPE',
-    productCategory: 'PRODUCT_CATEGORY',
-    paymentMode:     'PAYMENT_MODE',
-    indianState:     'INDIAN_STATE',
-    currency:        'CURRENCY',
+    invoiceStatus:       'INVOICE_STATUS',
+    customerType:        'CUSTOMER_TYPE',
+    productCategory:     'PRODUCT_CATEGORY',
+    paymentMode:         'PAYMENT_MODE',
+    indianState:         'INDIAN_STATE',
+    currency:            'CURRENCY',
+    walletReferenceType: 'WALLET_REFERENCE_TYPE',
   },
 } as const;

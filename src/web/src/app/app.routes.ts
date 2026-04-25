@@ -12,24 +12,58 @@ export const routes: Routes = [
     canActivate: [authGuard],
     children: [
       { path: '', redirectTo: AppRoutes.dashboard, pathMatch: 'full' },
+
+      // Dashboard
       {
         path: AppRoutes.dashboard,
         loadComponent: () =>
-          import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent)
+          import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent),
       },
+
+      // Admin
       {
         path: AppRoutes.admin.users,
         loadComponent: () =>
           import('./features/admin/users/users.component').then(m => m.UsersComponent),
-        canActivate: [permissionGuard(Permissions.users.view)]
+        canActivate: [permissionGuard(Permissions.users.view)],
       },
       {
         path: AppRoutes.admin.shopProfile,
         loadComponent: () =>
           import('./features/admin/shop-profile/shop-profile.component').then(m => m.ShopProfileComponent),
-        canActivate: [permissionGuard(Permissions.shopProfile.view)]
-      }
-    ]
+        canActivate: [permissionGuard(Permissions.shopProfile.view)],
+      },
+
+      // CRM
+      {
+        path: AppRoutes.crm.customers,
+        loadComponent: () =>
+          import('./features/crm/customers/customers.component').then(m => m.CustomersComponent),
+        canActivate: [permissionGuard(Permissions.crm.view)],
+      },
+
+      // Inventory
+      {
+        path: AppRoutes.inventory.products,
+        loadComponent: () =>
+          import('./features/inventory/products/products.component').then(m => m.ProductsComponent),
+        canActivate: [permissionGuard(Permissions.inventory.view)],
+      },
+
+      // Billing
+      {
+        path: AppRoutes.billing.invoices,
+        loadComponent: () =>
+          import('./features/billing/invoices/invoices.component').then(m => m.InvoicesComponent),
+        canActivate: [permissionGuard(Permissions.billing.view)],
+      },
+      {
+        path: 'billing/invoices/:id',
+        loadComponent: () =>
+          import('./features/billing/invoices/invoice-detail.component').then(m => m.InvoiceDetailComponent),
+        canActivate: [permissionGuard(Permissions.billing.view)],
+      },
+    ],
   },
   {
     path: '',
@@ -39,16 +73,16 @@ export const routes: Routes = [
       {
         path: AppRoutes.login,
         loadComponent: () =>
-          import('./features/auth/login/login.component').then(m => m.LoginComponent)
+          import('./features/auth/login/login.component').then(m => m.LoginComponent),
       },
       {
         path: AppRoutes.forgotPassword,
         loadComponent: () =>
-          import('./features/auth/forgot-password/forgot-password.component').then(m => m.ForgotPasswordComponent)
+          import('./features/auth/forgot-password/forgot-password.component').then(m => m.ForgotPasswordComponent),
       },
-    ]
+    ],
   },
-  { path: AppRoutes.unauthorized, loadComponent: () => import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent) },
+  { path: AppRoutes.unauthorized,       loadComponent: () => import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent) },
   { path: AppRoutes.featureUnavailable, loadComponent: () => import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent) },
-  { path: '**', redirectTo: '' }
+  { path: '**', redirectTo: '' },
 ];

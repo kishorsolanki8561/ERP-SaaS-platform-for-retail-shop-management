@@ -56,7 +56,7 @@ public record AddInvoiceLineDto(
 
 public interface IBillingService
 {
-    Task<IReadOnlyList<InvoiceListDto>> ListInvoicesAsync(
+    Task<PagedResult<InvoiceListDto>> ListInvoicesAsync(
         int page,
         int pageSize,
         string? search,

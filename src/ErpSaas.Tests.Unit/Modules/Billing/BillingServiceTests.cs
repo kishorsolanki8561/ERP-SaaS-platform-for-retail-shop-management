@@ -293,7 +293,7 @@ public class BillingServiceTests : IDisposable
 
         var results = await _sut.ListInvoicesAsync(1, 50, null);
 
-        results.Should().HaveCount(2);
+        results.Items.Should().HaveCount(2);
     }
 
     [Fact]
@@ -305,8 +305,8 @@ public class BillingServiceTests : IDisposable
 
         var results = await _sut.ListInvoicesAsync(1, 50, knownNumber);
 
-        results.Should().HaveCount(1);
-        results[0].InvoiceNumber.Should().Be(knownNumber);
+        results.Items.Should().HaveCount(1);
+        results.Items[0].InvoiceNumber.Should().Be(knownNumber);
     }
 
     [Fact]
@@ -317,8 +317,8 @@ public class BillingServiceTests : IDisposable
         var page1 = await _sut.ListInvoicesAsync(1, 3, null);
         var page2 = await _sut.ListInvoicesAsync(2, 3, null);
 
-        page1.Should().HaveCount(3);
-        page2.Should().HaveCount(2);
+        page1.Items.Should().HaveCount(3);
+        page2.Items.Should().HaveCount(2);
     }
 
     // ── GetInvoiceAsync ───────────────────────────────────────────────────────
