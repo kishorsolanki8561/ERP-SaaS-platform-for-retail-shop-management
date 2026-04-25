@@ -43,6 +43,7 @@ export const ApiEndpoints = {
     cancel:          (id: number | string) => `/api/billing/invoices/${id}/cancel`,
   },
   wallet: {
+    balances:        '/api/wallet/balances',
     balance:         (customerId: number | string) => `/api/wallet/balance/${customerId}`,
     transactions:    (customerId: number | string) => `/api/wallet/transactions/${customerId}`,
     credit:          '/api/wallet/credit',

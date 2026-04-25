@@ -18,6 +18,31 @@ public sealed class WalletService(
     ITenantContext tenant)
     : BaseService<TenantDbContext>(db, errorLogger), IWalletService
 {
+    public async Task<PagedResult<WalletBalanceDto>> ListBalancesAsync(
+        int page,
+        int pageSize,
+        string? search,
+        CancellationToken ct = default)
+    {
+        var query = db.Set<WalletBalance>().Where(w => !w.IsDeleted);
+        if (!string.IsNullOrWhiteSpace(search))
+            query = query.Where(w => w.CustomerNameSnapshot.Contains(search));
+
+        var total = await query.CountAsync(ct);
+        var items = await query
+            .OrderByDescending(w => w.Balance)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(w => new WalletBalanceDto(
+                w.CustomerId,
+                w.CustomerNameSnapshot,
+                w.Balance,
+                w.LastTransactionAtUtc))
+            .ToListAsync(ct);
+
+        return new PagedResult<WalletBalanceDto>(items, total, page, pageSize);
+    }
+
     public Task<WalletBalanceDto?> GetBalanceAsync(long customerId, CancellationToken ct = default)
         => db.Set<WalletBalance>()
             .Where(w => w.CustomerId == customerId && !w.IsDeleted)

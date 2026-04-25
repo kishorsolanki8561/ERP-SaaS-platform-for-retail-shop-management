@@ -48,6 +48,12 @@ public record WalletCreditResultDto(
 
 public interface IWalletService
 {
+    Task<PagedResult<WalletBalanceDto>> ListBalancesAsync(
+        int page,
+        int pageSize,
+        string? search,
+        CancellationToken ct = default);
+
     Task<WalletBalanceDto?> GetBalanceAsync(long customerId, CancellationToken ct = default);
 
     Task<PagedResult<WalletTransactionDto>> ListTransactionsAsync(

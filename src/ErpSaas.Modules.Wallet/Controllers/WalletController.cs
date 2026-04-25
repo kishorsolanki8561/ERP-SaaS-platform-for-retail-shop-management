@@ -11,6 +11,15 @@ namespace ErpSaas.Modules.Wallet.Controllers;
 [Authorize]
 public sealed class WalletController(IWalletService walletService) : BaseController
 {
+    [HttpGet("balances")]
+    [RequirePermission("Wallet.View")]
+    public async Task<IActionResult> ListBalances(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = Constants.Pagination.DefaultPageSize,
+        [FromQuery] string? search = null,
+        CancellationToken ct = default)
+        => Ok(await walletService.ListBalancesAsync(page, pageSize, search, ct));
+
     [HttpGet("balance/{customerId:long}")]
     [RequirePermission("Wallet.View")]
     public async Task<IActionResult> GetBalance(long customerId, CancellationToken ct = default)

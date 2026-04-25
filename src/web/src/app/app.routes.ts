@@ -63,6 +63,20 @@ export const routes: Routes = [
           import('./features/billing/invoices/invoice-detail.component').then(m => m.InvoiceDetailComponent),
         canActivate: [permissionGuard(Permissions.billing.view)],
       },
+
+      // Wallet
+      {
+        path: AppRoutes.wallet.balances,
+        loadComponent: () =>
+          import('./features/wallet/balances/wallet-balances.component').then(m => m.WalletBalancesComponent),
+        canActivate: [permissionGuard(Permissions.wallet.view)],
+      },
+      {
+        path: AppRoutes.wallet.transactions,
+        loadComponent: () =>
+          import('./features/wallet/transactions/wallet-transactions.component').then(m => m.WalletTransactionsComponent),
+        canActivate: [permissionGuard(Permissions.wallet.view)],
+      },
     ],
   },
   {
