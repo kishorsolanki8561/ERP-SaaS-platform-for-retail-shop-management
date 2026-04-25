@@ -97,6 +97,7 @@ public static class InfrastructureServiceExtensions
         // ── Seeders ────────────────────────────────────────────────────────────
         services.AddScoped<DatabaseSeeder>();
         services.AddDataSeeder<DdlDataSeeder>();
+        services.AddDataSeeder<NotificationTemplateSeeder>();
 
         return services;
     }
