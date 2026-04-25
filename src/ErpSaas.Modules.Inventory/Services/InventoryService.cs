@@ -2,6 +2,7 @@
 using ErpSaas.Infrastructure.Data;
 using ErpSaas.Infrastructure.Services;
 using ErpSaas.Modules.Inventory.Entities;
+using ErpSaas.Modules.Inventory.Enums;
 using ErpSaas.Shared.Messages;
 using ErpSaas.Shared.Services;
 using Microsoft.EntityFrameworkCore;
@@ -161,16 +162,16 @@ public sealed class InventoryService(
         var inbound = await StockMovements
             .Where(m => m.ProductId == productId
                 && m.WarehouseId == warehouseId
-                && (m.MovementType == "Purchase"
-                    || m.MovementType == "Adjustment"
-                    || m.MovementType == "Return"
-                    || m.MovementType == "Opening"))
+                && (m.MovementType == StockMovementType.Purchase
+                    || m.MovementType == StockMovementType.Adjustment
+                    || m.MovementType == StockMovementType.Return
+                    || m.MovementType == StockMovementType.Opening))
             .SumAsync(m => (decimal?)m.QuantityInBaseUnit, ct) ?? 0m;
 
         var outbound = await StockMovements
             .Where(m => m.ProductId == productId
                 && m.WarehouseId == warehouseId
-                && m.MovementType == "Sale")
+                && m.MovementType == StockMovementType.Sale)
             .SumAsync(m => (decimal?)m.QuantityInBaseUnit, ct) ?? 0m;
 
         return inbound - outbound;

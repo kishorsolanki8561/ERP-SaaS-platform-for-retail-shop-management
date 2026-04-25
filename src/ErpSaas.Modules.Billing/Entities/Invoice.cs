@@ -1,3 +1,4 @@
+using ErpSaas.Modules.Billing.Enums;
 using ErpSaas.Shared.Data;
 using ErpSaas.Shared.Services;
 
@@ -20,8 +21,7 @@ public class Invoice : TenantEntity
 
     public string? BillingAddressSnapshot { get; set; }
 
-    /// <summary>DDL key: INVOICE_STATUS — Draft | Finalized | Cancelled</summary>
-    public string Status { get; set; } = "Draft";
+    public InvoiceStatus Status { get; set; } = InvoiceStatus.Draft;
 
     public decimal SubTotal { get; set; }
 

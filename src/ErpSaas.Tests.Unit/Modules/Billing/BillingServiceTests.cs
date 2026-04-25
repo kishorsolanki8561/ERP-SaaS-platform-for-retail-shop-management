@@ -2,6 +2,7 @@ using ErpSaas.Infrastructure.Data;
 using ErpSaas.Infrastructure.Data.Interceptors;
 using ErpSaas.Infrastructure.Sequence;
 using ErpSaas.Modules.Billing.Entities;
+using ErpSaas.Modules.Billing.Enums;
 using ErpSaas.Modules.Billing.Infrastructure;
 using ErpSaas.Modules.Billing.Services;
 using ErpSaas.Shared.Data;
@@ -109,7 +110,7 @@ public class BillingServiceTests : IDisposable
 
         var saved = await _db.Set<Invoice>().FindAsync(result.Value);
         saved.Should().NotBeNull();
-        saved!.Status.Should().Be("Draft");
+        saved!.Status.Should().Be(InvoiceStatus.Draft);
         saved.CustomerId.Should().Be(42L);
         saved.Notes.Should().Be("test note");
     }
@@ -208,7 +209,7 @@ public class BillingServiceTests : IDisposable
 
         result.IsSuccess.Should().BeTrue();
         var invoice = await _db.Set<Invoice>().FindAsync(invoiceId);
-        invoice!.Status.Should().Be("Finalized");
+        invoice!.Status.Should().Be(InvoiceStatus.Finalized);
     }
 
     [Fact]
@@ -243,7 +244,7 @@ public class BillingServiceTests : IDisposable
 
         result.IsSuccess.Should().BeTrue();
         var invoice = await _db.Set<Invoice>().FindAsync(invoiceId);
-        invoice!.Status.Should().Be("Cancelled");
+        invoice!.Status.Should().Be(InvoiceStatus.Cancelled);
         invoice.Notes.Should().Contain("Customer request");
     }
 
@@ -279,7 +280,7 @@ public class BillingServiceTests : IDisposable
 
         result.IsSuccess.Should().BeTrue();
         var invoice = await _db.Set<Invoice>().FindAsync(invoiceId);
-        invoice!.Status.Should().Be("Cancelled");
+        invoice!.Status.Should().Be(InvoiceStatus.Cancelled);
     }
 
     // ── ListInvoicesAsync ─────────────────────────────────────────────────────

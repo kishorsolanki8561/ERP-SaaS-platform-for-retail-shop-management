@@ -1,3 +1,4 @@
+using ErpSaas.Modules.Inventory.Enums;
 using ErpSaas.Shared.Data;
 
 namespace ErpSaas.Modules.Inventory.Entities;
@@ -11,11 +12,7 @@ public class StockMovement : TenantEntity
     public long ProductId { get; set; }
     public long WarehouseId { get; set; }
 
-    /// <summary>
-    /// Type of movement: Purchase | Sale | Adjustment | Transfer | Return | Opening
-    /// (sourced from DDL catalog STOCK_MOVEMENT_TYPE).
-    /// </summary>
-    public string MovementType { get; set; } = "";
+    public StockMovementType MovementType { get; set; }
 
     /// <summary>Originating document type, e.g. "Invoice", "PurchaseOrder".</summary>
     public string? ReferenceType { get; set; }

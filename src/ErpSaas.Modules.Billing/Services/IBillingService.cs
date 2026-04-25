@@ -1,3 +1,4 @@
+using ErpSaas.Modules.Billing.Enums;
 using ErpSaas.Shared.Services;
 
 namespace ErpSaas.Modules.Billing.Services;
@@ -9,7 +10,7 @@ public record InvoiceListDto(
     string InvoiceNumber,
     DateTime InvoiceDate,
     string CustomerName,
-    string Status,
+    InvoiceStatus Status,
     decimal GrandTotal);
 
 public record InvoiceLineDto(
@@ -30,7 +31,7 @@ public record InvoiceDetailDto(
     DateTime InvoiceDate,
     long CustomerId,
     string CustomerName,
-    string Status,
+    InvoiceStatus Status,
     decimal SubTotal,
     decimal TotalDiscount,
     decimal TotalTaxAmount,

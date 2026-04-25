@@ -61,6 +61,21 @@ Plan § 6.3.c. `InvoiceLine`, `PurchaseOrderLine`, `DeliveryChallanLine`, `Sales
 ### 3.8 Every public auth endpoint is CAPTCHA-gated
 Plan § 9.4. Login, forgot-password, signup, OTP request, invite-accept, bootstrap — all carry `[RequireCaptcha]`. Arch test `EveryPublicAuthEndpoint_HasCaptchaGuard` blocks PR if one is missing.
 
+### 3.9 Every status / state-machine field is a C# enum stored as string
+Any field that drives business logic transitions (invoice status, movement type, order state, etc.) **must** be a C# enum, never a `string` with magic literals. EF Core must store it as a string in the DB column via `.HasConversion<string>()` in the entity's type configuration. DTOs that expose these fields must carry the enum type, not `string`. Comparing or assigning hardcoded string literals like `"Draft"`, `"Finalized"`, `"Purchase"` instead of the enum member is a build violation.
+
+```csharp
+// Entity
+public InvoiceStatus Status { get; set; } = InvoiceStatus.Draft;
+
+// EF config (HasConversion stores "Draft", "Finalized", ... instead of 0, 1, ...)
+e.Property(x => x.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
+
+// Service — always compare with enum member, never a string literal
+if (invoice.Status != InvoiceStatus.Draft) return Result<bool>.Conflict(...);
+invoice.Status = InvoiceStatus.Finalized;
+```
+
 ---
 
 ## 4. Database rules (§4.5 + §4.6)
@@ -228,6 +243,7 @@ dotnet test --filter Category=Architecture
 ## 11. Things I must NOT do
 
 - **Do not** write `await _db.SaveChangesAsync()` outside `BaseService.ExecuteAsync`.
+- **Do not** declare a status/state field as `string` — use a C# enum with `.HasConversion<string>()` in EF config (§ 3.9).
 - **Do not** use EF in-memory provider for integration tests.
 - **Do not** hardcode strings for tenant / user IDs, permission codes, feature codes, DDL options.
 - **Do not** call `HttpClient` directly — always through `ThirdPartyApiClientBase`.

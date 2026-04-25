@@ -1,3 +1,4 @@
+using ErpSaas.Modules.Inventory.Enums;
 using ErpSaas.Shared.Services;
 
 namespace ErpSaas.Modules.Inventory.Services;
@@ -63,7 +64,7 @@ public record AdjustStockDto(
     long WarehouseId,
     long ProductUnitId,
     decimal QuantityInBilledUnit,
-    string MovementType,
+    StockMovementType MovementType,
     string? Remarks);
 
 // ── Service interface ─────────────────────────────────────────────────────────

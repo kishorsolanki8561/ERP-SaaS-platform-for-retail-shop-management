@@ -3,6 +3,7 @@ using ErpSaas.Infrastructure.Data;
 using ErpSaas.Infrastructure.Sequence;
 using ErpSaas.Infrastructure.Services;
 using ErpSaas.Modules.Billing.Entities;
+using ErpSaas.Modules.Billing.Enums;
 using ErpSaas.Shared.Messages;
 using ErpSaas.Shared.Services;
 using Microsoft.EntityFrameworkCore;
@@ -85,7 +86,7 @@ public sealed class BillingService(
                 InvoiceDate = dto.InvoiceDate,
                 CustomerId = dto.CustomerId,
                 CustomerNameSnapshot = "Pending",   // populated when CRM module is wired
-                Status = "Draft",
+                Status = InvoiceStatus.Draft,
                 SubTotal = 0m,
                 TotalDiscount = 0m,
                 TotalTaxAmount = 0m,
@@ -113,7 +114,7 @@ public sealed class BillingService(
             if (invoice is null)
                 return Result<bool>.NotFound(Errors.Billing.InvoiceNotFound);
 
-            if (invoice.Status != "Draft")
+            if (invoice.Status != InvoiceStatus.Draft)
                 return Result<bool>.Conflict(Errors.Billing.InvoiceNotDraft);
 
             // TODO: load product + unit snapshots from Inventory when that module is wired.
@@ -171,10 +172,10 @@ public sealed class BillingService(
             if (invoice is null)
                 return Result<bool>.NotFound(Errors.Billing.InvoiceNotFound);
 
-            if (invoice.Status != "Draft")
+            if (invoice.Status != InvoiceStatus.Draft)
                 return Result<bool>.Conflict(Errors.Billing.InvoiceNotDraft);
 
-            invoice.Status = "Finalized";
+            invoice.Status = InvoiceStatus.Finalized;
             await db.SaveChangesAsync(ct);
             return Result<bool>.Success(true);
         }, ct, useTransaction: true);
@@ -191,10 +192,10 @@ public sealed class BillingService(
             if (invoice is null)
                 return Result<bool>.NotFound(Errors.Billing.InvoiceNotFound);
 
-            if (invoice.Status == "Cancelled")
+            if (invoice.Status == InvoiceStatus.Cancelled)
                 return Result<bool>.Conflict(Errors.Billing.InvoiceAlreadyCancelled);
 
-            invoice.Status = "Cancelled";
+            invoice.Status = InvoiceStatus.Cancelled;
             invoice.Notes = string.IsNullOrWhiteSpace(invoice.Notes)
                 ? $"Cancelled: {reason}"
                 : $"{invoice.Notes} | Cancelled: {reason}";

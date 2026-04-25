@@ -1,5 +1,6 @@
 using ErpSaas.Infrastructure.Extensions;
 using ErpSaas.Modules.Inventory.Entities;
+using ErpSaas.Modules.Inventory.Enums;
 using ErpSaas.Modules.Inventory.Seeds;
 using ErpSaas.Modules.Inventory.Services;
 using ErpSaas.Shared.Catalog;
@@ -80,7 +81,7 @@ internal sealed class InventoryModelConfigurator : IEntityModelConfigurator
         {
             e.ToTable("StockMovement", schema: "inventory");
             e.HasKey(x => x.Id);
-            e.Property(x => x.MovementType).HasMaxLength(30).IsRequired();
+            e.Property(x => x.MovementType).HasConversion<string>().HasMaxLength(30).IsRequired();
             e.Property(x => x.ReferenceType).HasMaxLength(50);
             e.Property(x => x.UnitCodeSnapshot).HasMaxLength(20).IsRequired();
             e.Property(x => x.ConversionFactorSnapshot).HasPrecision(18, 6);

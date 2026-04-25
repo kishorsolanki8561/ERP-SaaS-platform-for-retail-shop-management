@@ -1,4 +1,5 @@
 using ErpSaas.Modules.Billing.Entities;
+using ErpSaas.Modules.Billing.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace ErpSaas.Modules.Billing.Infrastructure;
@@ -21,7 +22,7 @@ public static class BillingModelConfiguration
             e.Property(x => x.CustomerNameSnapshot).HasMaxLength(300).IsRequired();
             e.Property(x => x.CustomerGstSnapshot).HasMaxLength(15);
             e.Property(x => x.BillingAddressSnapshot).HasMaxLength(1000);
-            e.Property(x => x.Status).HasMaxLength(20).IsRequired();
+            e.Property(x => x.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
             e.Property(x => x.SubTotal).HasPrecision(18, 2);
             e.Property(x => x.TotalDiscount).HasPrecision(18, 2);
             e.Property(x => x.TotalTaxAmount).HasPrecision(18, 2);

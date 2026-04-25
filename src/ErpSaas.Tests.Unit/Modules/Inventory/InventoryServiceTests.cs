@@ -4,6 +4,7 @@
 // TODO (Phase 1): implement all test bodies; stubs compile and run green.
 // ─────────────────────────────────────────────────────────────────────────────
 
+using ErpSaas.Modules.Inventory.Enums;
 using ErpSaas.Modules.Inventory.Services;
 using ErpSaas.Shared.Services;
 using FluentAssertions;
@@ -108,7 +109,7 @@ public class InventoryServiceTests
     [Fact]
     public async Task AdjustStockAsync_UnitNotFound_ReturnsNotFound()
     {
-        var dto = new AdjustStockDto(1L, 1L, 999L, 10m, "Adjustment", null);
+        var dto = new AdjustStockDto(1L, 1L, 999L, 10m, StockMovementType.Adjustment, null);
 
         _sut.AdjustStockAsync(dto, Arg.Any<CancellationToken>())
             .Returns(Result<bool>.NotFound("ProductUnit 999 not found."));
@@ -122,7 +123,7 @@ public class InventoryServiceTests
     [Fact]
     public async Task AdjustStockAsync_ValidDto_ReturnsSuccess()
     {
-        var dto = new AdjustStockDto(1L, 1L, 1L, 10m, "Adjustment", "Opening stock");
+        var dto = new AdjustStockDto(1L, 1L, 1L, 10m, StockMovementType.Adjustment, "Opening stock");
 
         _sut.AdjustStockAsync(dto, Arg.Any<CancellationToken>())
             .Returns(Result<bool>.Success(true));
