@@ -4,9 +4,11 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
+import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 import { ApiEndpoints } from '../../shared/messages/app-api';
+import { AppRoutePaths } from '../../shared/messages/app-routes';
 
 interface DashboardSummary {
   todaySalesAmount: number;
@@ -32,6 +34,7 @@ interface StatCard {
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule],
+  // RouterModule not needed — using injected Router instead
   template: `
     <div class="p-6 space-y-6 max-w-7xl mx-auto">
 
@@ -79,7 +82,8 @@ interface StatCard {
         <div class="lg:col-span-2 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
           <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800">
             <h3 class="font-semibold text-slate-900 dark:text-white text-sm">Recent Invoices</h3>
-            <span class="text-xs text-slate-400 font-medium bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-full">Coming in Phase 1</span>
+            <button class="text-xs text-indigo-500 hover:text-indigo-600 font-medium"
+                    (click)="navigate(paths.billing.invoices)">View all →</button>
           </div>
           <div class="flex flex-col items-center justify-center py-16 px-4">
             <div class="w-14 h-14 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 flex items-center justify-center mb-4">
@@ -100,14 +104,14 @@ interface StatCard {
             @for (action of quickActions; track action.label) {
               <button class="w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-left
                              hover:bg-slate-50 dark:hover:bg-slate-800
-                             transition-colors group"
-                      disabled>
+                             transition-colors group cursor-pointer"
+                      (click)="navigate(action.route)">
                 <div class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" [class]="action.bg">
                   <i [class]="'pi ' + action.icon + ' text-sm ' + action.color"></i>
                 </div>
                 <div>
                   <div class="text-sm font-medium text-slate-700 dark:text-slate-300">{{ action.label }}</div>
-                  <div class="text-xs text-slate-400">Phase 1</div>
+                  <div class="text-xs text-slate-400">{{ action.sub }}</div>
                 </div>
               </button>
             }
@@ -122,9 +126,9 @@ interface StatCard {
             <i class="pi pi-bolt text-indigo-400"></i>
           </div>
           <div>
-            <h3 class="text-white font-semibold text-sm mb-1">Phase 1 modules coming soon</h3>
+            <h3 class="text-white font-semibold text-sm mb-1">Phase 1 — Core Retail Loop</h3>
             <p class="text-indigo-300/70 text-xs leading-relaxed">
-              CRM · Inventory · Billing · Wallet · Notifications · Dashboard analytics
+              ✅ CRM · ✅ Inventory · ✅ Billing · ✅ Wallet · ✅ Notifications · ⏳ Shift Management · ⏳ Barcode POS
             </p>
           </div>
         </div>
@@ -135,6 +139,8 @@ interface StatCard {
 export class DashboardComponent implements OnInit {
   protected readonly auth = inject(AuthService);
   private readonly http = inject(HttpClient);
+  private readonly router = inject(Router);
+  protected readonly paths = AppRoutePaths;
 
   protected readonly loading = signal(true);
   protected readonly stats = signal<StatCard[]>(this.blankStats());
@@ -200,10 +206,14 @@ export class DashboardComponent implements OnInit {
     ];
   }
 
+  protected navigate(route: string): void {
+    this.router.navigate([route]);
+  }
+
   protected readonly quickActions = [
-    { label: 'New Invoice',   icon: 'pi-plus',      color: 'text-indigo-600', bg: 'bg-indigo-50 dark:bg-indigo-950/50'  },
-    { label: 'Add Product',   icon: 'pi-box',       color: 'text-sky-600',    bg: 'bg-sky-50 dark:bg-sky-950/50'         },
-    { label: 'Add Customer',  icon: 'pi-user-plus', color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-950/50' },
-    { label: 'Stock Entry',   icon: 'pi-database',  color: 'text-violet-600', bg: 'bg-violet-50 dark:bg-violet-950/50'   },
+    { label: 'New Invoice',   sub: 'Go to Invoices',  icon: 'pi-plus',      color: 'text-indigo-600', bg: 'bg-indigo-50 dark:bg-indigo-950/50',   route: AppRoutePaths.billing.invoices },
+    { label: 'Add Product',   sub: 'Go to Products',  icon: 'pi-box',       color: 'text-sky-600',    bg: 'bg-sky-50 dark:bg-sky-950/50',          route: AppRoutePaths.inventory.products },
+    { label: 'Add Customer',  sub: 'Go to Customers', icon: 'pi-user-plus', color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-950/50',  route: AppRoutePaths.crm.customers },
+    { label: 'Wallet',        sub: 'Customer Wallets',icon: 'pi-wallet',    color: 'text-violet-600', bg: 'bg-violet-50 dark:bg-violet-950/50',     route: AppRoutePaths.wallet.balances },
   ];
 }
