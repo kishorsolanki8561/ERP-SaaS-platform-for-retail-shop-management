@@ -33,6 +33,12 @@ export const routes: Routes = [
           import('./features/admin/shop-profile/shop-profile.component').then(m => m.ShopProfileComponent),
         canActivate: [permissionGuard(Permissions.shopProfile.view)],
       },
+      {
+        path: AppRoutes.admin.roles,
+        loadComponent: () =>
+          import('./features/admin/roles/roles.component').then(m => m.RolesComponent),
+        canActivate: [permissionGuard(Permissions.users.view)],
+      },
 
       // CRM
       {

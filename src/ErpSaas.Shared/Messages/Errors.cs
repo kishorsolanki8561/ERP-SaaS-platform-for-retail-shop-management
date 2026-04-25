@@ -68,7 +68,12 @@ public static class Errors
 
     public static class Admin
     {
-        public const string ShopNotFound = "ADMIN_001";
+        public const string ShopNotFound       = "ADMIN_001";
+        public const string UserNotFound       = "ADMIN_002";
+        public const string RoleNotFound       = "ADMIN_003";
+        public const string RoleCodeTaken      = "ADMIN_004";
+        public const string SystemRoleReadOnly = "ADMIN_005";
+        public const string UserRoleNotFound   = "ADMIN_006";
     }
 
     public static class Wallet

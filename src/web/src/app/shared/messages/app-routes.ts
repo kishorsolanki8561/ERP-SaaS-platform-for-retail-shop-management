@@ -6,6 +6,7 @@ export const AppRoutes = {
   featureUnavailable: 'feature-unavailable',
   admin: {
     users:        'admin/users',
+    roles:        'admin/roles',
     shopProfile:  'admin/shop-profile',
   },
   crm: {
@@ -32,6 +33,7 @@ export const AppRoutePaths = {
   featureUnavailable: `/${AppRoutes.featureUnavailable}`,
   admin: {
     users:        `/${AppRoutes.admin.users}`,
+    roles:        `/${AppRoutes.admin.roles}`,
     shopProfile:  `/${AppRoutes.admin.shopProfile}`,
   },
   crm: {

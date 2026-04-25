@@ -1,5 +1,6 @@
 #pragma warning disable CS9107
 using ErpSaas.Infrastructure.Data;
+using ErpSaas.Infrastructure.Data.Entities.Identity;
 using ErpSaas.Infrastructure.Services;
 using ErpSaas.Shared.Data;
 using ErpSaas.Shared.Messages;
@@ -61,13 +62,139 @@ public sealed class AdminService(
                 (u.Phone != null && u.Phone.Contains(search)));
 
         var totalCount = await query.CountAsync(ct);
-        var items = await query
+
+        var users = await query
             .OrderBy(u => u.DisplayName)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
-            .Select(u => new AdminUserDto(u.Id, u.DisplayName, u.Email, u.Phone, u.IsActive))
             .ToListAsync(ct);
+
+        var userIds = users.Select(u => u.Id).ToList();
+        var userRoles = await db.UserRoles
+            .Where(ur => ur.ShopId == tenant.ShopId && userIds.Contains(ur.UserId))
+            .Include(ur => ur.Role)
+            .ToListAsync(ct);
+
+        var items = users.Select(u => new AdminUserDto(
+            u.Id, u.DisplayName, u.Email, u.Phone, u.IsActive,
+            userRoles.Where(ur => ur.UserId == u.Id)
+                     .Select(ur => ur.Role.Label)
+                     .ToList()))
+            .ToList();
 
         return new PagedResult<AdminUserDto>(items, totalCount, pageNumber, pageSize);
     }
+
+    public async Task<Result<bool>> DeactivateUserAsync(long userId, CancellationToken ct = default)
+        => await ExecuteAsync<bool>("Admin.DeactivateUser", async () =>
+        {
+            var user = await db.Users
+                .FirstOrDefaultAsync(u => u.Id == userId && !u.IsDeleted, ct);
+            if (user is null) return Result<bool>.NotFound(Errors.Admin.UserNotFound);
+            user.IsActive = false;
+            await db.SaveChangesAsync(ct);
+            return Result<bool>.Success(true);
+        }, ct, useTransaction: true);
+
+    public Task<IReadOnlyList<PermissionDto>> ListPermissionsAsync(CancellationToken ct = default)
+        => db.Permissions
+            .OrderBy(p => p.Module).ThenBy(p => p.Code)
+            .Select(p => (PermissionDto)new PermissionDto(p.Id, p.Code, p.Module, p.Label))
+            .ToListAsync(ct)
+            .ContinueWith(t => (IReadOnlyList<PermissionDto>)t.Result, ct);
+
+    public async Task<IReadOnlyList<RoleDto>> ListRolesAsync(CancellationToken ct = default)
+    {
+        var roles = await db.Roles
+            .Include(r => r.RolePermissions)
+                .ThenInclude(rp => rp.Permission)
+            .Where(r => r.ShopId == null || r.ShopId == tenant.ShopId)
+            .OrderBy(r => r.Label)
+            .ToListAsync(ct);
+
+        return roles.Select(r => new RoleDto(
+            r.Id, r.Code, r.Label, r.IsSystemRole,
+            r.RolePermissions.Select(rp => rp.Permission.Code).ToList()))
+            .ToList();
+    }
+
+    public async Task<Result<long>> CreateRoleAsync(CreateRoleDto dto, CancellationToken ct = default)
+        => await ExecuteAsync<long>("Admin.CreateRole", async () =>
+        {
+            if (await db.Roles.AnyAsync(r => r.Code == dto.Code && r.ShopId == tenant.ShopId, ct))
+                return Result<long>.Conflict(Errors.Admin.RoleCodeTaken);
+
+            var role = new Role
+            {
+                Code = dto.Code.ToUpperInvariant(),
+                Label = dto.Label,
+                IsSystemRole = false,
+                ShopId = tenant.ShopId,
+                CreatedAtUtc = DateTime.UtcNow,
+            };
+            db.Roles.Add(role);
+            await db.SaveChangesAsync(ct);
+            return Result<long>.Success(role.Id);
+        }, ct, useTransaction: true);
+
+    public async Task<Result<bool>> UpdateRolePermissionsAsync(
+        long roleId, UpdateRolePermissionsDto dto, CancellationToken ct = default)
+        => await ExecuteAsync<bool>("Admin.UpdateRolePermissions", async () =>
+        {
+            var role = await db.Roles
+                .Include(r => r.RolePermissions)
+                .FirstOrDefaultAsync(r => r.Id == roleId
+                    && (r.ShopId == null || r.ShopId == tenant.ShopId), ct);
+
+            if (role is null) return Result<bool>.NotFound(Errors.Admin.RoleNotFound);
+            if (role.IsSystemRole) return Result<bool>.Forbidden(Errors.Admin.SystemRoleReadOnly);
+
+            var allPermissions = await db.Permissions
+                .Where(p => dto.PermissionCodes.Contains(p.Code))
+                .ToListAsync(ct);
+
+            db.RolePermissions.RemoveRange(role.RolePermissions);
+            foreach (var perm in allPermissions)
+            {
+                db.RolePermissions.Add(new RolePermission
+                {
+                    RoleId = roleId,
+                    PermissionId = perm.Id,
+                    CreatedAtUtc = DateTime.UtcNow,
+                });
+            }
+
+            await db.SaveChangesAsync(ct);
+            return Result<bool>.Success(true);
+        }, ct, useTransaction: true);
+
+    public async Task<Result<bool>> AssignUserRoleAsync(
+        long userId, long roleId, CancellationToken ct = default)
+        => await ExecuteAsync<bool>("Admin.AssignUserRole", async () =>
+        {
+            if (await db.UserRoles.AnyAsync(ur => ur.UserId == userId && ur.RoleId == roleId && ur.ShopId == tenant.ShopId, ct))
+                return Result<bool>.Success(true); // idempotent
+
+            db.UserRoles.Add(new UserRole
+            {
+                UserId = userId,
+                RoleId = roleId,
+                ShopId = tenant.ShopId,
+                CreatedAtUtc = DateTime.UtcNow,
+            });
+            await db.SaveChangesAsync(ct);
+            return Result<bool>.Success(true);
+        }, ct, useTransaction: true);
+
+    public async Task<Result<bool>> RemoveUserRoleAsync(
+        long userId, long roleId, CancellationToken ct = default)
+        => await ExecuteAsync<bool>("Admin.RemoveUserRole", async () =>
+        {
+            var ur = await db.UserRoles
+                .FirstOrDefaultAsync(ur => ur.UserId == userId && ur.RoleId == roleId && ur.ShopId == tenant.ShopId, ct);
+            if (ur is null) return Result<bool>.NotFound(Errors.Admin.UserRoleNotFound);
+            db.UserRoles.Remove(ur);
+            await db.SaveChangesAsync(ct);
+            return Result<bool>.Success(true);
+        }, ct, useTransaction: true);
 }

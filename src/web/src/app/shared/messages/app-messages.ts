@@ -58,6 +58,13 @@ export const AppLabels = {
     state:         'State',
     pinCode:       'PIN Code',
     currency:      'Currency',
+    rolesTitle:    'Roles & Permissions',
+    rolesSubtitle: 'Manage custom roles and their permission assignments.',
+    newRole:       'New Role',
+    editRole:      'Edit Permissions',
+    roleCode:      'Role Code',
+    roleLabel:     'Role Label',
+    permissions:   'Permissions',
   },
   shared: {
     search:            'Search...',

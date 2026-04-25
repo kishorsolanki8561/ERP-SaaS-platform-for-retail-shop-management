@@ -32,4 +32,42 @@ public sealed class AdminController(IAdminService adminService) : BaseController
         [FromQuery] string? search = null,
         CancellationToken ct = default)
         => Ok(await adminService.ListUsersAsync(pageNumber, pageSize, search, ct));
+
+    [HttpDelete("users/{userId:long}")]
+    [RequirePermission("Users.Manage")]
+    public async Task<IActionResult> DeactivateUser(long userId, CancellationToken ct)
+        => Ok(await adminService.DeactivateUserAsync(userId, ct));
+
+    [HttpGet("permissions")]
+    [RequirePermission("Users.View")]
+    public async Task<IActionResult> ListPermissions(CancellationToken ct)
+        => Ok(await adminService.ListPermissionsAsync(ct));
+
+    [HttpGet("roles")]
+    [RequirePermission("Users.View")]
+    public async Task<IActionResult> ListRoles(CancellationToken ct)
+        => Ok(await adminService.ListRolesAsync(ct));
+
+    [HttpPost("roles")]
+    [RequirePermission("Users.Manage")]
+    public async Task<IActionResult> CreateRole([FromBody] CreateRoleDto dto, CancellationToken ct)
+        => Ok(await adminService.CreateRoleAsync(dto, ct));
+
+    [HttpPatch("roles/{roleId:long}/permissions")]
+    [RequirePermission("Users.Manage")]
+    public async Task<IActionResult> UpdateRolePermissions(
+        long roleId,
+        [FromBody] UpdateRolePermissionsDto dto,
+        CancellationToken ct)
+        => Ok(await adminService.UpdateRolePermissionsAsync(roleId, dto, ct));
+
+    [HttpPost("users/{userId:long}/roles/{roleId:long}")]
+    [RequirePermission("Users.Manage")]
+    public async Task<IActionResult> AssignUserRole(long userId, long roleId, CancellationToken ct)
+        => Ok(await adminService.AssignUserRoleAsync(userId, roleId, ct));
+
+    [HttpDelete("users/{userId:long}/roles/{roleId:long}")]
+    [RequirePermission("Users.Manage")]
+    public async Task<IActionResult> RemoveUserRole(long userId, long roleId, CancellationToken ct)
+        => Ok(await adminService.RemoveUserRoleAsync(userId, roleId, ct));
 }

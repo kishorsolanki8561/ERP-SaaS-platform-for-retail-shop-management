@@ -18,8 +18,14 @@ export const ApiEndpoints = {
     registerOwner: '/api/bootstrap/register-product-owner',
   },
   admin: {
-    users:       '/api/admin/users',
-    shopProfile: '/api/admin/shop-profile',
+    users:              '/api/admin/users',
+    user:               (id: number | string) => `/api/admin/users/${id}`,
+    userRole:           (uid: number | string, rid: number | string) => `/api/admin/users/${uid}/roles/${rid}`,
+    shopProfile:        '/api/admin/shop-profile',
+    permissions:        '/api/admin/permissions',
+    roles:              '/api/admin/roles',
+    role:               (id: number | string) => `/api/admin/roles/${id}`,
+    rolePermissions:    (id: number | string) => `/api/admin/roles/${id}/permissions`,
   },
   dashboard: {
     summary: '/api/dashboard/summary',
