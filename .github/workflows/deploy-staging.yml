@@ -179,6 +179,15 @@ jobs:
           rm -rf /tmp/erp-staging-api-deploy
           REMOTE
 
+      - name: Purge Cloudflare cache (API)
+        run: |
+          curl -sf -X POST \
+            "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/purge_cache" \
+            -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            --data '{"files":["https://erp-api-staging.preptm.com/health","https://erp-api-staging.preptm.com/api/services"]}' \
+          || echo "Cloudflare purge skipped (secret not configured)"
+
   # ────────────────────────────────────────────────────────────────────────────
   deploy-staff-app:
     name: Deploy Staff App → VPS
@@ -219,6 +228,15 @@ jobs:
           rm -rf /tmp/erp-staging-web-deploy
           REMOTE
 
+      - name: Purge Cloudflare cache (staff app)
+        run: |
+          curl -sf -X POST \
+            "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/purge_cache" \
+            -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            --data '{"files":["https://erp-app-staging.preptm.com/","https://erp-app-staging.preptm.com/index.html"]}' \
+          || echo "Cloudflare purge skipped (secret not configured)"
+
   # ────────────────────────────────────────────────────────────────────────────
   deploy-portal:
     name: Deploy Customer Portal → VPS
@@ -258,3 +276,12 @@ jobs:
           sudo chown -R www-data:www-data /opt/erp-staging/portal
           rm -rf /tmp/erp-staging-portal-deploy
           REMOTE
+
+      - name: Purge Cloudflare cache (portal)
+        run: |
+          curl -sf -X POST \
+            "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/purge_cache" \
+            -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            --data '{"files":["https://erp-portal-staging.preptm.com/","https://erp-portal-staging.preptm.com/index.html"]}' \
+          || echo "Cloudflare purge skipped (secret not configured)"
