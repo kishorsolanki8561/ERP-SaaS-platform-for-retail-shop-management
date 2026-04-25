@@ -1,4 +1,5 @@
 using ErpSaas.Infrastructure.Data;
+using ErpSaas.Infrastructure.Data.Entities.Messaging.Enums;
 using ErpSaas.Shared.Messages;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -19,7 +20,7 @@ public sealed class NotificationDrainJob(
     public async Task ExecuteAsync(CancellationToken ct = default)
     {
         var pending = await db.NotificationQueues
-            .Where(q => q.Status == "Pending"
+            .Where(q => q.Status == NotificationStatus.Pending
                         && q.AttemptCount < MaxAttempts
                         && q.NextRetryAtUtc <= DateTime.UtcNow)
             .OrderBy(q => q.CreatedAtUtc)
@@ -31,7 +32,7 @@ public sealed class NotificationDrainJob(
             try
             {
                 await DispatchAsync(item, ct);
-                item.Status = "Sent";
+                item.Status = NotificationStatus.Sent;
                 item.SentAtUtc = DateTime.UtcNow;
             }
             catch (Exception ex)
@@ -40,7 +41,7 @@ public sealed class NotificationDrainJob(
                 item.ErrorMessage = ex.Message;
                 item.NextRetryAtUtc = DateTime.UtcNow.AddMinutes(Math.Pow(2, item.AttemptCount));
                 if (item.AttemptCount >= MaxAttempts)
-                    item.Status = "Failed";
+                    item.Status = NotificationStatus.Failed;
                 logger.LogWarning(ex, "Notification dispatch failed for queue item {Id}", item.Id);
             }
         }

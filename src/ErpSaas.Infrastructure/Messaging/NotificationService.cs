@@ -1,5 +1,6 @@
 using ErpSaas.Infrastructure.Data;
 using ErpSaas.Infrastructure.Data.Entities.Messaging;
+using ErpSaas.Infrastructure.Data.Entities.Messaging.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace ErpSaas.Infrastructure.Messaging;
@@ -8,7 +9,7 @@ public sealed class NotificationService(NotificationsDbContext db) : INotificati
 {
     public async Task EnqueueAsync(
         long shopId,
-        string channel,
+        NotificationChannel channel,
         string recipient,
         string templateCode,
         IDictionary<string, string> variables,
@@ -19,7 +20,9 @@ public sealed class NotificationService(NotificationsDbContext db) : INotificati
             .FirstOrDefaultAsync(t => t.Code == templateCode && t.Channel == channel && t.IsActive, ct);
 
         var subject = template != null ? Render(template.SubjectTemplate, variables) : templateCode;
-        var body = template != null ? Render(template.BodyTemplate, variables) : string.Join("; ", variables.Select(kv => $"{kv.Key}={kv.Value}"));
+        var body = template != null
+            ? Render(template.BodyTemplate, variables)
+            : string.Join("; ", variables.Select(kv => $"{kv.Key}={kv.Value}"));
 
         db.NotificationQueues.Add(new NotificationQueue
         {
@@ -28,7 +31,7 @@ public sealed class NotificationService(NotificationsDbContext db) : INotificati
             Recipient = recipient,
             Subject = subject,
             Body = body,
-            Status = "Pending",
+            Status = NotificationStatus.Pending,
             TemplateCode = templateCode,
             CorrelationId = correlationId,
             CreatedAtUtc = DateTime.UtcNow,

@@ -80,6 +80,17 @@ public static class Constants
         public const int MaxAttempts = 5;
     }
 
+    public static class NotificationCodes
+    {
+        public const string InvoiceFinalized = "INVOICE_FINALIZED";
+        public const string InvoiceCancelled = "INVOICE_CANCELLED";
+        public const string WalletCredited   = "WALLET_CREDITED";
+        public const string WalletDebited    = "WALLET_DEBITED";
+        public const string UserInvite       = "USER_INVITE";
+        public const string PasswordReset    = "PASSWORD_RESET";
+        public const string LowStock         = "LOW_STOCK_ALERT";
+    }
+
     public static class Performance
     {
         public const int SlowQueryThresholdMs = 500;

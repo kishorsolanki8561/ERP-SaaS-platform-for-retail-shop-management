@@ -1,5 +1,7 @@
 #pragma warning disable CS9107
 using ErpSaas.Infrastructure.Data;
+using ErpSaas.Infrastructure.Data.Entities.Messaging.Enums;
+using ErpSaas.Infrastructure.Messaging;
 using ErpSaas.Infrastructure.Sequence;
 using ErpSaas.Infrastructure.Services;
 using ErpSaas.Modules.Billing.Entities;
@@ -7,13 +9,16 @@ using ErpSaas.Modules.Billing.Enums;
 using ErpSaas.Shared.Messages;
 using ErpSaas.Shared.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace ErpSaas.Modules.Billing.Services;
 
 public sealed class BillingService(
     TenantDbContext db,
     IErrorLogger errorLogger,
-    ISequenceService sequence)
+    ISequenceService sequence,
+    INotificationService notifications,
+    ILogger<BillingService> logger)
     : BaseService<TenantDbContext>(db, errorLogger), IBillingService
 {
     public async Task<PagedResult<InvoiceListDto>> ListInvoicesAsync(
@@ -89,7 +94,8 @@ public sealed class BillingService(
                 InvoiceNumber = invoiceNumber,
                 InvoiceDate = dto.InvoiceDate,
                 CustomerId = dto.CustomerId,
-                CustomerNameSnapshot = "Pending",   // populated when CRM module is wired
+                CustomerNameSnapshot = dto.CustomerName ?? "Customer",
+                CustomerPhoneSnapshot = dto.CustomerPhone,
                 Status = InvoiceStatus.Draft,
                 SubTotal = 0m,
                 TotalDiscount = 0m,
@@ -168,7 +174,8 @@ public sealed class BillingService(
         }, ct, useTransaction: true);
 
     public async Task<Result<bool>> FinalizeInvoiceAsync(long id, CancellationToken ct = default)
-        => await ExecuteAsync<bool>("Billing.FinalizeInvoice", async () =>
+    {
+        var result = await ExecuteAsync<bool>("Billing.FinalizeInvoice", async () =>
         {
             var invoice = await db.Set<Invoice>()
                 .FirstOrDefaultAsync(i => i.Id == id && !i.IsDeleted, ct);
@@ -183,6 +190,41 @@ public sealed class BillingService(
             await db.SaveChangesAsync(ct);
             return Result<bool>.Success(true);
         }, ct, useTransaction: true);
+
+        if (result.IsSuccess)
+            await TrySendFinalizeNotificationAsync(id, ct);
+
+        return result;
+    }
+
+    private async Task TrySendFinalizeNotificationAsync(long invoiceId, CancellationToken ct)
+    {
+        try
+        {
+            var invoice = await db.Set<Invoice>()
+                .FirstOrDefaultAsync(i => i.Id == invoiceId && !i.IsDeleted, ct);
+
+            if (invoice?.CustomerPhoneSnapshot is null) return;
+
+            await notifications.EnqueueAsync(
+                invoice.ShopId,
+                NotificationChannel.Sms,
+                invoice.CustomerPhoneSnapshot,
+                Constants.NotificationCodes.InvoiceFinalized,
+                new Dictionary<string, string>
+                {
+                    { "InvoiceNumber", invoice.InvoiceNumber },
+                    { "CustomerName",  invoice.CustomerNameSnapshot },
+                    { "GrandTotal",    invoice.GrandTotal.ToString("F2") },
+                },
+                correlationId: $"Invoice:{invoiceId}",
+                ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Non-critical: failed to enqueue SMS for invoice {Id}", invoiceId);
+        }
+    }
 
     public async Task<Result<bool>> CancelInvoiceAsync(
         long id,

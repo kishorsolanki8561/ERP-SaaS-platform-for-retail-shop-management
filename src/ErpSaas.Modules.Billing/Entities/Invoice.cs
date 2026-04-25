@@ -19,6 +19,9 @@ public class Invoice : TenantEntity
 
     public string? CustomerGstSnapshot { get; set; }
 
+    /// <summary>Snapshot of customer phone at time of invoicing — used for SMS on finalize.</summary>
+    public string? CustomerPhoneSnapshot { get; set; }
+
     public string? BillingAddressSnapshot { get; set; }
 
     public InvoiceStatus Status { get; set; } = InvoiceStatus.Draft;

@@ -1,5 +1,6 @@
 using ErpSaas.Infrastructure.Data;
 using ErpSaas.Infrastructure.Data.Interceptors;
+using ErpSaas.Infrastructure.Messaging;
 using ErpSaas.Infrastructure.Sequence;
 using ErpSaas.Modules.Billing.Entities;
 using ErpSaas.Modules.Billing.Enums;
@@ -7,6 +8,7 @@ using ErpSaas.Modules.Billing.Infrastructure;
 using ErpSaas.Modules.Billing.Services;
 using ErpSaas.Shared.Data;
 using ErpSaas.Shared.Services;
+using Microsoft.Extensions.Logging;
 using FluentAssertions;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -43,6 +45,7 @@ public class BillingServiceTests : IDisposable
     private readonly TenantDbContext _db;
     private readonly IErrorLogger _errorLogger = Substitute.For<IErrorLogger>();
     private readonly ISequenceService _sequence = Substitute.For<ISequenceService>();
+    private readonly INotificationService _notifications = Substitute.For<INotificationService>();
     private readonly BillingService _sut;
     private readonly SqliteConnection _sqliteConnection;
 
@@ -70,7 +73,8 @@ public class BillingServiceTests : IDisposable
         _sequence.NextAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>())
             .Returns(_ => Task.FromResult($"INV-{++_seqCounter:00000}"));
 
-        _sut = new BillingService(_db, _errorLogger, _sequence);
+        _sut = new BillingService(_db, _errorLogger, _sequence, _notifications,
+            Substitute.For<ILogger<BillingService>>());
     }
 
     public void Dispose()

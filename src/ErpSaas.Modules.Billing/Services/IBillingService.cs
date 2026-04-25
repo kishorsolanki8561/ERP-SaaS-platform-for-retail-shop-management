@@ -43,7 +43,9 @@ public record CreateInvoiceDto(
     long CustomerId,
     long WarehouseId,
     long ShopId,
-    string? Notes);
+    string? Notes,
+    string? CustomerName = null,
+    string? CustomerPhone = null);
 
 public record AddInvoiceLineDto(
     long ProductId,
