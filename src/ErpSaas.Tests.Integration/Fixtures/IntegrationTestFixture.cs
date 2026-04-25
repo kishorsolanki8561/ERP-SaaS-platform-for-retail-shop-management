@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.IdentityModel.Tokens;
 using Testcontainers.MsSql;
 
@@ -73,8 +74,34 @@ public sealed class IntegrationTestFixture : IAsyncLifetime
                     });
                 });
 
-                // No ConfigureServices overrides needed — Hangfire server is suppressed
-                // via Hangfire:DisableServer=true configuration key above.
+                // Override DbContext options at the DI level so the Testcontainers
+                // connection strings are used regardless of when AddInfrastructure()
+                // captured them from IConfiguration (service-registration-time capture
+                // predates ConfigureAppConfiguration overrides being applied).
+                builder.ConfigureServices(services =>
+                {
+                    services.RemoveAll<DbContextOptions<PlatformDbContext>>();
+                    services.RemoveAll<DbContextOptions<TenantDbContext>>();
+                    services.RemoveAll<DbContextOptions<AnalyticsDbContext>>();
+                    services.RemoveAll<DbContextOptions<LogDbContext>>();
+                    services.RemoveAll<DbContextOptions<NotificationsDbContext>>();
+
+                    services.AddDbContext<PlatformDbContext>(opts =>
+                        opts.UseSqlServer(Cs("ErpTest_Platform"),
+                            sql => sql.MigrationsAssembly(typeof(PlatformDbContext).Assembly.FullName)));
+                    services.AddDbContext<TenantDbContext>(opts =>
+                        opts.UseSqlServer(Cs("ErpTest_Tenant"),
+                            sql => sql.MigrationsAssembly(typeof(TenantDbContext).Assembly.FullName)));
+                    services.AddDbContext<AnalyticsDbContext>(opts =>
+                        opts.UseSqlServer(Cs("ErpTest_Analytics"),
+                            sql => sql.MigrationsAssembly(typeof(AnalyticsDbContext).Assembly.FullName)));
+                    services.AddDbContext<LogDbContext>(opts =>
+                        opts.UseSqlServer(Cs("ErpTest_Log"),
+                            sql => sql.MigrationsAssembly(typeof(LogDbContext).Assembly.FullName)));
+                    services.AddDbContext<NotificationsDbContext>(opts =>
+                        opts.UseSqlServer(Cs("ErpTest_Notifications"),
+                            sql => sql.MigrationsAssembly(typeof(NotificationsDbContext).Assembly.FullName)));
+                });
             });
 
         // Warm up the factory — this runs InitializeAsync (migrations + seeds)
