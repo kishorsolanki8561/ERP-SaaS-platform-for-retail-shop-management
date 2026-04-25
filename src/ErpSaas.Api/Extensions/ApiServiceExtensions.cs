@@ -41,12 +41,23 @@ public static class ApiServiceExtensions
         services.AddWalletModule();
         services.AddShiftModule();
 
-        services.AddHangfire(cfg => cfg
-            .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
-            .UseSimpleAssemblyNameTypeSerializer()
-            .UseRecommendedSerializerSettings()
-            .UseSqlServerStorage(configuration.GetConnectionString("LogDb")));
-        services.AddHangfireServer();
+        // Use (serviceProvider, cfg) overload so the connection string is resolved
+        // at runtime (after all IConfiguration sources — including test overrides — are merged)
+        // rather than at service-registration time.
+        services.AddHangfire((sp, cfg) =>
+        {
+            var connStr = sp.GetRequiredService<IConfiguration>().GetConnectionString("LogDb");
+            cfg.SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+               .UseSimpleAssemblyNameTypeSerializer()
+               .UseRecommendedSerializerSettings()
+               .UseSqlServerStorage(connStr);
+        });
+        // Skip the Hangfire background server in test mode to avoid it connecting to
+        // SQL Server before migrations have run (tests drive jobs synchronously).
+        if (!configuration.GetValue<bool>("Hangfire:DisableServer", false))
+        {
+            services.AddHangfireServer();
+        }
 
         return services;
     }

@@ -5,7 +5,9 @@ using ErpSaas.Infrastructure.Sql;
 using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace ErpSaas.Api.Extensions;
@@ -30,10 +32,15 @@ public static class AppInitializationExtensions
 
             await sp.GetRequiredService<DatabaseSeeder>().SeedAllAsync();
 
-            RecurringJob.AddOrUpdate<NotificationDrainJob>(
-                "notification-drain",
-                job => job.ExecuteAsync(CancellationToken.None),
-                Cron.Minutely);
+            // Skip Hangfire recurring jobs in test environments where the server is disabled
+            var env = app.Services.GetRequiredService<IWebHostEnvironment>();
+            if (!env.IsEnvironment("Testing"))
+            {
+                RecurringJob.AddOrUpdate<NotificationDrainJob>(
+                    "notification-drain",
+                    job => job.ExecuteAsync(CancellationToken.None),
+                    Cron.Minutely);
+            }
         }
         catch (Exception ex)
         {

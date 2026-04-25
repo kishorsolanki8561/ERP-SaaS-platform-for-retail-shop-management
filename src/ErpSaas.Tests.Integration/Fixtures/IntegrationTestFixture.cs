@@ -60,8 +60,9 @@ public sealed class IntegrationTestFixture : IAsyncLifetime
                         ["ConnectionStrings:AnalyticsDb"]      = Cs("ErpTest_Analytics"),
                         ["ConnectionStrings:LogDb"]            = Cs("ErpTest_Log"),
                         ["ConnectionStrings:NotificationsDb"]  = Cs("ErpTest_Notifications"),
-                        // Disable Hangfire SQL storage in tests (use in-memory)
-                        ["Hangfire:UseInMemory"]               = "true",
+                        // Disable Hangfire background server in tests (avoids it connecting
+                        // to SQL Server before migrations have run)
+                        ["Hangfire:DisableServer"]             = "true",
                         // Turnstile bypass in tests
                         ["Turnstile:AlwaysValidate"]           = "false",
                         // JWT
@@ -72,16 +73,8 @@ public sealed class IntegrationTestFixture : IAsyncLifetime
                     });
                 });
 
-                builder.ConfigureServices(services =>
-                {
-                    // Replace Hangfire server registration with no-op in tests
-                    // (avoids needing a Hangfire DB during test startup)
-                    var hangfireDescriptors = services
-                        .Where(d => d.ServiceType.FullName?.Contains("Hangfire") == true)
-                        .ToList();
-                    foreach (var d in hangfireDescriptors)
-                        services.Remove(d);
-                });
+                // No ConfigureServices overrides needed — Hangfire server is suppressed
+                // via Hangfire:DisableServer=true configuration key above.
             });
 
         // Warm up the factory — this runs InitializeAsync (migrations + seeds)
