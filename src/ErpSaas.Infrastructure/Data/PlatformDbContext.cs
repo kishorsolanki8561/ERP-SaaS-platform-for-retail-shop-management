@@ -25,6 +25,7 @@ public class PlatformDbContext(
 
     // Identity
     public DbSet<Shop> Shops => Set<Shop>();
+    public DbSet<Branch> Branches => Set<Branch>();
     public DbSet<User> Users => Set<User>();
     public DbSet<UserShop> UserShops => Set<UserShop>();
     public DbSet<UserSecurityToken> UserSecurityTokens => Set<UserSecurityToken>();
@@ -160,6 +161,22 @@ public class PlatformDbContext(
             e.Property(x => x.RowVersion).IsRowVersion();
         });
 
+        b.Entity<Branch>(e =>
+        {
+            e.ToTable("Branch", schema: "identity");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            e.Property(x => x.AddressLine1).HasMaxLength(300);
+            e.Property(x => x.AddressLine2).HasMaxLength(300);
+            e.Property(x => x.City).HasMaxLength(100);
+            e.Property(x => x.StateCode).HasMaxLength(3);
+            e.Property(x => x.PinCode).HasMaxLength(10);
+            e.Property(x => x.Phone).HasMaxLength(20);
+            e.Property(x => x.GstNumber).HasMaxLength(15);
+            e.HasIndex(x => x.ShopId);
+            e.HasOne(x => x.Shop).WithMany().HasForeignKey(x => x.ShopId);
+        });
+
         b.Entity<User>(e =>
         {
             e.ToTable("User", schema: "identity");
@@ -247,6 +264,12 @@ public class PlatformDbContext(
             e.Property(x => x.Label).HasMaxLength(200).IsRequired();
             e.Property(x => x.MonthlyPrice).HasPrecision(18, 2);
             e.Property(x => x.AnnualPrice).HasPrecision(18, 2);
+            e.Property(x => x.MaxUsers).HasDefaultValue(5);
+            e.Property(x => x.MaxProducts).HasDefaultValue(500);
+            e.Property(x => x.MaxInvoicesPerMonth).HasDefaultValue(1000);
+            e.Property(x => x.StorageQuotaMb).HasDefaultValue(500);
+            e.Property(x => x.SmsQuotaPerMonth).HasDefaultValue(100);
+            e.Property(x => x.EmailQuotaPerMonth).HasDefaultValue(500);
             e.Property(x => x.RowVersion).IsRowVersion();
         });
 

@@ -37,4 +37,16 @@ export const Permissions = {
     credit: 'Wallet.Credit',
     debit:  'Wallet.Debit',
   },
+  // POS / Shift — must match [RequirePermission] on ShiftController
+  shift: {
+    view:        'Shift.View',
+    open:        'Shift.Open',
+    close:       'Shift.Close',
+    forceClose:  'Shift.ForceClose',
+    cashMovement:'Shift.CashMovement',
+  },
+  // Hardware — must match [RequirePermission] on HardwareController
+  hardware: {
+    cashDrawer: 'Hardware.CashDrawer',
+  },
 } as const;

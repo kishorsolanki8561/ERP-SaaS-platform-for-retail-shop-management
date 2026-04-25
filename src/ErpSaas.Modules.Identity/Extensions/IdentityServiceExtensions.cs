@@ -5,6 +5,7 @@ using ErpSaas.Modules.Identity.Seeds;
 using ErpSaas.Modules.Identity.Services;
 using ErpSaas.Shared.Authorization;
 using ErpSaas.Shared.Catalog;
+using ErpSaas.Shared.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Configuration;
@@ -54,6 +55,7 @@ public static class IdentityServiceExtensions
         services.AddScoped<IShopOnboardingService, ShopOnboardingService>();
         services.AddScoped<IMenuService, MenuService>();
         services.AddScoped<IAdminService, AdminService>();
+        services.AddScoped<IShopInfoProvider, ShopInfoProvider>();
 
         // Seeders
         services.AddDataSeeder<IdentityDataSeeder>();

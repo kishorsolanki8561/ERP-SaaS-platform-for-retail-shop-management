@@ -2,6 +2,8 @@ export const AppRoutes = {
   dashboard:          'dashboard',
   login:              'login',
   forgotPassword:     'forgot-password',
+  resetPassword:      'reset-password',
+  acceptInvite:       'accept-invite',
   unauthorized:       'unauthorized',
   featureUnavailable: 'feature-unavailable',
   admin: {
@@ -23,12 +25,19 @@ export const AppRoutes = {
     balances:     'wallet/balances',
     transactions: 'wallet/transactions',
   },
+  pos: {
+    shifts:    'pos/shifts',
+    openShift: 'pos/open-shift',
+    terminal:  'pos/terminal',
+  },
 } as const;
 
 export const AppRoutePaths = {
   dashboard:          `/${AppRoutes.dashboard}`,
   login:              `/${AppRoutes.login}`,
   forgotPassword:     `/${AppRoutes.forgotPassword}`,
+  resetPassword:      `/${AppRoutes.resetPassword}`,
+  acceptInvite:       `/${AppRoutes.acceptInvite}`,
   unauthorized:       `/${AppRoutes.unauthorized}`,
   featureUnavailable: `/${AppRoutes.featureUnavailable}`,
   admin: {
@@ -49,5 +58,10 @@ export const AppRoutePaths = {
   wallet: {
     balances:     `/${AppRoutes.wallet.balances}`,
     transactions: `/${AppRoutes.wallet.transactions}`,
+  },
+  pos: {
+    shifts:    `/${AppRoutes.pos.shifts}`,
+    openShift: `/${AppRoutes.pos.openShift}`,
+    terminal:  `/${AppRoutes.pos.terminal}`,
   },
 } as const;

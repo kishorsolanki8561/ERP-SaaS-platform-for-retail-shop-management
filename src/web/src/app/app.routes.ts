@@ -83,6 +83,26 @@ export const routes: Routes = [
           import('./features/wallet/transactions/wallet-transactions.component').then(m => m.WalletTransactionsComponent),
         canActivate: [permissionGuard(Permissions.wallet.view)],
       },
+
+      // POS / Shifts
+      {
+        path: AppRoutes.pos.shifts,
+        loadComponent: () =>
+          import('./features/pos/shifts/shifts.component').then(m => m.ShiftsComponent),
+        canActivate: [permissionGuard(Permissions.shift.view)],
+      },
+      {
+        path: AppRoutes.pos.openShift,
+        loadComponent: () =>
+          import('./features/pos/open-shift/open-shift.component').then(m => m.OpenShiftComponent),
+        canActivate: [permissionGuard(Permissions.shift.open)],
+      },
+      {
+        path: AppRoutes.pos.terminal,
+        loadComponent: () =>
+          import('./features/pos/terminal/pos-terminal.component').then(m => m.PosTerminalComponent),
+        canActivate: [permissionGuard(Permissions.shift.view)],
+      },
     ],
   },
   {
@@ -99,6 +119,16 @@ export const routes: Routes = [
         path: AppRoutes.forgotPassword,
         loadComponent: () =>
           import('./features/auth/forgot-password/forgot-password.component').then(m => m.ForgotPasswordComponent),
+      },
+      {
+        path: AppRoutes.resetPassword,
+        loadComponent: () =>
+          import('./features/auth/reset-password/reset-password.component').then(m => m.ResetPasswordComponent),
+      },
+      {
+        path: AppRoutes.acceptInvite,
+        loadComponent: () =>
+          import('./features/auth/accept-invite/accept-invite.component').then(m => m.AcceptInviteComponent),
       },
     ],
   },

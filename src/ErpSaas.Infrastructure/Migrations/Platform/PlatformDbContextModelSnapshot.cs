@@ -54,6 +54,82 @@ namespace ErpSaas.Infrastructure.Migrations.Platform
                     b.ToTable("FileUploadConfig", "files");
                 });
 
+            modelBuilder.Entity("ErpSaas.Infrastructure.Data.Entities.Identity.Branch", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("AddressLine1")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<string>("AddressLine2")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<string>("City")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("CreatedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("GstNumber")
+                        .HasMaxLength(15)
+                        .HasColumnType("nvarchar(15)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsHeadOffice")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("PinCode")
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsRequired()
+                        .HasColumnType("varbinary(max)");
+
+                    b.Property<long>("ShopId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("StateCode")
+                        .HasMaxLength(3)
+                        .HasColumnType("nvarchar(3)");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("UpdatedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ShopId");
+
+                    b.ToTable("Branch", "identity");
+                });
+
             modelBuilder.Entity("ErpSaas.Infrastructure.Data.Entities.Identity.Permission", b =>
                 {
                     b.Property<long>("Id")
@@ -1145,6 +1221,11 @@ namespace ErpSaas.Infrastructure.Migrations.Platform
                     b.Property<long?>("CreatedByUserId")
                         .HasColumnType("bigint");
 
+                    b.Property<int>("EmailQuotaPerMonth")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(500);
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
@@ -1156,8 +1237,20 @@ namespace ErpSaas.Infrastructure.Migrations.Platform
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<int>("MaxInvoicesPerMonth")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1000);
+
+                    b.Property<int>("MaxProducts")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(500);
+
                     b.Property<int>("MaxUsers")
-                        .HasColumnType("int");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(5);
 
                     b.Property<decimal>("MonthlyPrice")
                         .HasPrecision(18, 2)
@@ -1168,6 +1261,16 @@ namespace ErpSaas.Infrastructure.Migrations.Platform
                         .IsRequired()
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
+
+                    b.Property<int>("SmsQuotaPerMonth")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(100);
+
+                    b.Property<int>("StorageQuotaMb")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(500);
 
                     b.Property<DateTime?>("UpdatedAtUtc")
                         .HasColumnType("datetime2");
@@ -1224,6 +1327,17 @@ namespace ErpSaas.Infrastructure.Migrations.Platform
                         .IsUnique();
 
                     b.ToTable("SubscriptionPlanFeature", "identity");
+                });
+
+            modelBuilder.Entity("ErpSaas.Infrastructure.Data.Entities.Identity.Branch", b =>
+                {
+                    b.HasOne("ErpSaas.Infrastructure.Data.Entities.Identity.Shop", "Shop")
+                        .WithMany()
+                        .HasForeignKey("ShopId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Shop");
                 });
 
             modelBuilder.Entity("ErpSaas.Infrastructure.Data.Entities.Identity.RolePermission", b =>

@@ -30,7 +30,8 @@ public record WalletCreditDto(
     string? ReferenceType,
     long? ReferenceId,
     string? ReferenceNumber,
-    string? Notes);
+    string? Notes,
+    string? CustomerPhone = null);
 
 public record WalletDebitDto(
     long CustomerId,

@@ -14,6 +14,8 @@ import { MessageService, MenuItem } from 'primeng/api';
 import { AuthService } from '../../core/auth/auth.service';
 import { MenuStore } from '../../core/menu/menu.store';
 import { ThemeService, Theme } from '../../core/theme/theme.service';
+import { BranchStore } from '../../core/branch/branch.store';
+import { BranchSelectorComponent } from '../../shared/components/branch-selector/branch-selector.component';
 import { AppLabels } from '../../shared/messages/app-messages';
 
 @Component({
@@ -23,7 +25,7 @@ import { AppLabels } from '../../shared/messages/app-messages';
   imports: [
     RouterOutlet, RouterLink, RouterLinkActive, CommonModule,
     ButtonModule, AvatarModule, ToastModule, TooltipModule,
-    MenuModule, BadgeModule,
+    MenuModule, BadgeModule, BranchSelectorComponent,
   ],
   providers: [MessageService],
   template: `
@@ -136,6 +138,9 @@ import { AppLabels } from '../../shared/messages/app-messages';
             <i class="pi pi-bars text-sm"></i>
           </button>
 
+          <!-- Branch selector -->
+          <app-branch-selector />
+
           <div class="flex-1"></div>
 
           <!-- Right: controls -->
@@ -195,6 +200,7 @@ export class AppLayoutComponent implements OnInit {
   protected readonly auth = inject(AuthService);
   protected readonly menuStore = inject(MenuStore);
   protected readonly themeService = inject(ThemeService);
+  protected readonly branchStore = inject(BranchStore);
   protected readonly labels = AppLabels;
 
   protected readonly collapsed = signal(
@@ -228,6 +234,7 @@ export class AppLayoutComponent implements OnInit {
 
   ngOnInit(): void {
     this.menuStore.load();
+    this.branchStore.load();
   }
 
   protected toggleCollapse(): void {

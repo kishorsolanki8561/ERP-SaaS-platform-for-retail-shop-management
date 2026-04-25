@@ -29,13 +29,34 @@ public static class BillingModelConfiguration
             e.Property(x => x.RoundOff).HasPrecision(18, 2);
             e.Property(x => x.GrandTotal).HasPrecision(18, 2);
             e.Property(x => x.Notes).HasMaxLength(2000);
+            e.Property(x => x.ShiftId);
+            e.Property(x => x.BranchId);
+            e.HasIndex(x => new { x.ShopId, x.ShiftId });
             // IsRowVersion() is SQL Server-specific; use IsConcurrencyToken() so EF
             // can build the model on other providers (SQLite in unit tests).
             e.Property(x => x.RowVersion).IsConcurrencyToken();
+            e.Property(x => x.PaymentTerms).HasMaxLength(50);
+            e.Property(x => x.PaidAmount).HasPrecision(18, 2);
+            e.Property(x => x.OutstandingAmount).HasPrecision(18, 2);
             e.HasMany(x => x.Lines)
                 .WithOne(l => l.Invoice)
                 .HasForeignKey(l => l.InvoiceId)
                 .OnDelete(DeleteBehavior.Cascade);
+            e.HasMany(x => x.Payments)
+                .WithOne(p => p.Invoice)
+                .HasForeignKey(p => p.InvoiceId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<InvoicePayment>(e =>
+        {
+            e.ToTable("InvoicePayment", schema: "sales");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Mode).HasConversion<string>().HasMaxLength(20).IsRequired();
+            e.Property(x => x.Amount).HasPrecision(18, 2);
+            e.Property(x => x.ReferenceNumber).HasMaxLength(100);
+            e.Property(x => x.Notes).HasMaxLength(500);
+            e.HasIndex(x => new { x.ShopId, x.InvoiceId });
         });
 
         b.Entity<InvoiceLine>(e =>

@@ -5,6 +5,7 @@ export const ApiEndpoints = {
     logout:         '/api/auth/logout',
     forgotPassword: '/api/auth/forgot-password',
     resetPassword:  '/api/auth/reset-password',
+    acceptInvite:   '/api/auth/accept-invite',
   },
   menu: {
     tree: '/api/menu/tree',
@@ -18,9 +19,15 @@ export const ApiEndpoints = {
     registerOwner: '/api/bootstrap/register-product-owner',
   },
   admin: {
+    branches:           '/api/admin/branches',
+    branch:             (id: number | string) => `/api/admin/branches/${id}`,
     users:              '/api/admin/users',
     user:               (id: number | string) => `/api/admin/users/${id}`,
     userRole:           (uid: number | string, rid: number | string) => `/api/admin/users/${uid}/roles/${rid}`,
+    inviteUser:         '/api/admin/users/invite',
+    reinviteUser:       (id: number | string) => `/api/admin/users/${id}/reinvite`,
+    forceReset:         (id: number | string) => `/api/admin/users/${id}/force-reset`,
+    unlockUser:         (id: number | string) => `/api/admin/users/${id}/unlock`,
     shopProfile:        '/api/admin/shop-profile',
     permissions:        '/api/admin/permissions',
     roles:              '/api/admin/roles',
@@ -45,8 +52,12 @@ export const ApiEndpoints = {
     invoices:        '/api/billing/invoices',
     invoice:         (id: number | string) => `/api/billing/invoices/${id}`,
     invoiceLines:    (id: number | string) => `/api/billing/invoices/${id}/lines`,
+    invoicePdf:      (id: number | string, fmt: 'A4' | 'Thermal80mm') => `/api/billing/invoices/${id}/pdf?format=${fmt}`,
     finalize:        (id: number | string) => `/api/billing/invoices/${id}/finalize`,
     cancel:          (id: number | string) => `/api/billing/invoices/${id}/cancel`,
+  },
+  hardware: {
+    cashDrawerPop:   '/api/hardware/cash-drawer/pop',
   },
   wallet: {
     balances:        '/api/wallet/balances',
@@ -54,6 +65,24 @@ export const ApiEndpoints = {
     transactions:    (customerId: number | string) => `/api/wallet/transactions/${customerId}`,
     credit:          '/api/wallet/credit',
     debit:           '/api/wallet/debit',
+  },
+  shift: {
+    list:         '/api/shifts',
+    current:      '/api/shifts/current',
+    shift:        (id: number | string) => `/api/shifts/${id}`,
+    open:         '/api/shifts/open',
+    close:        (id: number | string) => `/api/shifts/${id}/close`,
+    forceClose:   (id: number | string) => `/api/shifts/${id}/force-close`,
+    cashIn:       (id: number | string) => `/api/shifts/${id}/cash-in`,
+    cashOut:      (id: number | string) => `/api/shifts/${id}/cash-out`,
+  },
+  files: {
+    upload:      '/api/files/upload',
+    file:        (id: number | string) => `/api/files/${id}`,
+    byEntity:    (type: string, id: number | string) => `/api/files/entity/${type}/${id}`,
+  },
+  usage: {
+    current: '/api/usage/current',
   },
   services: '/api/services',
 } as const;

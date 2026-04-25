@@ -29,6 +29,7 @@
     <ProjectReference Include="..\ErpSaas.Modules.Inventory\ErpSaas.Modules.Inventory.csproj" />
     <ProjectReference Include="..\ErpSaas.Modules.Billing\ErpSaas.Modules.Billing.csproj" />
     <ProjectReference Include="..\ErpSaas.Modules.Wallet\ErpSaas.Modules.Wallet.csproj" />
+    <ProjectReference Include="..\ErpSaas.Modules.Shift\ErpSaas.Modules.Shift.csproj" />
   </ItemGroup>
 
 </Project>

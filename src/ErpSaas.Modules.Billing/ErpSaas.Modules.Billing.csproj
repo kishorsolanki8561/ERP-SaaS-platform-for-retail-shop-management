@@ -9,6 +9,7 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="FluentValidation.AspNetCore" Version="11.*" />
+    <PackageReference Include="QuestPDF" Version="2026.2.4" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ErpSaas.Infrastructure\ErpSaas.Infrastructure.csproj" />

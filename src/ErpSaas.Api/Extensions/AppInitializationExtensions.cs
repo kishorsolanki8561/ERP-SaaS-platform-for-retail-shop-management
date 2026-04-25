@@ -24,7 +24,7 @@ public static class AppInitializationExtensions
 
             await sp.GetRequiredService<PlatformDbContext>().Database.MigrateAsync();
             await sp.GetRequiredService<TenantDbContext>().Database.MigrateAsync();
-            await sp.GetRequiredService<AnalyticsDbContext>().Database.EnsureCreatedAsync();
+            await sp.GetRequiredService<AnalyticsDbContext>().Database.MigrateAsync();
             await sp.GetRequiredService<LogDbContext>().Database.MigrateAsync();
             await sp.GetRequiredService<NotificationsDbContext>().Database.MigrateAsync();
 

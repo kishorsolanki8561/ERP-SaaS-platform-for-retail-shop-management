@@ -1,18 +1,27 @@
 #pragma warning disable CS9107
 using ErpSaas.Infrastructure.Data;
 using ErpSaas.Infrastructure.Data.Entities.Identity;
+using BranchEntity = ErpSaas.Infrastructure.Data.Entities.Identity.Branch;
+using ErpSaas.Infrastructure.Data.Entities.Messaging.Enums;
+using ErpSaas.Infrastructure.Messaging;
+using ErpSaas.Infrastructure.Metering;
 using ErpSaas.Infrastructure.Services;
 using ErpSaas.Shared.Data;
 using ErpSaas.Shared.Messages;
 using ErpSaas.Shared.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace ErpSaas.Modules.Identity.Services;
 
 public sealed class AdminService(
     PlatformDbContext db,
     IErrorLogger errorLogger,
-    ITenantContext tenant)
+    ITenantContext tenant,
+    ITokenService tokenService,
+    INotificationService notifications,
+    ILogger<AdminService> logger,
+    IUsageMeterService? usageMeter = null)
     : BaseService<PlatformDbContext>(db, errorLogger), IAdminService
 {
     public Task<ShopProfileDto?> GetShopProfileAsync(CancellationToken ct = default)
@@ -194,6 +203,200 @@ public sealed class AdminService(
                 .FirstOrDefaultAsync(ur => ur.UserId == userId && ur.RoleId == roleId && ur.ShopId == tenant.ShopId, ct);
             if (ur is null) return Result<bool>.NotFound(Errors.Admin.UserRoleNotFound);
             db.UserRoles.Remove(ur);
+            await db.SaveChangesAsync(ct);
+            return Result<bool>.Success(true);
+        }, ct, useTransaction: true);
+
+    public async Task<Result<long>> InviteUserAsync(InviteUserDto dto, CancellationToken ct = default)
+        => await ExecuteAsync<long>("Admin.InviteUser", async () =>
+        {
+            if (usageMeter is not null)
+            {
+                var quota = await usageMeter.CheckQuotaAsync(MeterCodes.ActiveUsers, 1, ct);
+                if (quota.IsDenied)
+                    return Result<long>.Conflict(Errors.Metering.QuotaConflict(MeterCodes.ActiveUsers));
+            }
+
+            if (await db.Users.AnyAsync(u => u.Email == dto.Email, ct))
+                return Result<long>.Conflict(Errors.Admin.UserNotFound);
+
+            var user = new User
+            {
+                Email      = dto.Email,
+                Phone      = dto.Phone,
+                DisplayName = dto.DisplayName,
+                PasswordHash = "",     // set on AcceptInvite
+                IsActive    = false,   // activated when invite is accepted
+                CreatedAtUtc = DateTime.UtcNow,
+            };
+            db.Users.Add(user);
+            await db.SaveChangesAsync(ct);
+
+            db.UserShops.Add(new UserShop { UserId = user.Id, ShopId = tenant.ShopId, IsActive = true, CreatedAtUtc = DateTime.UtcNow });
+
+            if (dto.RoleId.HasValue)
+                db.UserRoles.Add(new UserRole { UserId = user.Id, ShopId = tenant.ShopId, RoleId = dto.RoleId.Value, CreatedAtUtc = DateTime.UtcNow });
+
+            var rawToken = tokenService.GenerateRefreshToken();
+            db.UserSecurityTokens.Add(new UserSecurityToken
+            {
+                UserId = user.Id,
+                TokenHash = tokenService.HashToken(rawToken),
+                Purpose = SecurityTokenPurpose.Invite,
+                ExpiresAtUtc = DateTime.UtcNow.AddDays(7),
+            });
+            await db.SaveChangesAsync(ct);
+
+            try
+            {
+                await notifications.EnqueueAsync(tenant.ShopId, NotificationChannel.Email, dto.Email,
+                    Constants.NotificationCodes.UserInvite,
+                    new Dictionary<string, string> { ["Name"] = dto.DisplayName, ["InviteLink"] = rawToken },
+                    ct: ct);
+            }
+            catch (Exception ex) { logger.LogWarning(ex, "Failed to send invite email to {Email}", dto.Email); }
+
+            if (usageMeter is not null)
+                await usageMeter.IncrementAsync(MeterCodes.ActiveUsers, 1, "User", user.Id, ct: ct);
+
+            return Result<long>.Success(user.Id);
+        }, ct, useTransaction: true);
+
+    public async Task<Result<bool>> ResendInviteAsync(long userId, CancellationToken ct = default)
+        => await ExecuteAsync<bool>("Admin.ResendInvite", async () =>
+        {
+            var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId, ct);
+            if (user is null) return Result<bool>.NotFound(Errors.Admin.UserNotFound);
+
+            // Expire old invite tokens
+            var oldTokens = await db.UserSecurityTokens
+                .Where(t => t.UserId == userId && t.Purpose == SecurityTokenPurpose.Invite && t.ConsumedAtUtc == null)
+                .ToListAsync(ct);
+            oldTokens.ForEach(t => t.ConsumedAtUtc = DateTime.UtcNow);
+
+            var rawToken = tokenService.GenerateRefreshToken();
+            db.UserSecurityTokens.Add(new UserSecurityToken
+            {
+                UserId = user.Id,
+                TokenHash = tokenService.HashToken(rawToken),
+                Purpose = SecurityTokenPurpose.Invite,
+                ExpiresAtUtc = DateTime.UtcNow.AddDays(7),
+            });
+            await db.SaveChangesAsync(ct);
+
+            if (user.Email is not null)
+            {
+                try
+                {
+                    await notifications.EnqueueAsync(tenant.ShopId, NotificationChannel.Email, user.Email,
+                        Constants.NotificationCodes.UserInvite,
+                        new Dictionary<string, string> { ["Name"] = user.DisplayName, ["InviteLink"] = rawToken },
+                        ct: ct);
+                }
+                catch (Exception ex) { logger.LogWarning(ex, "Failed to resend invite to {Email}", user.Email); }
+            }
+
+            return Result<bool>.Success(true);
+        }, ct, useTransaction: true);
+
+    public async Task<Result<bool>> ForceResetPasswordAsync(long userId, CancellationToken ct = default)
+        => await ExecuteAsync<bool>("Admin.ForceResetPassword", async () =>
+        {
+            var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId, ct);
+            if (user is null) return Result<bool>.NotFound(Errors.Admin.UserNotFound);
+
+            var rawToken = tokenService.GenerateRefreshToken();
+            db.UserSecurityTokens.Add(new UserSecurityToken
+            {
+                UserId = user.Id,
+                TokenHash = tokenService.HashToken(rawToken),
+                Purpose = SecurityTokenPurpose.PasswordReset,
+                ExpiresAtUtc = DateTime.UtcNow.AddHours(24),
+            });
+            await db.SaveChangesAsync(ct);
+
+            if (user.Email is not null)
+            {
+                try
+                {
+                    await notifications.EnqueueAsync(tenant.ShopId, NotificationChannel.Email, user.Email,
+                        Constants.NotificationCodes.PasswordReset,
+                        new Dictionary<string, string> { ["Name"] = user.DisplayName, ["ResetLink"] = rawToken },
+                        ct: ct);
+                }
+                catch (Exception ex) { logger.LogWarning(ex, "Failed to send force-reset email to {Email}", user.Email); }
+            }
+
+            return Result<bool>.Success(true);
+        }, ct, useTransaction: true);
+
+    public async Task<Result<bool>> UnlockUserAsync(long userId, CancellationToken ct = default)
+        => await ExecuteAsync<bool>("Admin.UnlockUser", async () =>
+        {
+            var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId, ct);
+            if (user is null) return Result<bool>.NotFound(Errors.Admin.UserNotFound);
+            user.FailedLoginCount = 0;
+            user.LockoutUntilUtc = null;
+            await db.SaveChangesAsync(ct);
+            return Result<bool>.Success(true);
+        }, ct, useTransaction: true);
+
+    // ── Branches ─────────────────────────────────────────────────────────────
+
+    public Task<IReadOnlyList<BranchDto>> ListBranchesAsync(CancellationToken ct = default)
+        => db.Branches
+            .Where(b => b.ShopId == tenant.ShopId && !b.IsDeleted)
+            .OrderBy(b => b.Name)
+            .Select(b => (BranchDto)new BranchDto(b.Id, b.Name, b.City, b.Phone, b.IsActive, b.IsHeadOffice))
+            .ToListAsync(ct)
+            .ContinueWith(t => (IReadOnlyList<BranchDto>)t.Result);
+
+    public async Task<Result<long>> CreateBranchAsync(CreateBranchDto dto, CancellationToken ct = default)
+        => await ExecuteAsync<long>("Admin.CreateBranch", async () =>
+        {
+            var branch = new BranchEntity
+            {
+                ShopId       = tenant.ShopId,
+                Name         = dto.Name,
+                AddressLine1 = dto.AddressLine1,
+                AddressLine2 = dto.AddressLine2,
+                City         = dto.City,
+                StateCode    = dto.StateCode,
+                PinCode      = dto.PinCode,
+                Phone        = dto.Phone,
+                GstNumber    = dto.GstNumber,
+                IsHeadOffice = dto.IsHeadOffice,
+                IsActive     = true,
+                CreatedAtUtc = DateTime.UtcNow,
+            };
+            db.Branches.Add(branch);
+            await db.SaveChangesAsync(ct);
+            return Result<long>.Success(branch.Id);
+        }, ct, useTransaction: true);
+
+    public async Task<Result<bool>> UpdateBranchAsync(long branchId, UpdateBranchDto dto, CancellationToken ct = default)
+        => await ExecuteAsync<bool>("Admin.UpdateBranch", async () =>
+        {
+            var branch = await db.Branches.FirstOrDefaultAsync(b => b.Id == branchId && b.ShopId == tenant.ShopId, ct);
+            if (branch is null) return Result<bool>.NotFound(Errors.Admin.ShopNotFound);
+            branch.Name         = dto.Name;
+            branch.AddressLine1 = dto.AddressLine1;
+            branch.AddressLine2 = dto.AddressLine2;
+            branch.City         = dto.City;
+            branch.StateCode    = dto.StateCode;
+            branch.PinCode      = dto.PinCode;
+            branch.Phone        = dto.Phone;
+            branch.GstNumber    = dto.GstNumber;
+            await db.SaveChangesAsync(ct);
+            return Result<bool>.Success(true);
+        }, ct, useTransaction: true);
+
+    public async Task<Result<bool>> DeactivateBranchAsync(long branchId, CancellationToken ct = default)
+        => await ExecuteAsync<bool>("Admin.DeactivateBranch", async () =>
+        {
+            var branch = await db.Branches.FirstOrDefaultAsync(b => b.Id == branchId && b.ShopId == tenant.ShopId, ct);
+            if (branch is null) return Result<bool>.NotFound(Errors.Admin.ShopNotFound);
+            branch.IsActive = false;
             await db.SaveChangesAsync(ct);
             return Result<bool>.Success(true);
         }, ct, useTransaction: true);

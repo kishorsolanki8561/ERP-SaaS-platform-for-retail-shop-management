@@ -11,6 +11,9 @@
 
   <ItemGroup>
     <PackageReference Include="Bogus" Version="35.6.5" />
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />
+    <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.0.2" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.0.2" />
     <PackageReference Include="coverlet.collector" Version="10.0.0">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
@@ -29,6 +32,10 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <ProjectReference Include="..\ErpSaas.Api\ErpSaas.Api.csproj" />
     <ProjectReference Include="..\ErpSaas.Modules.Billing\ErpSaas.Modules.Billing.csproj" />
+    <ProjectReference Include="..\ErpSaas.Modules.Wallet\ErpSaas.Modules.Wallet.csproj" />
+    <ProjectReference Include="..\ErpSaas.Modules.Shift\ErpSaas.Modules.Shift.csproj" />
+    <ProjectReference Include="..\ErpSaas.Modules.Masters\ErpSaas.Modules.Masters.csproj" />
+    <ProjectReference Include="..\ErpSaas.Modules.Identity\ErpSaas.Modules.Identity.csproj" />
   </ItemGroup>
 
   <ItemGroup>

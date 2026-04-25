@@ -58,6 +58,12 @@ public sealed class NotificationTemplateSeeder(
             "Low Stock Alert - ShopEarth",
             "Alert: Product '{{ProductName}}' ({{ProductCode}}) is below minimum stock level. Current qty: {{CurrentQty}}."
         ),
+        (
+            Constants.NotificationCodes.ShiftClosed,
+            NotificationChannel.Sms,
+            "Shift Closed - ShopEarth",
+            "Hi {{CashierName}}, your shift has been closed. Sales: ₹{{TotalSales}} | Cash variance: ₹{{CashVariance}}"
+        ),
     ];
 
     public async Task SeedAsync(CancellationToken ct = default)

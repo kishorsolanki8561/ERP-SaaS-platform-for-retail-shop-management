@@ -357,6 +357,146 @@ public class BillingServiceTests : IDisposable
         result!.Lines.Should().HaveCount(1);
     }
 
+    // ── SetPaymentTermsAsync ──────────────────────────────────────────────────
+
+    [Fact]
+    public async Task SetPaymentTermsAsync_FinalizedInvoice_SetsTermsAndDueDate()
+    {
+        var invoiceId = await CreateDraftAsync();
+        await _sut.FinalizeInvoiceAsync(invoiceId);
+        var dto = new SetPaymentTermsDto("Net30", 30);
+
+        var result = await _sut.SetPaymentTermsAsync(invoiceId, dto);
+
+        result.IsSuccess.Should().BeTrue();
+        var invoice = await _db.Set<Invoice>().FindAsync(invoiceId);
+        invoice!.PaymentTerms.Should().Be("Net30");
+        invoice.DueDate.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task SetPaymentTermsAsync_NotFound_ReturnsNotFound()
+    {
+        var result = await _sut.SetPaymentTermsAsync(9999L, new SetPaymentTermsDto("Net30", 30));
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(System.Net.HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task SetPaymentTermsAsync_CancelledInvoice_ReturnsConflict()
+    {
+        var invoiceId = await CreateDraftAsync();
+        await _sut.CancelInvoiceAsync(invoiceId, "test");
+
+        var result = await _sut.SetPaymentTermsAsync(invoiceId, new SetPaymentTermsDto("Net30", 30));
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(System.Net.HttpStatusCode.Conflict);
+    }
+
+    // ── PayInvoiceAsync ───────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task PayInvoiceAsync_CashPayment_FullAmount_StatusBecomePaid()
+    {
+        var invoiceId = await CreateDraftAsync();
+        await _sut.AddLineAsync(invoiceId, new AddInvoiceLineDto(1L, 1L, 1m, 100m, 0m));
+        await _sut.FinalizeInvoiceAsync(invoiceId);
+
+        var invoice = await _db.Set<Invoice>().FindAsync(invoiceId);
+        var grandTotal = invoice!.GrandTotal;
+
+        var dto = new PayInvoiceDto(
+            [new PaymentAllocationDto(PaymentMode.Cash, grandTotal)]);
+
+        var result = await _sut.PayInvoiceAsync(invoiceId, dto);
+
+        result.IsSuccess.Should().BeTrue();
+        var updated = await _db.Set<Invoice>().FindAsync(invoiceId);
+        updated!.Status.Should().Be(InvoiceStatus.Paid);
+        updated.OutstandingAmount.Should().BeLessThanOrEqualTo(0m);
+    }
+
+    [Fact]
+    public async Task PayInvoiceAsync_PartialPayment_StatusRemainsFinalized()
+    {
+        var invoiceId = await CreateDraftAsync();
+        await _sut.AddLineAsync(invoiceId, new AddInvoiceLineDto(1L, 1L, 1m, 200m, 0m));
+        await _sut.FinalizeInvoiceAsync(invoiceId);
+
+        var dto = new PayInvoiceDto([new PaymentAllocationDto(PaymentMode.Cash, 50m)]);
+
+        var result = await _sut.PayInvoiceAsync(invoiceId, dto);
+
+        result.IsSuccess.Should().BeTrue();
+        var updated = await _db.Set<Invoice>().FindAsync(invoiceId);
+        updated!.Status.Should().Be(InvoiceStatus.Finalized);
+        updated.PaidAmount.Should().Be(50m);
+    }
+
+    [Fact]
+    public async Task PayInvoiceAsync_NotFound_ReturnsNotFound()
+    {
+        var dto = new PayInvoiceDto([new PaymentAllocationDto(PaymentMode.Cash, 100m)]);
+        var result = await _sut.PayInvoiceAsync(9999L, dto);
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(System.Net.HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task PayInvoiceAsync_CancelledInvoice_ReturnsConflict()
+    {
+        var invoiceId = await CreateDraftAsync();
+        await _sut.CancelInvoiceAsync(invoiceId, "test");
+
+        var dto = new PayInvoiceDto([new PaymentAllocationDto(PaymentMode.Cash, 100m)]);
+        var result = await _sut.PayInvoiceAsync(invoiceId, dto);
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(System.Net.HttpStatusCode.Conflict);
+    }
+
+    [Fact]
+    public async Task PayInvoiceAsync_DraftInvoice_ReturnsConflict()
+    {
+        var invoiceId = await CreateDraftAsync();
+
+        var dto = new PayInvoiceDto([new PaymentAllocationDto(PaymentMode.Cash, 100m)]);
+        var result = await _sut.PayInvoiceAsync(invoiceId, dto);
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(System.Net.HttpStatusCode.Conflict);
+    }
+
+    // ── FinalizeInvoiceAsync — SMS notification ───────────────────────────────
+
+    [Fact]
+    public async Task FinalizeInvoiceAsync_WithCustomerPhone_EnqueuesNotification()
+    {
+        var dto = new CreateInvoiceDto(
+            DateTime.UtcNow.Date,
+            CustomerId: 1L,
+            WarehouseId: 1L,
+            ShopId: 1L,
+            Notes: null,
+            CustomerName: "Test Customer",
+            CustomerPhone: "+91-9876543210");
+
+        var idResult = await _sut.CreateDraftInvoiceAsync(dto);
+        await _sut.FinalizeInvoiceAsync(idResult.Value!);
+
+        await _notifications.Received(1).EnqueueAsync(
+            Arg.Any<long>(),
+            Arg.Any<ErpSaas.Infrastructure.Data.Entities.Messaging.Enums.NotificationChannel>(),
+            "+91-9876543210",
+            Arg.Any<string>(),
+            Arg.Any<Dictionary<string, string>>(),
+            Arg.Any<string>(),
+            Arg.Any<CancellationToken>());
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private static CreateInvoiceDto MakeCreateDto(long customerId = 1L, long shopId = 1L)

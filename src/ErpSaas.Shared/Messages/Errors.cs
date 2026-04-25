@@ -82,4 +82,29 @@ public static class Errors
         public const string InsufficientBalance = "WALLET_002";
         public const string InvalidAmount       = "WALLET_003";
     }
+
+    public static class Shift
+    {
+        public const string NotFound   = "SHIFT_001";
+        public const string AlreadyOpen = "SHIFT_002";
+        public const string NotOpen    = "SHIFT_003";
+    }
+
+    public static class Metering
+    {
+        public const string QuotaExceeded = "METER_001";
+
+        public static string QuotaConflict(string code) => $"{QuotaExceeded}:{code}";
+    }
+
+    public static class Files
+    {
+        public const string NotFound            = "FILE_001";
+        public const string ExtensionNotAllowed = "FILE_002";
+        public const string FileTooLarge        = "FILE_003";
+        public const string StorageQuotaExceeded = "FILE_004";
+
+        public static string ExtensionConflict(string ext) => $"{ExtensionNotAllowed}:{ext}";
+        public static string SizeConflict(long max) => $"{FileTooLarge}:{max}";
+    }
 }

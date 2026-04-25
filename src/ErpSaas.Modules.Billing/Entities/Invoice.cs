@@ -38,7 +38,26 @@ public class Invoice : TenantEntity
 
     public string? Notes { get; set; }
 
+    /// <summary>Wholesale credit terms label (e.g. "NET30"). Null for retail cash invoices.</summary>
+    public string? PaymentTerms { get; set; }
+
+    /// <summary>Due date for payment — computed from PaymentTerms at finalization.</summary>
+    public DateTime? DueDate { get; set; }
+
+    /// <summary>Sum of all InvoicePayment rows recorded against this invoice.</summary>
+    public decimal PaidAmount { get; set; }
+
+    /// <summary>GrandTotal minus PaidAmount. Negative values indicate overpayment.</summary>
+    public decimal OutstandingAmount { get; set; }
+
     public long WarehouseId { get; set; }
 
+    /// <summary>Null for wholesale invoices created outside POS; required for retail POS invoices.</summary>
+    public long? ShiftId { get; set; }
+
+    /// <summary>Branch where the invoice was issued.</summary>
+    public long? BranchId { get; set; }
+
     public ICollection<InvoiceLine> Lines { get; set; } = [];
+    public ICollection<InvoicePayment> Payments { get; set; } = [];
 }

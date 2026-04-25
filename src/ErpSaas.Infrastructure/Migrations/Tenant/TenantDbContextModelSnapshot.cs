@@ -208,6 +208,132 @@ namespace ErpSaas.Infrastructure.Migrations.Tenant
                     b.ToTable("MenuItemTenantOverride", "menu");
                 });
 
+            modelBuilder.Entity("ErpSaas.Infrastructure.Data.Entities.Metering.UsageEvent", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("CreatedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("Delta")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("MeterCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("OccurredAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<long>("ShopId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("SourceEntityId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("SourceEntityType")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<long?>("TriggeredByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("UpdatedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ShopId", "MeterCode", "OccurredAtUtc");
+
+                    b.ToTable("UsageEvent", "metering");
+                });
+
+            modelBuilder.Entity("ErpSaas.Infrastructure.Data.Entities.Metering.UsageMeter", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("CreatedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("HardCapEnforced")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("MeterCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<decimal>("OverageChargeRate")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<long>("OverageCount")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("PeriodEndUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("PeriodStartUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long>("Quota")
+                        .HasColumnType("bigint");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<long>("ShopId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("UpdatedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("Used")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ShopId", "MeterCode", "PeriodStartUtc")
+                        .IsUnique();
+
+                    b.ToTable("UsageMeter", "metering");
+                });
+
             modelBuilder.Entity("ErpSaas.Infrastructure.Data.Entities.Sequence.SequenceDefinition", b =>
                 {
                     b.Property<long>("Id")
@@ -279,6 +405,9 @@ namespace ErpSaas.Infrastructure.Migrations.Tenant
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
+                    b.Property<long?>("BranchId")
+                        .HasColumnType("bigint");
+
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("datetime2");
 
@@ -300,6 +429,9 @@ namespace ErpSaas.Infrastructure.Migrations.Tenant
                     b.Property<string>("CustomerPhoneSnapshot")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<DateTime?>("DueDate")
+                        .HasColumnType("datetime2");
+
                     b.Property<decimal>("GrandTotal")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
@@ -319,6 +451,18 @@ namespace ErpSaas.Infrastructure.Migrations.Tenant
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
 
+                    b.Property<decimal>("OutstandingAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("PaidAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("PaymentTerms")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
                     b.Property<decimal>("RoundOff")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
@@ -327,6 +471,9 @@ namespace ErpSaas.Infrastructure.Migrations.Tenant
                         .IsConcurrencyToken()
                         .IsRequired()
                         .HasColumnType("varbinary(max)");
+
+                    b.Property<long?>("ShiftId")
+                        .HasColumnType("bigint");
 
                     b.Property<long>("ShopId")
                         .HasColumnType("bigint");
@@ -361,6 +508,8 @@ namespace ErpSaas.Infrastructure.Migrations.Tenant
 
                     b.HasIndex("ShopId", "InvoiceNumber")
                         .IsUnique();
+
+                    b.HasIndex("ShopId", "ShiftId");
 
                     b.ToTable("Invoice", "sales");
                 });
@@ -480,6 +629,68 @@ namespace ErpSaas.Infrastructure.Migrations.Tenant
                     b.HasIndex("InvoiceId");
 
                     b.ToTable("InvoiceLine", "sales");
+                });
+
+            modelBuilder.Entity("ErpSaas.Modules.Billing.Entities.InvoicePayment", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("CreatedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("InvoiceId")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Mode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime>("PaidAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ReferenceNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsRequired()
+                        .HasColumnType("varbinary(max)");
+
+                    b.Property<long>("ShopId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("UpdatedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InvoiceId");
+
+                    b.HasIndex("ShopId", "InvoiceId");
+
+                    b.ToTable("InvoicePayment", "sales");
                 });
 
             modelBuilder.Entity("ErpSaas.Modules.Crm.Entities.Customer", b =>
@@ -993,6 +1204,232 @@ namespace ErpSaas.Infrastructure.Migrations.Tenant
                     b.ToTable("Warehouse", "inventory");
                 });
 
+            modelBuilder.Entity("ErpSaas.Modules.Shift.Entities.Shift", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("BranchId")
+                        .HasColumnType("bigint");
+
+                    b.Property<decimal?>("CashVariance")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("CashierNameSnapshot")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("CashierPhoneSnapshot")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<long>("CashierUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("ClosedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal?>("ClosingCashCounted")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("ClosingNotes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("CreatedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("ForcedClosedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("OpenedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("OpeningCash")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsRequired()
+                        .HasColumnType("varbinary(max)");
+
+                    b.Property<long>("ShopId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<decimal?>("SystemComputedCash")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalCardSales")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalCashRefunds")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalCashSales")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalSales")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalUpiSales")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalWalletDebits")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("TransactionCount")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("UpdatedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ShopId", "CashierUserId", "Status");
+
+                    b.ToTable("Shift", "shift");
+                });
+
+            modelBuilder.Entity("ErpSaas.Modules.Shift.Entities.ShiftCashMovement", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<long?>("AuthorizedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("CreatedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("MovementAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("ReasonCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<long?>("RelatedExpenseId")
+                        .HasColumnType("bigint");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsRequired()
+                        .HasColumnType("varbinary(max)");
+
+                    b.Property<long>("ShiftId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("ShopId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("UpdatedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ShiftId");
+
+                    b.HasIndex("ShopId", "ShiftId");
+
+                    b.ToTable("ShiftCashMovement", "shift");
+                });
+
+            modelBuilder.Entity("ErpSaas.Modules.Shift.Entities.ShiftDenominationCount", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<int>("Count")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("CreatedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("Denomination")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Phase")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsRequired()
+                        .HasColumnType("varbinary(max)");
+
+                    b.Property<long>("ShiftId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("ShopId")
+                        .HasColumnType("bigint");
+
+                    b.Property<decimal>("Subtotal")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("UpdatedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ShiftId");
+
+                    b.HasIndex("ShopId", "ShiftId", "Phase");
+
+                    b.ToTable("ShiftDenominationCount", "shift");
+                });
+
             modelBuilder.Entity("ErpSaas.Modules.Wallet.Entities.WalletBalance", b =>
                 {
                     b.Property<long>("Id")
@@ -1145,6 +1582,17 @@ namespace ErpSaas.Infrastructure.Migrations.Tenant
                     b.Navigation("Invoice");
                 });
 
+            modelBuilder.Entity("ErpSaas.Modules.Billing.Entities.InvoicePayment", b =>
+                {
+                    b.HasOne("ErpSaas.Modules.Billing.Entities.Invoice", "Invoice")
+                        .WithMany("Payments")
+                        .HasForeignKey("InvoiceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Invoice");
+                });
+
             modelBuilder.Entity("ErpSaas.Modules.Crm.Entities.Customer", b =>
                 {
                     b.HasOne("ErpSaas.Modules.Crm.Entities.CustomerGroup", "CustomerGroup")
@@ -1196,9 +1644,33 @@ namespace ErpSaas.Infrastructure.Migrations.Tenant
                     b.Navigation("Warehouse");
                 });
 
+            modelBuilder.Entity("ErpSaas.Modules.Shift.Entities.ShiftCashMovement", b =>
+                {
+                    b.HasOne("ErpSaas.Modules.Shift.Entities.Shift", "Shift")
+                        .WithMany("CashMovements")
+                        .HasForeignKey("ShiftId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Shift");
+                });
+
+            modelBuilder.Entity("ErpSaas.Modules.Shift.Entities.ShiftDenominationCount", b =>
+                {
+                    b.HasOne("ErpSaas.Modules.Shift.Entities.Shift", "Shift")
+                        .WithMany("DenominationCounts")
+                        .HasForeignKey("ShiftId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Shift");
+                });
+
             modelBuilder.Entity("ErpSaas.Modules.Billing.Entities.Invoice", b =>
                 {
                     b.Navigation("Lines");
+
+                    b.Navigation("Payments");
                 });
 
             modelBuilder.Entity("ErpSaas.Modules.Crm.Entities.Customer", b =>
@@ -1216,6 +1688,13 @@ namespace ErpSaas.Infrastructure.Migrations.Tenant
                     b.Navigation("StockMovements");
 
                     b.Navigation("Units");
+                });
+
+            modelBuilder.Entity("ErpSaas.Modules.Shift.Entities.Shift", b =>
+                {
+                    b.Navigation("CashMovements");
+
+                    b.Navigation("DenominationCounts");
                 });
 #pragma warning restore 612, 618
         }

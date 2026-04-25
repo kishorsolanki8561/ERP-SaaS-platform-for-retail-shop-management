@@ -1,5 +1,7 @@
 #pragma warning disable CS9107
 using ErpSaas.Infrastructure.Data;
+using ErpSaas.Infrastructure.Data.Entities.Messaging.Enums;
+using ErpSaas.Infrastructure.Messaging;
 using ErpSaas.Infrastructure.Sequence;
 using ErpSaas.Infrastructure.Services;
 using ErpSaas.Modules.Wallet.Entities;
@@ -8,6 +10,7 @@ using ErpSaas.Shared.Data;
 using ErpSaas.Shared.Messages;
 using ErpSaas.Shared.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace ErpSaas.Modules.Wallet.Services;
 
@@ -15,8 +18,10 @@ public sealed class WalletService(
     TenantDbContext db,
     IErrorLogger errorLogger,
     ISequenceService sequence,
-    ITenantContext tenant)
-    : BaseService<TenantDbContext>(db, errorLogger), IWalletService
+    ITenantContext tenant,
+    INotificationService? notifications = null,
+    ILogger<WalletService>? logger = null)
+    : BaseService<TenantDbContext>(db, errorLogger), IWalletService, IWalletDebit
 {
     public async Task<PagedResult<WalletBalanceDto>> ListBalancesAsync(
         int page,
@@ -86,7 +91,8 @@ public sealed class WalletService(
     public async Task<Result<WalletCreditResultDto>> CreditAsync(
         WalletCreditDto dto,
         CancellationToken ct = default)
-        => await ExecuteAsync<WalletCreditResultDto>("Wallet.Credit", async () =>
+    {
+        var result = await ExecuteAsync<WalletCreditResultDto>("Wallet.Credit", async () =>
         {
             if (dto.Amount <= 0)
                 return Result<WalletCreditResultDto>.Failure(Errors.Wallet.InvalidAmount);
@@ -122,6 +128,39 @@ public sealed class WalletService(
             await db.SaveChangesAsync(ct);
             return Result<WalletCreditResultDto>.Success(new WalletCreditResultDto(receiptNumber, balanceAfter));
         }, ct, useTransaction: true);
+
+        if (result.IsSuccess && dto.CustomerPhone is not null)
+            await TrySendCreditNotificationAsync(dto, result.Value!, ct);
+
+        return result;
+    }
+
+    private async Task TrySendCreditNotificationAsync(
+        WalletCreditDto dto, WalletCreditResultDto credited, CancellationToken ct)
+    {
+        if (notifications is null) return;
+        try
+        {
+            await notifications.EnqueueAsync(
+                tenant.ShopId,
+                NotificationChannel.Sms,
+                dto.CustomerPhone!,
+                Constants.NotificationCodes.WalletCredited,
+                new Dictionary<string, string>
+                {
+                    { "CustomerName",   dto.CustomerName },
+                    { "Amount",         dto.Amount.ToString("F2") },
+                    { "Balance",        credited.NewBalance.ToString("F2") },
+                    { "ReceiptNumber",  credited.ReceiptNumber },
+                },
+                correlationId: $"WalletCredit:{dto.CustomerId}",
+                ct);
+        }
+        catch (Exception ex)
+        {
+            logger?.LogWarning(ex, "Non-critical: failed to enqueue wallet credit SMS for customer {Id}", dto.CustomerId);
+        }
+    }
 
     public async Task<Result<bool>> DebitAsync(
         WalletDebitDto dto,

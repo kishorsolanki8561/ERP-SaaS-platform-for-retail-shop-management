@@ -5,6 +5,7 @@ using ErpSaas.Modules.Billing.Services;
 using ErpSaas.Shared.Catalog;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using QuestPDF.Infrastructure;
 
 namespace ErpSaas.Modules.Billing.Extensions;
 
@@ -12,7 +13,11 @@ public static class BillingServiceExtensions
 {
     public static IServiceCollection AddBillingModule(this IServiceCollection services)
     {
+        // QuestPDF community license (free for open-source and commercial use under 1M USD revenue)
+        QuestPDF.Settings.License = LicenseType.Community;
+
         services.AddScoped<IBillingService, BillingService>();
+        services.AddSingleton<IInvoicePdfGenerator, InvoicePdfGenerator>();
         services.AddDataSeeder<BillingSystemSeeder>();
         services.AddSingleton(new ServiceDescriptorEntry(
             "Billing",

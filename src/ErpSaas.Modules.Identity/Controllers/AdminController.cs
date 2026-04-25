@@ -33,6 +33,26 @@ public sealed class AdminController(IAdminService adminService) : BaseController
         CancellationToken ct = default)
         => Ok(await adminService.ListUsersAsync(pageNumber, pageSize, search, ct));
 
+    [HttpPost("users/invite")]
+    [RequirePermission("Users.Invite")]
+    public async Task<IActionResult> InviteUser([FromBody] InviteUserDto dto, CancellationToken ct)
+        => Ok(await adminService.InviteUserAsync(dto, ct));
+
+    [HttpPost("users/{userId:long}/reinvite")]
+    [RequirePermission("Users.Invite")]
+    public async Task<IActionResult> ResendInvite(long userId, CancellationToken ct)
+        => Ok(await adminService.ResendInviteAsync(userId, ct));
+
+    [HttpPost("users/{userId:long}/force-reset")]
+    [RequirePermission("Users.Manage")]
+    public async Task<IActionResult> ForceResetPassword(long userId, CancellationToken ct)
+        => Ok(await adminService.ForceResetPasswordAsync(userId, ct));
+
+    [HttpPost("users/{userId:long}/unlock")]
+    [RequirePermission("Users.Manage")]
+    public async Task<IActionResult> UnlockUser(long userId, CancellationToken ct)
+        => Ok(await adminService.UnlockUserAsync(userId, ct));
+
     [HttpDelete("users/{userId:long}")]
     [RequirePermission("Users.Manage")]
     public async Task<IActionResult> DeactivateUser(long userId, CancellationToken ct)
@@ -70,4 +90,26 @@ public sealed class AdminController(IAdminService adminService) : BaseController
     [RequirePermission("Users.Manage")]
     public async Task<IActionResult> RemoveUserRole(long userId, long roleId, CancellationToken ct)
         => Ok(await adminService.RemoveUserRoleAsync(userId, roleId, ct));
+
+    // ── Branches ──────────────────────────────────────────────────────────────
+
+    [HttpGet("branches")]
+    [RequirePermission("ShopProfile.View")]
+    public async Task<IActionResult> ListBranches(CancellationToken ct)
+        => Ok(await adminService.ListBranchesAsync(ct));
+
+    [HttpPost("branches")]
+    [RequirePermission("ShopProfile.Edit")]
+    public async Task<IActionResult> CreateBranch([FromBody] CreateBranchDto dto, CancellationToken ct)
+        => Ok(await adminService.CreateBranchAsync(dto, ct));
+
+    [HttpPut("branches/{branchId:long}")]
+    [RequirePermission("ShopProfile.Edit")]
+    public async Task<IActionResult> UpdateBranch(long branchId, [FromBody] UpdateBranchDto dto, CancellationToken ct)
+        => Ok(await adminService.UpdateBranchAsync(branchId, dto, ct));
+
+    [HttpDelete("branches/{branchId:long}")]
+    [RequirePermission("ShopProfile.Edit")]
+    public async Task<IActionResult> DeactivateBranch(long branchId, CancellationToken ct)
+        => Ok(await adminService.DeactivateBranchAsync(branchId, ct));
 }

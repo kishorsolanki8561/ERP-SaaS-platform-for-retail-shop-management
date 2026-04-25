@@ -45,7 +45,9 @@ public record CreateInvoiceDto(
     long ShopId,
     string? Notes,
     string? CustomerName = null,
-    string? CustomerPhone = null);
+    string? CustomerPhone = null,
+    long? ShiftId = null,
+    long? BranchId = null);
 
 public record AddInvoiceLineDto(
     long ProductId,
@@ -53,6 +55,20 @@ public record AddInvoiceLineDto(
     decimal QuantityInBilledUnit,
     decimal UnitPrice,
     decimal DiscountPercent);
+
+public record PaymentAllocationDto(
+    PaymentMode Mode,
+    decimal Amount,
+    string? ReferenceNumber = null,
+    string? Notes = null);
+
+public record PayInvoiceDto(
+    IReadOnlyList<PaymentAllocationDto> Allocations,
+    long? CustomerId = null);
+
+public record SetPaymentTermsDto(
+    string PaymentTerms,
+    int DueDays);
 
 // ── Interface ─────────────────────────────────────────────────────────────────
 
@@ -71,6 +87,10 @@ public interface IBillingService
     Task<Result<bool>> AddLineAsync(long invoiceId, AddInvoiceLineDto dto, CancellationToken ct = default);
 
     Task<Result<bool>> FinalizeInvoiceAsync(long id, CancellationToken ct = default);
+
+    Task<Result<bool>> SetPaymentTermsAsync(long id, SetPaymentTermsDto dto, CancellationToken ct = default);
+
+    Task<Result<bool>> PayInvoiceAsync(long id, PayInvoiceDto dto, CancellationToken ct = default);
 
     Task<Result<bool>> CancelInvoiceAsync(long id, string reason, CancellationToken ct = default);
 }

@@ -32,19 +32,19 @@ public sealed class DashboardController(TenantDbContext db) : BaseController
 
         var todaySales = await db.Set<Invoice>()
             .Where(i => !i.IsDeleted
-                && i.Status != InvoiceStatus.Cancelled
+                && (i.Status == InvoiceStatus.Finalized || i.Status == InvoiceStatus.Paid)
                 && i.InvoiceDate.Date == today)
             .SumAsync(i => (decimal?)i.GrandTotal, ct) ?? 0m;
 
         var yesterdaySales = await db.Set<Invoice>()
             .Where(i => !i.IsDeleted
-                && i.Status != InvoiceStatus.Cancelled
+                && (i.Status == InvoiceStatus.Finalized || i.Status == InvoiceStatus.Paid)
                 && i.InvoiceDate.Date == yesterday)
             .SumAsync(i => (decimal?)i.GrandTotal, ct) ?? 0m;
 
         var todayInvoiceCount = await db.Set<Invoice>()
             .CountAsync(i => !i.IsDeleted
-                && i.Status != InvoiceStatus.Cancelled
+                && (i.Status == InvoiceStatus.Finalized || i.Status == InvoiceStatus.Paid)
                 && i.InvoiceDate.Date == today, ct);
 
         var activeProductCount = await db.Set<Product>()

@@ -54,12 +54,51 @@ public record CreateRoleDto(
 public record UpdateRolePermissionsDto(
     IReadOnlyList<string> PermissionCodes);
 
+public record BranchDto(
+    long Id,
+    string Name,
+    string? City,
+    string? Phone,
+    bool IsActive,
+    bool IsHeadOffice);
+
+public record CreateBranchDto(
+    string Name,
+    string? AddressLine1 = null,
+    string? AddressLine2 = null,
+    string? City = null,
+    string? StateCode = null,
+    string? PinCode = null,
+    string? Phone = null,
+    string? GstNumber = null,
+    bool IsHeadOffice = false);
+
+public record UpdateBranchDto(
+    string Name,
+    string? AddressLine1 = null,
+    string? AddressLine2 = null,
+    string? City = null,
+    string? StateCode = null,
+    string? PinCode = null,
+    string? Phone = null,
+    string? GstNumber = null);
+
+public record InviteUserDto(
+    string DisplayName,
+    string Email,
+    string? Phone = null,
+    long? RoleId = null);
+
 public interface IAdminService
 {
     Task<ShopProfileDto?> GetShopProfileAsync(CancellationToken ct = default);
     Task<Result<bool>> UpdateShopProfileAsync(UpdateShopProfileDto dto, CancellationToken ct = default);
     Task<PagedResult<AdminUserDto>> ListUsersAsync(int pageNumber, int pageSize, string? search, CancellationToken ct = default);
     Task<Result<bool>> DeactivateUserAsync(long userId, CancellationToken ct = default);
+    Task<Result<long>> InviteUserAsync(InviteUserDto dto, CancellationToken ct = default);
+    Task<Result<bool>> ResendInviteAsync(long userId, CancellationToken ct = default);
+    Task<Result<bool>> ForceResetPasswordAsync(long userId, CancellationToken ct = default);
+    Task<Result<bool>> UnlockUserAsync(long userId, CancellationToken ct = default);
 
     Task<IReadOnlyList<PermissionDto>> ListPermissionsAsync(CancellationToken ct = default);
     Task<IReadOnlyList<RoleDto>> ListRolesAsync(CancellationToken ct = default);
@@ -67,4 +106,9 @@ public interface IAdminService
     Task<Result<bool>> UpdateRolePermissionsAsync(long roleId, UpdateRolePermissionsDto dto, CancellationToken ct = default);
     Task<Result<bool>> AssignUserRoleAsync(long userId, long roleId, CancellationToken ct = default);
     Task<Result<bool>> RemoveUserRoleAsync(long userId, long roleId, CancellationToken ct = default);
+
+    Task<IReadOnlyList<BranchDto>> ListBranchesAsync(CancellationToken ct = default);
+    Task<Result<long>> CreateBranchAsync(CreateBranchDto dto, CancellationToken ct = default);
+    Task<Result<bool>> UpdateBranchAsync(long branchId, UpdateBranchDto dto, CancellationToken ct = default);
+    Task<Result<bool>> DeactivateBranchAsync(long branchId, CancellationToken ct = default);
 }

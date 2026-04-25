@@ -1,5 +1,6 @@
 #pragma warning disable CS9107
 using ErpSaas.Infrastructure.Data;
+using ErpSaas.Infrastructure.Metering;
 using ErpSaas.Infrastructure.Services;
 using ErpSaas.Modules.Inventory.Entities;
 using ErpSaas.Modules.Inventory.Enums;
@@ -11,7 +12,8 @@ namespace ErpSaas.Modules.Inventory.Services;
 
 public sealed class InventoryService(
     TenantDbContext db,
-    IErrorLogger errorLogger)
+    IErrorLogger errorLogger,
+    IUsageMeterService? usageMeter = null)
     : BaseService<TenantDbContext>(db, errorLogger), IInventoryService
 {
     // ── DbSet accessors (named DbSets are registered in TenantDbContext separately) ─
@@ -56,6 +58,13 @@ public sealed class InventoryService(
         CreateProductDto dto, CancellationToken ct = default)
         => await ExecuteAsync<long>("Inventory.CreateProduct", async () =>
         {
+            if (usageMeter is not null)
+            {
+                var quota = await usageMeter.CheckQuotaAsync(MeterCodes.Products, 1, ct);
+                if (quota.IsDenied)
+                    return Result<long>.Conflict(Errors.Metering.QuotaConflict(MeterCodes.Products));
+            }
+
             var code = await GenerateProductCodeAsync(ct);
             var product = new Product
             {
@@ -90,6 +99,9 @@ public sealed class InventoryService(
                 CreatedAtUtc = DateTime.UtcNow,
             });
             await db.SaveChangesAsync(ct);
+
+            if (usageMeter is not null)
+                await usageMeter.IncrementAsync(MeterCodes.Products, 1, "Product", product.Id, ct: ct);
 
             return Result<long>.Success(product.Id);
         }, ct, useTransaction: true);

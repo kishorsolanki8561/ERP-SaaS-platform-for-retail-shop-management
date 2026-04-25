@@ -46,6 +46,18 @@ public sealed class IdentityDataSeeder(
         ("Wallet.View",       "Wallet",    "View customer wallet balances and transactions"),
         ("Wallet.Credit",     "Wallet",    "Credit a customer wallet"),
         ("Wallet.Debit",      "Wallet",    "Debit from a customer wallet"),
+        // POS / Shift — codes must match ShiftController [RequirePermission(...)]
+        ("Shift.View",         "POS",      "View shifts"),
+        ("Shift.Open",         "POS",      "Open a shift"),
+        ("Shift.Close",        "POS",      "Close a shift"),
+        ("Shift.ForceClose",   "POS",      "Force-close a shift"),
+        ("Shift.CashMovement", "POS",      "Record cash in / out"),
+        // Hardware — codes must match HardwareController [RequirePermission(...)]
+        ("Hardware.CashDrawer", "POS",     "Pop the cash drawer"),
+        // Files — codes must match FilesController [RequirePermission(...)]
+        ("Files.Upload",       "Files",    "Upload files"),
+        ("Files.View",         "Files",    "View and download files"),
+        ("Files.Delete",       "Files",    "Delete uploaded files"),
     ];
 
     // Shop Admin gets everything except platform-only permissions.

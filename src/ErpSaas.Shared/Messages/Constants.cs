@@ -24,6 +24,7 @@ public static class Constants
         public const string IndianState         = "INDIAN_STATE";
         public const string Currency            = "CURRENCY";
         public const string WalletReferenceType = "WALLET_REFERENCE_TYPE";
+        public const string ShiftCashReason     = "SHIFT_CASH_REASON";
     }
 
     public static class SequenceCodes
@@ -89,6 +90,7 @@ public static class Constants
         public const string UserInvite       = "USER_INVITE";
         public const string PasswordReset    = "PASSWORD_RESET";
         public const string LowStock         = "LOW_STOCK_ALERT";
+        public const string ShiftClosed      = "SHIFT_CLOSED";
     }
 
     public static class Performance

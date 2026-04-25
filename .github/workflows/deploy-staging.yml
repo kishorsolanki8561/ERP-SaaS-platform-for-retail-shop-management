@@ -1,18 +1,25 @@
 name: Deploy — Staging
 
 on:
-  workflow_dispatch:    # run manually from GitHub Actions tab only
+  workflow_dispatch:    # manual trigger from GitHub Actions tab
+  push:
+    branches: [main]   # auto-deploy on every push to main
 
 env:
   DOTNET_VERSION: '8.0.x'
   NODE_VERSION: '20.x'
+  VPS_USER: administrator
+  VPS_HOST: 204.12.245.106
+  API_DEPLOY_DIR: /opt/erp-staging/api
+  WEB_DEPLOY_DIR: /opt/erp-staging/web
+  PORTAL_DEPLOY_DIR: /opt/erp-staging/portal
+  SERVICE_NAME: erp-staging
 
 jobs:
-  deploy-api:
-    name: Deploy API → Azure App Service
+  # ────────────────────────────────────────────────────────────────────────────
+  build-api:
+    name: Build API
     runs-on: ubuntu-latest
-    environment: staging
-
     steps:
       - uses: actions/checkout@v4
 
@@ -20,68 +27,204 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
+      - name: Restore
+        run: dotnet restore src/ErpSaas.sln
+
       - name: Publish
-        run: dotnet publish src/ErpSaas.Api --configuration Release --output ./api-publish
+        run: |
+          dotnet publish src/ErpSaas.Api \
+            --configuration Release \
+            --no-restore \
+            --output ./artifacts/api
 
-      - name: Deploy to Azure App Service
-        uses: azure/webapps-deploy@v3
+      - uses: actions/upload-artifact@v4
         with:
-          app-name: ${{ vars.AZURE_WEBAPP_NAME }}
-          publish-profile: ${{ secrets.AZURE_PUBLISH_PROFILE }}
-          package: ./api-publish
+          name: api-publish
+          path: ./artifacts/api
+          retention-days: 1
 
-  deploy-staff-app:
-    name: Deploy Staff App → Azure Static Web Apps
+  # ────────────────────────────────────────────────────────────────────────────
+  build-staff-app:
+    name: Build Staff App
     runs-on: ubuntu-latest
-    environment: staging
-
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: npm
           cache-dependency-path: src/web/package-lock.json
 
-      - name: Install & Build (staging)
+      - name: Install & build (staging)
         working-directory: src/web
         run: npm ci && npm run build -- --configuration staging
 
-      - name: Deploy to Azure Static Web Apps
-        uses: Azure/static-web-apps-deploy@v1
+      - uses: actions/upload-artifact@v4
         with:
-          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_TOKEN_STAFF }}
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          action: upload
-          app_location: src/web
-          output_location: dist/web/browser
-          skip_app_build: true
+          name: web-publish
+          path: src/web/dist/web/browser
+          retention-days: 1
 
-  deploy-portal:
-    name: Deploy Customer Portal → Azure Static Web Apps
+  # ────────────────────────────────────────────────────────────────────────────
+  build-portal:
+    name: Build Customer Portal
     runs-on: ubuntu-latest
-    environment: staging
-
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: npm
           cache-dependency-path: src/web-portal/package-lock.json
 
-      - name: Install & Build (staging)
+      - name: Install & build (staging)
         working-directory: src/web-portal
         run: npm ci && npm run build -- --configuration staging
 
-      - name: Deploy to Azure Static Web Apps
-        uses: Azure/static-web-apps-deploy@v1
+      - uses: actions/upload-artifact@v4
         with:
-          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_TOKEN_PORTAL }}
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          action: upload
-          app_location: src/web-portal
-          output_location: dist/web-portal/browser
-          skip_app_build: true
+          name: portal-publish
+          path: src/web-portal/dist/web-portal/browser
+          retention-days: 1
+
+  # ────────────────────────────────────────────────────────────────────────────
+  deploy-api:
+    name: Deploy API → VPS
+    needs: build-api
+    runs-on: ubuntu-latest
+    environment: staging
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: api-publish
+          path: ./api-publish
+
+      # Write the .env.staging file that the systemd service reads for secrets.
+      # All values come from GitHub repository secrets — nothing hardcoded here.
+      - name: Write .env.staging
+        run: |
+          cat > ./api-publish/.env.staging <<EOF
+          ConnectionStrings__PlatformDb=Server=localhost,1433;Database=ErpSaas_PlatformDb;User Id=sa;Password=${{ secrets.DB_PASSWORD }};TrustServerCertificate=True
+          ConnectionStrings__TenantDb=Server=localhost,1433;Database=ErpSaas_TenantDb;User Id=sa;Password=${{ secrets.DB_PASSWORD }};TrustServerCertificate=True
+          ConnectionStrings__AnalyticsDb=Server=localhost,1433;Database=ErpSaas_AnalyticsDb;User Id=sa;Password=${{ secrets.DB_PASSWORD }};TrustServerCertificate=True
+          ConnectionStrings__LogDb=Server=localhost,1433;Database=ErpSaas_LogDb;User Id=sa;Password=${{ secrets.DB_PASSWORD }};TrustServerCertificate=True
+          ConnectionStrings__NotificationsDb=Server=localhost,1433;Database=ErpSaas_NotificationsDb;User Id=sa;Password=${{ secrets.DB_PASSWORD }};TrustServerCertificate=True
+          Jwt__Secret=${{ secrets.JWT_SECRET }}
+          Turnstile__SecretKey=${{ secrets.TURNSTILE_SECRET_KEY }}
+          EOF
+
+      - name: Copy API files to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ env.VPS_HOST }}
+          username: ${{ env.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          known_hosts: ${{ secrets.VPS_KNOWN_HOSTS }}
+          source: ./api-publish/
+          target: /tmp/erp-staging-api-deploy
+          strip_components: 1
+
+      - name: Swap & restart API
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ env.VPS_HOST }}
+          username: ${{ env.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          known_hosts: ${{ secrets.VPS_KNOWN_HOSTS }}
+          script: |
+            set -euo pipefail
+
+            # Stop service before swap to release file locks
+            sudo systemctl stop ${{ env.SERVICE_NAME }} || true
+
+            # Clear old deployment, move new files into place
+            sudo rm -rf ${{ env.API_DEPLOY_DIR }}/*
+            sudo cp -r /tmp/erp-staging-api-deploy/. ${{ env.API_DEPLOY_DIR }}/
+            sudo chown -R erp-staging:erp-staging ${{ env.API_DEPLOY_DIR }}
+            sudo chmod 600 ${{ env.API_DEPLOY_DIR }}/.env.staging
+
+            # Start the service — migrations + seeds run automatically in InitializeAsync
+            sudo systemctl start ${{ env.SERVICE_NAME }}
+            sudo systemctl is-active ${{ env.SERVICE_NAME }}
+
+            # Clean up temp
+            rm -rf /tmp/erp-staging-api-deploy
+
+  # ────────────────────────────────────────────────────────────────────────────
+  deploy-staff-app:
+    name: Deploy Staff App → VPS
+    needs: build-staff-app
+    runs-on: ubuntu-latest
+    environment: staging
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-publish
+          path: ./web-publish
+
+      - name: Copy to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ env.VPS_HOST }}
+          username: ${{ env.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          known_hosts: ${{ secrets.VPS_KNOWN_HOSTS }}
+          source: ./web-publish/
+          target: /tmp/erp-staging-web-deploy
+          strip_components: 1
+
+      - name: Swap web files
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ env.VPS_HOST }}
+          username: ${{ env.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          known_hosts: ${{ secrets.VPS_KNOWN_HOSTS }}
+          script: |
+            sudo mkdir -p ${{ env.WEB_DEPLOY_DIR }}
+            sudo rm -rf ${{ env.WEB_DEPLOY_DIR }}/*
+            sudo cp -r /tmp/erp-staging-web-deploy/. ${{ env.WEB_DEPLOY_DIR }}/
+            sudo chown -R www-data:www-data ${{ env.WEB_DEPLOY_DIR }}
+            rm -rf /tmp/erp-staging-web-deploy
+
+  # ────────────────────────────────────────────────────────────────────────────
+  deploy-portal:
+    name: Deploy Customer Portal → VPS
+    needs: build-portal
+    runs-on: ubuntu-latest
+    environment: staging
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: portal-publish
+          path: ./portal-publish
+
+      - name: Copy to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ env.VPS_HOST }}
+          username: ${{ env.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          known_hosts: ${{ secrets.VPS_KNOWN_HOSTS }}
+          source: ./portal-publish/
+          target: /tmp/erp-staging-portal-deploy
+          strip_components: 1
+
+      - name: Swap portal files
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ env.VPS_HOST }}
+          username: ${{ env.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          known_hosts: ${{ secrets.VPS_KNOWN_HOSTS }}
+          script: |
+            sudo mkdir -p ${{ env.PORTAL_DEPLOY_DIR }}
+            sudo rm -rf ${{ env.PORTAL_DEPLOY_DIR }}/*
+            sudo cp -r /tmp/erp-staging-portal-deploy/. ${{ env.PORTAL_DEPLOY_DIR }}/
+            sudo chown -R www-data:www-data ${{ env.PORTAL_DEPLOY_DIR }}
+            rm -rf /tmp/erp-staging-portal-deploy

@@ -6,6 +6,7 @@ using ErpSaas.Infrastructure.Dapper;
 using ErpSaas.Infrastructure.Files;
 using ErpSaas.Infrastructure.MultiTenant;
 using ErpSaas.Infrastructure.Messaging;
+using ErpSaas.Infrastructure.Metering;
 using ErpSaas.Infrastructure.Seeds;
 using ErpSaas.Infrastructure.Sequence;
 using ErpSaas.Infrastructure.Services;
@@ -62,6 +63,13 @@ public static class InfrastructureServiceExtensions
             services.AddSingleton<IFileStorage, AzureBlobFileStorage>();
         else
             services.AddSingleton<IFileStorage, LocalFileStorage>();
+        services.AddScoped<IFileUploadService, FileUploadService>();
+
+        // ── HTTP clients ───────────────────────────────────────────────────────
+        services.AddHttpClient("turnstile", client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(5);
+        });
 
         // ── Cross-cutting services ─────────────────────────────────────────────
         services.AddMemoryCache();
@@ -93,6 +101,10 @@ public static class InfrastructureServiceExtensions
         // ── Messaging ──────────────────────────────────────────────────────────
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<NotificationDrainJob>();
+
+        // ── Metering ───────────────────────────────────────────────────────────
+        services.AddSingleton<IEntityModelConfigurator, MeteringModelConfigurator>();
+        services.AddScoped<IUsageMeterService, UsageMeterService>();
 
         // ── Seeders ────────────────────────────────────────────────────────────
         services.AddScoped<DatabaseSeeder>();

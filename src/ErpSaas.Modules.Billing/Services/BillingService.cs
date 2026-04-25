@@ -2,10 +2,12 @@
 using ErpSaas.Infrastructure.Data;
 using ErpSaas.Infrastructure.Data.Entities.Messaging.Enums;
 using ErpSaas.Infrastructure.Messaging;
+using ErpSaas.Infrastructure.Metering;
 using ErpSaas.Infrastructure.Sequence;
 using ErpSaas.Infrastructure.Services;
 using ErpSaas.Modules.Billing.Entities;
 using ErpSaas.Modules.Billing.Enums;
+using ErpSaas.Shared.Data;
 using ErpSaas.Shared.Messages;
 using ErpSaas.Shared.Services;
 using Microsoft.EntityFrameworkCore;
@@ -18,7 +20,10 @@ public sealed class BillingService(
     IErrorLogger errorLogger,
     ISequenceService sequence,
     INotificationService notifications,
-    ILogger<BillingService> logger)
+    ILogger<BillingService> logger,
+    IShiftLookup? shiftLookup = null,
+    IUsageMeterService? usageMeter = null,
+    IWalletDebit? walletDebit = null)
     : BaseService<TenantDbContext>(db, errorLogger), IBillingService
 {
     public async Task<PagedResult<InvoiceListDto>> ListInvoicesAsync(
@@ -87,6 +92,15 @@ public sealed class BillingService(
         CancellationToken ct = default)
         => await ExecuteAsync<long>("Billing.CreateDraftInvoice", async () =>
         {
+            // POS invoices require an open shift
+            if (dto.ShiftId.HasValue)
+            {
+                var isOpen = shiftLookup is not null
+                    && await shiftLookup.IsShiftOpenAsync(dto.ShiftId.Value, dto.ShopId, ct);
+                if (!isOpen)
+                    return Result<long>.Conflict(Errors.Shift.NotOpen);
+            }
+
             var invoiceNumber = await sequence.NextAsync("INVOICE_RETAIL", dto.ShopId, ct);
 
             var entity = new Invoice
@@ -104,6 +118,8 @@ public sealed class BillingService(
                 GrandTotal = 0m,
                 Notes = dto.Notes,
                 WarehouseId = dto.WarehouseId,
+                ShiftId = dto.ShiftId,
+                BranchId = dto.BranchId,
             };
 
             db.Set<Invoice>().Add(entity);
@@ -192,7 +208,11 @@ public sealed class BillingService(
         }, ct, useTransaction: true);
 
         if (result.IsSuccess)
+        {
             await TrySendFinalizeNotificationAsync(id, ct);
+            if (usageMeter is not null)
+                await usageMeter.IncrementAsync(MeterCodes.Invoices, 1, "Invoice", id, ct: ct);
+        }
 
         return result;
     }
@@ -225,6 +245,74 @@ public sealed class BillingService(
             logger.LogWarning(ex, "Non-critical: failed to enqueue SMS for invoice {Id}", invoiceId);
         }
     }
+
+    public async Task<Result<bool>> SetPaymentTermsAsync(
+        long id, SetPaymentTermsDto dto, CancellationToken ct = default)
+        => await ExecuteAsync<bool>("Billing.SetPaymentTerms", async () =>
+        {
+            var invoice = await db.Set<Invoice>()
+                .FirstOrDefaultAsync(i => i.Id == id && !i.IsDeleted, ct);
+            if (invoice is null) return Result<bool>.NotFound(Errors.Billing.InvoiceNotFound);
+            if (invoice.Status == InvoiceStatus.Cancelled)
+                return Result<bool>.Conflict(Errors.Billing.InvoiceAlreadyCancelled);
+
+            invoice.PaymentTerms = dto.PaymentTerms;
+            invoice.DueDate = invoice.InvoiceDate.AddDays(dto.DueDays);
+            await db.SaveChangesAsync(ct);
+            return Result<bool>.Success(true);
+        }, ct, useTransaction: true);
+
+    public async Task<Result<bool>> PayInvoiceAsync(
+        long id, PayInvoiceDto dto, CancellationToken ct = default)
+        => await ExecuteAsync<bool>("Billing.PayInvoice", async () =>
+        {
+            var invoice = await db.Set<Invoice>()
+                .FirstOrDefaultAsync(i => i.Id == id && !i.IsDeleted, ct);
+            if (invoice is null) return Result<bool>.NotFound(Errors.Billing.InvoiceNotFound);
+            if (invoice.Status == InvoiceStatus.Cancelled)
+                return Result<bool>.Conflict(Errors.Billing.InvoiceAlreadyCancelled);
+            if (invoice.Status == InvoiceStatus.Draft)
+                return Result<bool>.Conflict(Errors.Billing.InvoiceNotDraft);
+
+            var totalAllocated = dto.Allocations.Sum(a => a.Amount);
+            if (totalAllocated <= 0)
+                return Result<bool>.Failure(Errors.Billing.InvoiceNotFound); // reuse until specific error added
+
+            // Process wallet allocations first (most likely to fail)
+            foreach (var alloc in dto.Allocations.Where(a => a.Mode == PaymentMode.Wallet))
+            {
+                if (walletDebit is null || dto.CustomerId is null)
+                    return Result<bool>.Conflict(Errors.Billing.InvoiceNotFound);
+
+                var debitResult = await walletDebit.DebitForInvoiceAsync(
+                    dto.CustomerId.Value, invoice.Id, invoice.InvoiceNumber, alloc.Amount, ct);
+                if (!debitResult.IsSuccess) return debitResult;
+            }
+
+            foreach (var alloc in dto.Allocations)
+            {
+                db.Set<InvoicePayment>().Add(new InvoicePayment
+                {
+                    ShopId = invoice.ShopId,
+                    InvoiceId = invoice.Id,
+                    Mode = alloc.Mode,
+                    Amount = alloc.Amount,
+                    ReferenceNumber = alloc.ReferenceNumber,
+                    Notes = alloc.Notes,
+                    PaidAtUtc = DateTime.UtcNow,
+                    CreatedAtUtc = DateTime.UtcNow,
+                });
+            }
+
+            invoice.PaidAmount += totalAllocated;
+            invoice.OutstandingAmount = invoice.GrandTotal - invoice.PaidAmount;
+
+            if (invoice.OutstandingAmount <= 0)
+                invoice.Status = InvoiceStatus.Paid;
+
+            await db.SaveChangesAsync(ct);
+            return Result<bool>.Success(true);
+        }, ct, useTransaction: true);
 
     public async Task<Result<bool>> CancelInvoiceAsync(
         long id,
