@@ -48,7 +48,7 @@ public sealed class ErrorLogger : IErrorLogger, IHostedService, IAsyncDisposable
 
     public async Task StopAsync(CancellationToken ct)
     {
-        _channel.Writer.Complete();
+        _channel.Writer.TryComplete(); // TryComplete is idempotent; Complete() throws if already done
         if (_cts is not null) await _cts.CancelAsync();
         if (_drainTask is not null)
         {

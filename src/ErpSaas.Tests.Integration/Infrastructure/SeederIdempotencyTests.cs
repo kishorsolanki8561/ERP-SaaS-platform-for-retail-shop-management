@@ -67,13 +67,15 @@ public sealed class SeederIdempotencyTests(IntegrationTestFixture fixture)
         var platformDb = sp.GetRequiredService<PlatformDbContext>();
         var notifDb    = sp.GetRequiredService<NotificationsDbContext>();
 
-        var platformConn = platformDb.Database.GetDbConnection();
-        if (platformConn.State != System.Data.ConnectionState.Open)
-            await platformConn.OpenAsync();
+        // Open fresh connections from the connection string rather than reusing the
+        // EF context's internal connection object, which may be in an unexpected state.
+        await using var platformConn = new Microsoft.Data.SqlClient.SqlConnection(
+            platformDb.Database.GetConnectionString());
+        await using var notifConn = new Microsoft.Data.SqlClient.SqlConnection(
+            notifDb.Database.GetConnectionString());
 
-        var notifConn = notifDb.Database.GetDbConnection();
-        if (notifConn.State != System.Data.ConnectionState.Open)
-            await notifConn.OpenAsync();
+        await platformConn.OpenAsync();
+        await notifConn.OpenAsync();
 
         return new Dictionary<string, int>
         {
