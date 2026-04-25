@@ -102,56 +102,54 @@ jobs:
           name: api-publish
           path: ./api-publish
 
-      # Write the .env.staging file that the systemd service reads for secrets.
-      # All values come from GitHub repository secrets — nothing hardcoded here.
       - name: Write .env.staging
         run: |
-          cat > ./api-publish/.env.staging <<EOF
-          ConnectionStrings__PlatformDb=Server=localhost,1433;Database=ErpSaas_PlatformDb;User Id=sa;Password=${{ secrets.DB_PASSWORD }};TrustServerCertificate=True
-          ConnectionStrings__TenantDb=Server=localhost,1433;Database=ErpSaas_TenantDb;User Id=sa;Password=${{ secrets.DB_PASSWORD }};TrustServerCertificate=True
-          ConnectionStrings__AnalyticsDb=Server=localhost,1433;Database=ErpSaas_AnalyticsDb;User Id=sa;Password=${{ secrets.DB_PASSWORD }};TrustServerCertificate=True
-          ConnectionStrings__LogDb=Server=localhost,1433;Database=ErpSaas_LogDb;User Id=sa;Password=${{ secrets.DB_PASSWORD }};TrustServerCertificate=True
-          ConnectionStrings__NotificationsDb=Server=localhost,1433;Database=ErpSaas_NotificationsDb;User Id=sa;Password=${{ secrets.DB_PASSWORD }};TrustServerCertificate=True
-          Jwt__Secret=${{ secrets.JWT_SECRET }}
-          Turnstile__SecretKey=${{ secrets.TURNSTILE_SECRET_KEY }}
-          EOF
+          cat > ./api-publish/.env.staging <<'ENVEOF'
+          ConnectionStrings__PlatformDb=Server=localhost,1433;Database=ErpSaas_PlatformDb;User Id=sa;Password=DBPASS;TrustServerCertificate=True
+          ConnectionStrings__TenantDb=Server=localhost,1433;Database=ErpSaas_TenantDb;User Id=sa;Password=DBPASS;TrustServerCertificate=True
+          ConnectionStrings__AnalyticsDb=Server=localhost,1433;Database=ErpSaas_AnalyticsDb;User Id=sa;Password=DBPASS;TrustServerCertificate=True
+          ConnectionStrings__LogDb=Server=localhost,1433;Database=ErpSaas_LogDb;User Id=sa;Password=DBPASS;TrustServerCertificate=True
+          ConnectionStrings__NotificationsDb=Server=localhost,1433;Database=ErpSaas_NotificationsDb;User Id=sa;Password=DBPASS;TrustServerCertificate=True
+          Jwt__Secret=JWTSECRET
+          Turnstile__SecretKey=TURNSTILEKEY
+          ENVEOF
+          # Replace placeholders with actual secret values (avoids heredoc expansion issues)
+          sed -i "s|DBPASS|${{ secrets.DB_PASSWORD }}|g" ./api-publish/.env.staging
+          sed -i "s|JWTSECRET|${{ secrets.JWT_SECRET }}|g" ./api-publish/.env.staging
+          sed -i "s|TURNSTILEKEY|${{ secrets.TURNSTILE_SECRET_KEY }}|g" ./api-publish/.env.staging
+          # Strip leading whitespace from heredoc indentation
+          sed -i 's/^[[:space:]]*//' ./api-publish/.env.staging
+
+      - name: Setup SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
+
+      - name: Add VPS to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_KNOWN_HOSTS }}" >> ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
 
       - name: Copy API files to VPS
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ env.VPS_HOST }}
-          username: ${{ env.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          known_hosts: ${{ secrets.VPS_KNOWN_HOSTS }}
-          source: ./api-publish/
-          target: /tmp/erp-staging-api-deploy
-          strip_components: 1
+        run: |
+          rsync -avz --delete ./api-publish/ \
+            ${{ env.VPS_USER }}@${{ env.VPS_HOST }}:/tmp/erp-staging-api-deploy/
 
       - name: Swap & restart API
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ env.VPS_HOST }}
-          username: ${{ env.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          known_hosts: ${{ secrets.VPS_KNOWN_HOSTS }}
-          script: |
-            set -euo pipefail
-
-            # Stop service before swap to release file locks
-            sudo systemctl stop ${{ env.SERVICE_NAME }} || true
-
-            # Clear old deployment, move new files into place
-            sudo rm -rf ${{ env.API_DEPLOY_DIR }}/*
-            sudo cp -r /tmp/erp-staging-api-deploy/. ${{ env.API_DEPLOY_DIR }}/
-            sudo chown -R erp-staging:erp-staging ${{ env.API_DEPLOY_DIR }}
-            sudo chmod 600 ${{ env.API_DEPLOY_DIR }}/.env.staging
-
-            # Start the service — migrations + seeds run automatically in InitializeAsync
-            sudo systemctl start ${{ env.SERVICE_NAME }}
-            sudo systemctl is-active ${{ env.SERVICE_NAME }}
-
-            # Clean up temp
-            rm -rf /tmp/erp-staging-api-deploy
+        run: |
+          ssh ${{ env.VPS_USER }}@${{ env.VPS_HOST }} bash << 'REMOTE'
+          set -euo pipefail
+          sudo systemctl stop erp-staging || true
+          sudo rm -rf /opt/erp-staging/api/*
+          sudo cp -r /tmp/erp-staging-api-deploy/. /opt/erp-staging/api/
+          sudo chown -R erp-staging:erp-staging /opt/erp-staging/api
+          sudo chmod 600 /opt/erp-staging/api/.env.staging
+          sudo systemctl start erp-staging
+          sleep 3
+          sudo systemctl is-active erp-staging
+          rm -rf /tmp/erp-staging-api-deploy
+          REMOTE
 
   # ────────────────────────────────────────────────────────────────────────────
   deploy-staff-app:
@@ -166,30 +164,32 @@ jobs:
           name: web-publish
           path: ./web-publish
 
-      - name: Copy to VPS
-        uses: appleboy/scp-action@v0.1.7
+      - name: Setup SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
         with:
-          host: ${{ env.VPS_HOST }}
-          username: ${{ env.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          known_hosts: ${{ secrets.VPS_KNOWN_HOSTS }}
-          source: ./web-publish/
-          target: /tmp/erp-staging-web-deploy
-          strip_components: 1
+          ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
+
+      - name: Add VPS to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_KNOWN_HOSTS }}" >> ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Copy staff app to VPS
+        run: |
+          rsync -avz --delete ./web-publish/ \
+            ${{ env.VPS_USER }}@${{ env.VPS_HOST }}:/tmp/erp-staging-web-deploy/
 
       - name: Swap web files
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ env.VPS_HOST }}
-          username: ${{ env.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          known_hosts: ${{ secrets.VPS_KNOWN_HOSTS }}
-          script: |
-            sudo mkdir -p ${{ env.WEB_DEPLOY_DIR }}
-            sudo rm -rf ${{ env.WEB_DEPLOY_DIR }}/*
-            sudo cp -r /tmp/erp-staging-web-deploy/. ${{ env.WEB_DEPLOY_DIR }}/
-            sudo chown -R www-data:www-data ${{ env.WEB_DEPLOY_DIR }}
-            rm -rf /tmp/erp-staging-web-deploy
+        run: |
+          ssh ${{ env.VPS_USER }}@${{ env.VPS_HOST }} bash << 'REMOTE'
+          set -euo pipefail
+          sudo mkdir -p /opt/erp-staging/web
+          sudo rm -rf /opt/erp-staging/web/*
+          sudo cp -r /tmp/erp-staging-web-deploy/. /opt/erp-staging/web/
+          sudo chown -R www-data:www-data /opt/erp-staging/web
+          rm -rf /tmp/erp-staging-web-deploy
+          REMOTE
 
   # ────────────────────────────────────────────────────────────────────────────
   deploy-portal:
@@ -204,27 +204,29 @@ jobs:
           name: portal-publish
           path: ./portal-publish
 
-      - name: Copy to VPS
-        uses: appleboy/scp-action@v0.1.7
+      - name: Setup SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
         with:
-          host: ${{ env.VPS_HOST }}
-          username: ${{ env.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          known_hosts: ${{ secrets.VPS_KNOWN_HOSTS }}
-          source: ./portal-publish/
-          target: /tmp/erp-staging-portal-deploy
-          strip_components: 1
+          ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
+
+      - name: Add VPS to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_KNOWN_HOSTS }}" >> ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Copy portal to VPS
+        run: |
+          rsync -avz --delete ./portal-publish/ \
+            ${{ env.VPS_USER }}@${{ env.VPS_HOST }}:/tmp/erp-staging-portal-deploy/
 
       - name: Swap portal files
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ env.VPS_HOST }}
-          username: ${{ env.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          known_hosts: ${{ secrets.VPS_KNOWN_HOSTS }}
-          script: |
-            sudo mkdir -p ${{ env.PORTAL_DEPLOY_DIR }}
-            sudo rm -rf ${{ env.PORTAL_DEPLOY_DIR }}/*
-            sudo cp -r /tmp/erp-staging-portal-deploy/. ${{ env.PORTAL_DEPLOY_DIR }}/
-            sudo chown -R www-data:www-data ${{ env.PORTAL_DEPLOY_DIR }}
-            rm -rf /tmp/erp-staging-portal-deploy
+        run: |
+          ssh ${{ env.VPS_USER }}@${{ env.VPS_HOST }} bash << 'REMOTE'
+          set -euo pipefail
+          sudo mkdir -p /opt/erp-staging/portal
+          sudo rm -rf /opt/erp-staging/portal/*
+          sudo cp -r /tmp/erp-staging-portal-deploy/. /opt/erp-staging/portal/
+          sudo chown -R www-data:www-data /opt/erp-staging/portal
+          rm -rf /tmp/erp-staging-portal-deploy
+          REMOTE
