@@ -11,5 +11,5 @@ public record MenuItemDto(
 
 public interface IMenuService
 {
-    Task<IReadOnlyList<MenuItemDto>> GetTreeAsync(long userId, long shopId, CancellationToken ct = default);
+    Task<IReadOnlyList<MenuItemDto>> GetTreeAsync(long userId, long shopId, bool isPlatformAdmin = false, CancellationToken ct = default);
 }

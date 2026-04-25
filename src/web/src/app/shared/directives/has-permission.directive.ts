@@ -14,7 +14,7 @@ export class HasPermissionDirective implements OnInit {
 
   ngOnInit(): void {
     const user = this.auth.currentUser();
-    if (user?.permissionCodes.includes(this.permissionCode)) {
+    if (user?.isPlatformAdmin || user?.permissionCodes.includes(this.permissionCode)) {
       this.vcr.createEmbeddedView(this.templateRef);
     }
   }

@@ -12,6 +12,7 @@ export interface AuthUser {
   email?: string;
   permissionCodes: string[];
   featureCodes: string[];
+  isPlatformAdmin: boolean;
 }
 
 export interface LoginRequest {
@@ -111,6 +112,7 @@ export class AuthService {
         email: payload['email'],
         permissionCodes: (payload['perms'] ?? '').split(',').filter(Boolean),
         featureCodes: (payload['feats'] ?? '').split(',').filter(Boolean),
+        isPlatformAdmin: payload['is_platform_admin'] === 'true',
       };
     } catch {
       return null;

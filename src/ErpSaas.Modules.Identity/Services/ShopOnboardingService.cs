@@ -63,6 +63,16 @@ public sealed class ShopOnboardingService(
                 CreatedAtUtc = DateTime.UtcNow
             });
 
+            // Assign Shop Admin role so the first user has full shop permissions
+            var shopAdminRole = await db.Roles
+                .FirstOrDefaultAsync(r => r.Code == Constants.Roles.ShopAdmin, ct);
+            if (shopAdminRole is not null)
+                db.UserRoles.Add(new UserRole
+                {
+                    UserId = user.Id, ShopId = shop.Id, RoleId = shopAdminRole.Id,
+                    CreatedAtUtc = DateTime.UtcNow
+                });
+
             db.ShopSubscriptions.Add(new ShopSubscription
             {
                 ShopId = shop.Id,

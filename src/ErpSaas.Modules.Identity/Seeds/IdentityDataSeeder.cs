@@ -17,12 +17,42 @@ public sealed class IdentityDataSeeder(
 {
     public int Order => 20;
 
+    // Master list of every permission in the system.
+    // Add a row here whenever a new module ships a new permission code.
+    private static readonly (string Code, string Module, string Label)[] AllPermissions =
+    [
+        ("Dashboard.View",    "Dashboard", "View Dashboard"),
+        ("ShopProfile.View",  "Admin",     "View Shop Profile"),
+        ("ShopProfile.Edit",  "Admin",     "Edit Shop Profile"),
+        ("Users.View",        "Admin",     "View Users"),
+        ("Users.Manage",      "Admin",     "Manage Users"),
+        ("Users.Invite",      "Admin",     "Invite Users"),
+        ("Users.Deactivate",  "Admin",     "Deactivate Users"),
+        ("MasterData.Manage", "Admin",     "Manage Master Data"),
+        ("Invoice.View",      "Billing",   "View Invoices"),
+        ("Invoice.Create",    "Billing",   "Create Invoices"),
+        ("Invoice.Edit",      "Billing",   "Edit Invoices"),
+        ("Invoice.Cancel",    "Billing",   "Cancel Invoices"),
+        ("Invoice.Finalize",  "Billing",   "Finalize Invoices"),
+        ("Product.View",      "Inventory", "View Products"),
+        ("Product.Manage",    "Inventory", "Manage Products"),
+        ("Customer.View",     "CRM",       "View Customers"),
+        ("Customer.Manage",   "CRM",       "Manage Customers"),
+    ];
+
+    // Shop Admin gets everything except platform-only permissions.
+    private static readonly HashSet<string> PlatformOnlyPermissions =
+    [
+        "MasterData.Manage",
+    ];
+
     public async Task SeedAsync(CancellationToken ct = default)
     {
         await using var tx = await db.Database.BeginTransactionAsync(ct);
         try
         {
             await SeedSubscriptionPlansAsync(ct);
+            await SeedPermissionsAndRolesAsync(ct);
             await SeedProductOwnerAsync(ct);
             await tx.CommitAsync(ct);
         }
@@ -33,6 +63,8 @@ public sealed class IdentityDataSeeder(
             throw;
         }
     }
+
+    // ── Subscription plans ────────────────────────────────────────────────────
 
     private async Task SeedSubscriptionPlansAsync(CancellationToken ct)
     {
@@ -59,6 +91,91 @@ public sealed class IdentityDataSeeder(
         }
         await db.SaveChangesAsync(ct);
     }
+
+    // ── Permissions + system roles ────────────────────────────────────────────
+
+    private async Task SeedPermissionsAndRolesAsync(CancellationToken ct)
+    {
+        // 1. Upsert Permission rows
+        foreach (var (code, module, label) in AllPermissions)
+        {
+            if (!await db.Permissions.AnyAsync(p => p.Code == code, ct))
+            {
+                db.Permissions.Add(new Permission
+                {
+                    Code = code, Module = module, Label = label,
+                    CreatedAtUtc = DateTime.UtcNow
+                });
+            }
+        }
+        await db.SaveChangesAsync(ct);
+
+        // Build a code → id lookup for assignment below
+        var permMap = await db.Permissions
+            .Select(p => new { p.Id, p.Code })
+            .ToDictionaryAsync(p => p.Code, p => p.Id, ct);
+
+        // 2. Ensure Platform Owner role exists
+        var poRole = await db.Roles.FirstOrDefaultAsync(r => r.Code == Constants.Roles.PlatformOwner, ct);
+        if (poRole is null)
+        {
+            poRole = new Role
+            {
+                Code = Constants.Roles.PlatformOwner, Label = "Platform Owner",
+                IsSystemRole = true, CreatedAtUtc = DateTime.UtcNow
+            };
+            db.Roles.Add(poRole);
+            await db.SaveChangesAsync(ct);
+            logger.LogInformation("Seeded role: {Code}", Constants.Roles.PlatformOwner);
+        }
+
+        // 3. Ensure Shop Admin role exists
+        var saRole = await db.Roles.FirstOrDefaultAsync(r => r.Code == Constants.Roles.ShopAdmin, ct);
+        if (saRole is null)
+        {
+            saRole = new Role
+            {
+                Code = Constants.Roles.ShopAdmin, Label = "Shop Admin",
+                IsSystemRole = true, CreatedAtUtc = DateTime.UtcNow
+            };
+            db.Roles.Add(saRole);
+            await db.SaveChangesAsync(ct);
+            logger.LogInformation("Seeded role: {Code}", Constants.Roles.ShopAdmin);
+        }
+
+        // 4. Assign ALL permissions to Platform Owner (idempotent)
+        var existingPoPermIds = (await db.RolePermissions
+            .Where(rp => rp.RoleId == poRole.Id)
+            .Select(rp => rp.PermissionId)
+            .ToListAsync(ct)).ToHashSet();
+
+        foreach (var (code, _, _) in AllPermissions)
+        {
+            var permId = permMap[code];
+            if (!existingPoPermIds.Contains(permId))
+                db.RolePermissions.Add(new RolePermission
+                    { RoleId = poRole.Id, PermissionId = permId, CreatedAtUtc = DateTime.UtcNow });
+        }
+
+        // 5. Assign shop-level permissions to Shop Admin (idempotent)
+        var existingSaPermIds = (await db.RolePermissions
+            .Where(rp => rp.RoleId == saRole.Id)
+            .Select(rp => rp.PermissionId)
+            .ToListAsync(ct)).ToHashSet();
+
+        foreach (var (code, _, _) in AllPermissions)
+        {
+            if (PlatformOnlyPermissions.Contains(code)) continue;
+            var permId = permMap[code];
+            if (!existingSaPermIds.Contains(permId))
+                db.RolePermissions.Add(new RolePermission
+                    { RoleId = saRole.Id, PermissionId = permId, CreatedAtUtc = DateTime.UtcNow });
+        }
+
+        await db.SaveChangesAsync(ct);
+    }
+
+    // ── Product Owner user ────────────────────────────────────────────────────
 
     private async Task SeedProductOwnerAsync(CancellationToken ct)
     {
@@ -89,17 +206,11 @@ public sealed class IdentityDataSeeder(
         db.Users.Add(user);
         await db.SaveChangesAsync(ct);
 
-        var role = new Role
-        {
-            Code = Constants.Roles.PlatformOwner, Label = "Platform Owner",
-            IsSystemRole = true, CreatedAtUtc = DateTime.UtcNow
-        };
-        db.Roles.Add(role);
-        await db.SaveChangesAsync(ct);
-
+        // Assign Platform Owner role (seeded in SeedPermissionsAndRolesAsync)
+        var poRole = await db.Roles.FirstAsync(r => r.Code == Constants.Roles.PlatformOwner, ct);
         db.UserRoles.Add(new UserRole
         {
-            UserId = user.Id, ShopId = 0, RoleId = role.Id,
+            UserId = user.Id, ShopId = 0, RoleId = poRole.Id,
             CreatedAtUtc = DateTime.UtcNow
         });
         await db.SaveChangesAsync(ct);

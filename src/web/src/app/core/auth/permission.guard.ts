@@ -8,6 +8,7 @@ export function permissionGuard(requiredPermission: string): CanActivateFn {
     const router = inject(Router);
     const user = auth.currentUser();
 
+    if (user?.isPlatformAdmin) return true;
     if (user?.permissionCodes.includes(requiredPermission)) return true;
     return router.createUrlTree(['/unauthorized']);
   };

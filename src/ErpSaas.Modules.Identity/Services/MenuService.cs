@@ -11,18 +11,18 @@ public sealed class MenuService(
     IMemoryCache cache) : IMenuService
 {
     public async Task<IReadOnlyList<MenuItemDto>> GetTreeAsync(
-        long userId, long shopId, CancellationToken ct = default)
+        long userId, long shopId, bool isPlatformAdmin = false, CancellationToken ct = default)
     {
-        var cacheKey = $"menu:{userId}:{shopId}";
+        var cacheKey = $"menu:{userId}:{shopId}:{isPlatformAdmin}";
         return await cache.GetOrCreateAsync(cacheKey, async entry =>
         {
             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(60);
-            return await BuildTreeAsync(userId, shopId, ct);
+            return await BuildTreeAsync(userId, shopId, isPlatformAdmin, ct);
         }) ?? [];
     }
 
     private async Task<IReadOnlyList<MenuItemDto>> BuildTreeAsync(
-        long userId, long shopId, CancellationToken ct)
+        long userId, long shopId, bool isPlatformAdmin, CancellationToken ct)
     {
         var allItems = await platformDb.MenuItems
             .Where(m => m.IsActive)
@@ -32,8 +32,13 @@ public sealed class MenuService(
         var overrides = await tenantDb.MenuItemTenantOverrides
             .ToListAsync(ct);
 
-        var perms = await permissionService.GetPermissionCodesAsync(userId, shopId, ct);
-        var feats = await permissionService.GetFeatureCodesAsync(shopId, ct);
+        // Platform admins bypass all permission/feature gates and see every item.
+        var perms = isPlatformAdmin
+            ? (IReadOnlyList<string>)[]
+            : await permissionService.GetPermissionCodesAsync(userId, shopId, ct);
+        var feats = isPlatformAdmin
+            ? (IReadOnlyList<string>)[]
+            : await permissionService.GetFeatureCodesAsync(shopId, ct);
 
         var overrideMap = overrides.ToDictionary(o => o.MenuItemCode);
 
@@ -41,6 +46,10 @@ public sealed class MenuService(
         {
             if (overrideMap.TryGetValue(item.Code, out var ov) && ov.IsHidden)
                 return false;
+
+            // Platform admins see everything — skip permission/feature checks.
+            if (isPlatformAdmin)
+                return true;
 
             if (item.RequiredPermission is not null && !perms.Contains(item.RequiredPermission))
                 return false;

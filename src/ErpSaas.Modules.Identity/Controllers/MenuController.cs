@@ -12,7 +12,8 @@ public sealed class MenuController(IMenuService menuService) : BaseController
     [HttpGet("tree")]
     public async Task<IActionResult> Tree(CancellationToken ct)
     {
-        var tree = await menuService.GetTreeAsync(CurrentUserId, CurrentShopId, ct);
+        var isPlatformAdmin = User.FindFirst("is_platform_admin")?.Value == "true";
+        var tree = await menuService.GetTreeAsync(CurrentUserId, CurrentShopId, isPlatformAdmin, ct);
         return Ok(tree);
     }
 }

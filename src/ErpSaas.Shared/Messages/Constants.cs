@@ -12,6 +12,7 @@ public static class Constants
     public static class Roles
     {
         public const string PlatformOwner = "PlatformOwner";
+        public const string ShopAdmin     = "ShopAdmin";
     }
 
     public static class DdlKeys
