@@ -36,8 +36,8 @@ public sealed class MenuDataSeeder(
             ("dashboard",            "Dashboard",    MenuItemKind.Group,   "pi pi-home",     null,                  10, (string?)null, (string?)null),
             ("dashboard.home",       "Home",         MenuItemKind.Page,    "pi pi-chart-bar","/dashboard",          10, "dashboard",   null),
             ("admin",                "Administration",MenuItemKind.Group,  "pi pi-cog",      null,                  20, null,          null),
-            ("admin.users",          "Users",        MenuItemKind.Page,    "pi pi-users",    "/admin/users",        10, "admin",       "User.Manage"),
-            ("admin.shop-profile",   "Shop Profile", MenuItemKind.Page,    "pi pi-building", "/admin/shop-profile", 20, "admin",       "Shop.Manage"),
+            ("admin.users",          "Users",        MenuItemKind.Page,    "pi pi-users",    "/admin/users",        10, "admin",       "Users.View"),
+            ("admin.shop-profile",   "Shop Profile", MenuItemKind.Page,    "pi pi-building", "/admin/shop-profile", 20, "admin",       "ShopProfile.View"),
             ("admin.master-data",    "Master Data",  MenuItemKind.Page,    "pi pi-database", "/admin/master-data",  30, "admin",       "MasterData.Manage"),
         };
 
@@ -49,6 +49,10 @@ public sealed class MenuDataSeeder(
             var existing = await db.MenuItems.FirstOrDefaultAsync(m => m.Code == code, ct);
             if (existing is not null)
             {
+                // Correct stale values (e.g. wrong permission codes from earlier seeds)
+                existing.Label = label;
+                existing.RequiredPermission = req;
+                existing.Route = route;
                 codeToId[code] = existing.Id;
                 continue;
             }
