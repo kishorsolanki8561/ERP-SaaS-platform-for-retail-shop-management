@@ -17,7 +17,8 @@ public sealed class TokenService(IConfiguration configuration) : ITokenService
 
     public TokenPair GenerateTokenPair(
         long userId, long shopId, string displayName, string? email,
-        IEnumerable<string> permissionCodes, IEnumerable<string> featureCodes)
+        IEnumerable<string> permissionCodes, IEnumerable<string> featureCodes,
+        bool isPlatformAdmin = false)
     {
         var perms = string.Join(",", permissionCodes);
         var feats = string.Join(",", featureCodes);
@@ -40,6 +41,9 @@ public sealed class TokenService(IConfiguration configuration) : ITokenService
 
         if (!string.IsNullOrEmpty(feats))
             claims.Add(new Claim("feats", feats));
+
+        if (isPlatformAdmin)
+            claims.Add(new Claim("is_platform_admin", "true"));
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_secret));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);

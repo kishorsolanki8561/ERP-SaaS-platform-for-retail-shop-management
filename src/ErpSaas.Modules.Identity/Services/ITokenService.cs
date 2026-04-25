@@ -5,7 +5,8 @@ public record TokenPair(string AccessToken, string RefreshToken, DateTime Access
 public interface ITokenService
 {
     TokenPair GenerateTokenPair(long userId, long shopId, string displayName, string? email,
-        IEnumerable<string> permissionCodes, IEnumerable<string> featureCodes);
+        IEnumerable<string> permissionCodes, IEnumerable<string> featureCodes,
+        bool isPlatformAdmin = false);
 
     string GenerateRefreshToken();
     string HashToken(string rawToken);

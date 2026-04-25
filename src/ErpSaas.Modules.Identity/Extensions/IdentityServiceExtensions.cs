@@ -53,6 +53,7 @@ public static class IdentityServiceExtensions
         services.AddScoped<IPermissionService, PermissionService>();
         services.AddScoped<IShopOnboardingService, ShopOnboardingService>();
         services.AddScoped<IMenuService, MenuService>();
+        services.AddScoped<IAdminService, AdminService>();
 
         // Seeders
         services.AddDataSeeder<IdentityDataSeeder>();

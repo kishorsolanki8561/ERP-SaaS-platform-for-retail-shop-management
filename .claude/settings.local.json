@@ -32,7 +32,11 @@
       "Bash(npm pack *)",
       "Bash(git commit -m ' *)",
       "Bash(npm show *)",
-      "Bash(node -e \"console.log\\(require\\('./node_modules/primeng/package.json'\\).version\\)\")"
+      "Bash(node -e \"console.log\\(require\\('./node_modules/primeng/package.json'\\).version\\)\")",
+      "Bash(dir /b \"D:\\\\Project\\\\ERP-SaaS-platform-for-retail-shop-management\\\\src\")",
+      "Bash(find /d/Project/ERP-SaaS-platform-for-retail-shop-management/src/ErpSaas.Modules.* -name \"*.cs\" -type f)",
+      "Bash(xargs grep *)",
+      "Bash(docker info *)"
     ]
   }
 }

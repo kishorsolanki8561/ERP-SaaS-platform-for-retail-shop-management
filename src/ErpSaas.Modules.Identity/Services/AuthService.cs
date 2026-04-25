@@ -82,7 +82,7 @@ public sealed class AuthService(
             var perms = await permissionService.GetPermissionCodesAsync(user.Id, shopId, ct);
             var feats = await permissionService.GetFeatureCodesAsync(shopId, ct);
 
-            var pair = tokenService.GenerateTokenPair(user.Id, shopId, user.DisplayName, user.Email, perms, feats);
+            var pair = tokenService.GenerateTokenPair(user.Id, shopId, user.DisplayName, user.Email, perms, feats, user.IsPlatformAdmin);
 
             db.UserSecurityTokens.Add(new UserSecurityToken
             {
@@ -123,7 +123,7 @@ public sealed class AuthService(
             var perms = await permissionService.GetPermissionCodesAsync(user.Id, shopId, ct);
             var feats = await permissionService.GetFeatureCodesAsync(shopId, ct);
 
-            var pair = tokenService.GenerateTokenPair(user.Id, shopId, user.DisplayName, user.Email, perms, feats);
+            var pair = tokenService.GenerateTokenPair(user.Id, shopId, user.DisplayName, user.Email, perms, feats, user.IsPlatformAdmin);
 
             db.UserSecurityTokens.Add(new UserSecurityToken
             {

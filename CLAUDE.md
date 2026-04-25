@@ -58,6 +58,9 @@ Plan § 5.16. Invoice, PO, Quotation, SO, DC, Credit Note, Payment Receipt, Vouc
 ### 3.7 Every quantity-bearing row captures unit + conversion factor
 Plan § 6.3.c. `InvoiceLine`, `PurchaseOrderLine`, `DeliveryChallanLine`, `SalesReturnLine`, `StockMovement`, `StockCountLine` — all carry `ProductUnitId`, `UnitCodeSnapshot`, `ConversionFactorSnapshot`, and `QuantityInBaseUnit`. Stock math is always in base unit; UI can render in any unit. Cross-category conversions (KG → M) are forbidden.
 
+### 3.10 Every stock-bearing location has a bin address
+Every product stored in a warehouse can optionally carry a `StorageBin` address — a 4-level hierarchy: **Zone → Rack → Shelf → Bin** (all nullable; you can use just Rack+Bin for a simple shop). The `StorageBin` entity lives in the `inventory` schema with `WarehouseId` + unique `BinCode` per warehouse. `StockMovement` and `StockLevel` rows carry an optional `StorageBinId` so you can answer "where exactly in the warehouse is this product?" Stock count sheets, put-away instructions, and pick lists are generated per bin. UI shows a location badge on every product card (e.g., `A-R2-S3-B4` = Zone A, Rack 2, Shelf 3, Bin 4).
+
 ### 3.8 Every public auth endpoint is CAPTCHA-gated
 Plan § 9.4. Login, forgot-password, signup, OTP request, invite-accept, bootstrap — all carry `[RequireCaptcha]`. Arch test `EveryPublicAuthEndpoint_HasCaptchaGuard` blocks PR if one is missing.
 

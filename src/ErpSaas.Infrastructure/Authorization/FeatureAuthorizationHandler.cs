@@ -10,6 +10,12 @@ public sealed class FeatureAuthorizationHandler
         AuthorizationHandlerContext context,
         RequireFeatureAttribute requirement)
     {
+        if (context.User.FindFirst("is_platform_admin")?.Value == "true")
+        {
+            context.Succeed(requirement);
+            return Task.CompletedTask;
+        }
+
         var featsClaim = context.User.FindFirst("feats")?.Value ?? "";
         var userFeats = featsClaim.Split(',', StringSplitOptions.RemoveEmptyEntries);
 

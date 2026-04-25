@@ -10,6 +10,12 @@ public sealed class PermissionAuthorizationHandler
         AuthorizationHandlerContext context,
         RequirePermissionAttribute requirement)
     {
+        if (context.User.FindFirst("is_platform_admin")?.Value == "true")
+        {
+            context.Succeed(requirement);
+            return Task.CompletedTask;
+        }
+
         var permsClaim = context.User.FindFirst("perms")?.Value ?? "";
         var userPerms = permsClaim.Split(',', StringSplitOptions.RemoveEmptyEntries);
 

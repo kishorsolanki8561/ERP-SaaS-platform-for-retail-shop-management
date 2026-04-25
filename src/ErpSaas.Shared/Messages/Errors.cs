@@ -65,4 +65,9 @@ public static class Errors
         public const string InvoiceNotDraft       = "BILL_002";
         public const string InvoiceAlreadyCancelled = "BILL_003";
     }
+
+    public static class Admin
+    {
+        public const string ShopNotFound = "ADMIN_001";
+    }
 }
