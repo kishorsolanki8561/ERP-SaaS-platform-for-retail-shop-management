@@ -32,14 +32,21 @@ export const routes: Routes = [
     ]
   },
   {
-    path: AppRoutes.login,
+    path: '',
     loadComponent: () =>
-      import('./layout/auth-layout/auth-layout.component').then(m => m.AuthLayoutComponent)
-  },
-  {
-    path: AppRoutes.forgotPassword,
-    loadComponent: () =>
-      import('./features/auth/forgot-password/forgot-password.component').then(m => m.ForgotPasswordComponent)
+      import('./layout/auth-layout/auth-layout.component').then(m => m.AuthLayoutComponent),
+    children: [
+      {
+        path: AppRoutes.login,
+        loadComponent: () =>
+          import('./features/auth/login/login.component').then(m => m.LoginComponent)
+      },
+      {
+        path: AppRoutes.forgotPassword,
+        loadComponent: () =>
+          import('./features/auth/forgot-password/forgot-password.component').then(m => m.ForgotPasswordComponent)
+      },
+    ]
   },
   { path: AppRoutes.unauthorized, loadComponent: () => import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent) },
   { path: AppRoutes.featureUnavailable, loadComponent: () => import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent) },
