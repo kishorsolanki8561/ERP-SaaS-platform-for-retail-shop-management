@@ -146,8 +146,27 @@ jobs:
           sudo chown -R erp-staging:erp-staging /opt/erp-staging/api
           sudo chmod 600 /opt/erp-staging/api/.env.staging
           sudo systemctl start erp-staging
-          sleep 3
-          sudo systemctl is-active erp-staging
+          echo "Waiting for service to become active (migrations may take up to 60s)..."
+          for i in $(seq 1 12); do
+            STATUS=$(sudo systemctl is-active erp-staging || true)
+            echo "  check $i/12: $STATUS"
+            if [ "$STATUS" = "active" ]; then
+              echo "Service is active."
+              break
+            fi
+            if [ "$STATUS" = "failed" ]; then
+              echo "Service failed to start. Last 50 log lines:"
+              sudo journalctl -u erp-staging --no-pager -n 50
+              exit 1
+            fi
+            sleep 5
+          done
+          FINAL=$(sudo systemctl is-active erp-staging || true)
+          if [ "$FINAL" != "active" ]; then
+            echo "Service did not become active within 60s (status: $FINAL). Logs:"
+            sudo journalctl -u erp-staging --no-pager -n 50
+            exit 1
+          fi
           rm -rf /tmp/erp-staging-api-deploy
           REMOTE
 
