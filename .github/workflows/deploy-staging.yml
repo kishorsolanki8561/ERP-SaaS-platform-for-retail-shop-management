@@ -109,11 +109,11 @@ jobs:
           cat > ./api-publish/.env.staging <<'ENVEOF'
           ASPNETCORE_ENVIRONMENT=Staging
           ASPNETCORE_URLS=http://0.0.0.0:5100
-          ConnectionStrings__PlatformDb=Server=DBHOST,DBPORT;Database=ErpSaas_PlatformDb;User Id=DBUSER;Password=DBPASS;TrustServerCertificate=True;MultipleActiveResultSets=True
-          ConnectionStrings__TenantDb=Server=DBHOST,DBPORT;Database=ErpSaas_TenantDb;User Id=DBUSER;Password=DBPASS;TrustServerCertificate=True;MultipleActiveResultSets=True
-          ConnectionStrings__AnalyticsDb=Server=DBHOST,DBPORT;Database=ErpSaas_AnalyticsDb;User Id=DBUSER;Password=DBPASS;TrustServerCertificate=True;MultipleActiveResultSets=True
-          ConnectionStrings__LogDb=Server=DBHOST,DBPORT;Database=ErpSaas_LogDb;User Id=DBUSER;Password=DBPASS;TrustServerCertificate=True;MultipleActiveResultSets=True
-          ConnectionStrings__NotificationsDb=Server=DBHOST,DBPORT;Database=ErpSaas_NotificationsDb;User Id=DBUSER;Password=DBPASS;TrustServerCertificate=True;MultipleActiveResultSets=True
+          ConnectionStrings__PlatformDb=Server=DBHOST;Database=ErpSaas_PlatformDb;User Id=DBUSER;Password=DBPASS;TrustServerCertificate=True;MultipleActiveResultSets=True
+          ConnectionStrings__TenantDb=Server=DBHOST;Database=ErpSaas_TenantDb;User Id=DBUSER;Password=DBPASS;TrustServerCertificate=True;MultipleActiveResultSets=True
+          ConnectionStrings__AnalyticsDb=Server=DBHOST;Database=ErpSaas_AnalyticsDb;User Id=DBUSER;Password=DBPASS;TrustServerCertificate=True;MultipleActiveResultSets=True
+          ConnectionStrings__LogDb=Server=DBHOST;Database=ErpSaas_LogDb;User Id=DBUSER;Password=DBPASS;TrustServerCertificate=True;MultipleActiveResultSets=True
+          ConnectionStrings__NotificationsDb=Server=DBHOST;Database=ErpSaas_NotificationsDb;User Id=DBUSER;Password=DBPASS;TrustServerCertificate=True;MultipleActiveResultSets=True
           Jwt__Secret=JWTSECRET
           Turnstile__SecretKey=TURNSTILEKEY
           PRODUCT_OWNER_EMAIL=POMAIL
@@ -124,7 +124,6 @@ jobs:
           ENVEOF
           # Replace placeholders with actual secret values (avoids heredoc expansion issues)
           sed -i "s|DBHOST|${{ secrets.DB_HOST }}|g"     ./api-publish/.env.staging
-          sed -i "s|DBPORT|${{ secrets.DB_PORT }}|g"     ./api-publish/.env.staging
           sed -i "s|DBUSER|${{ secrets.DB_USER }}|g"     ./api-publish/.env.staging
           sed -i "s|DBPASS|${{ secrets.DB_PASSWORD }}|g" ./api-publish/.env.staging
           sed -i "s|JWTSECRET|${{ secrets.JWT_SECRET }}|g" ./api-publish/.env.staging
