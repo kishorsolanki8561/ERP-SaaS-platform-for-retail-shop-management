@@ -22,13 +22,15 @@ public static class AppInitializationExtensions
 
         try
         {
-            await sp.GetRequiredService<ISqlObjectMigrator>().DeployAsync();
-
+            // Migrations must run BEFORE SqlObjectMigrator so the databases exist
+            // when DeployAsync() tries to open a connection to them.
             await sp.GetRequiredService<PlatformDbContext>().Database.MigrateAsync();
             await sp.GetRequiredService<TenantDbContext>().Database.MigrateAsync();
             await sp.GetRequiredService<AnalyticsDbContext>().Database.MigrateAsync();
             await sp.GetRequiredService<LogDbContext>().Database.MigrateAsync();
             await sp.GetRequiredService<NotificationsDbContext>().Database.MigrateAsync();
+
+            await sp.GetRequiredService<ISqlObjectMigrator>().DeployAsync();
 
             await sp.GetRequiredService<DatabaseSeeder>().SeedAllAsync();
 
