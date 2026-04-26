@@ -2,10 +2,12 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using ErpSaas.Infrastructure.Data;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.IdentityModel.Tokens;
@@ -16,8 +18,22 @@ namespace ErpSaas.Tests.Integration.Fixtures;
 /// <summary>
 /// Shared test fixture. Inherits <see cref="WebApplicationFactory{TEntryPoint}"/> so that
 /// <c>ConfigureWebHost</c> is called at exactly the right time (after all application
-/// service registrations, before <c>builder.Build()</c>). This guarantees that the
-/// <c>RemoveAll + AddDbContext</c> overrides target the correct DI descriptors.
+/// service registrations, before <c>builder.Build()</c> finalises the DI container).
+///
+/// Two problems this fixture solves, and why each solution is needed:
+///
+/// 1. Connection strings — <c>AddInfrastructure</c> registers <c>AddDbContext</c> lambdas
+///    that call <c>configuration.GetConnectionString()</c> lazily (evaluated when the
+///    <c>DbContextOptions&lt;T&gt;</c> is first resolved from DI, i.e. during
+///    <c>InitializeAsync</c>). <c>ConfigureAppConfiguration</c> adds an in-memory provider
+///    with the Testcontainers strings to the live <c>ConfigurationManager</c> before those
+///    lambdas run, so they see the correct values. <c>RemoveAll + AddDbContext</c> in
+///    <c>ConfigureTestServices</c> is kept as a second layer of defence.
+///
+/// 2. JWT — <c>AddIdentityModule</c> reads <c>Jwt:Secret/Issuer/Audience</c> as local
+///    variables at service-registration time, before any configuration override can run.
+///    <c>PostConfigure&lt;JwtBearerOptions&gt;</c> patches the already-registered options
+///    with the test values after all <c>Configure</c> calls complete.
 ///
 /// Use as xUnit <c>IClassFixture&lt;IntegrationTestFixture&gt;</c>.
 /// </summary>
@@ -44,16 +60,30 @@ public sealed class IntegrationTestFixture : WebApplicationFactory<Program>, IAs
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        // appsettings.Testing.json (loaded via UseEnvironment) provides
-        // Jwt:Secret, Hangfire:DisableServer, Turnstile:AlwaysValidate.
         builder.UseEnvironment("Testing");
 
-        // ConfigureTestServices runs AFTER all application ConfigureServices calls,
-        // so RemoveAll correctly replaces the options registered by AddInfrastructure.
-        // The _*Cs fields are already populated because InitializeAsync starts the
-        // container and sets them before calling CreateClient().
+        // Layer 1 — patch IConfiguration with Testcontainers connection strings.
+        // The WebApplicationBuilder.Configuration is a live ConfigurationManager.
+        // AddDbContext lambdas in AddInfrastructure evaluate configuration.GetConnectionString()
+        // lazily when DbContextOptions<T> is first resolved (during InitializeAsync, after Build).
+        // Adding an in-memory provider here ensures those lambdas see the correct values.
+        builder.ConfigureAppConfiguration(config =>
+        {
+            config.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["ConnectionStrings:PlatformDb"]     = _platformCs,
+                ["ConnectionStrings:TenantDb"]       = _tenantCs,
+                ["ConnectionStrings:AnalyticsDb"]    = _analyticsCs,
+                ["ConnectionStrings:LogDb"]          = _logCs,
+                ["ConnectionStrings:NotificationsDb"] = _notifsCs,
+            });
+        });
+
+        // Layer 2 — replace DbContextOptions<T> DI descriptors and fix JWT options.
+        // ConfigureTestServices runs AFTER all application ConfigureServices calls.
         builder.ConfigureTestServices(services =>
         {
+            // Belt: replace DbContextOptions descriptors directly in the DI container.
             services.RemoveAll<DbContextOptions<PlatformDbContext>>();
             services.RemoveAll<DbContextOptions<TenantDbContext>>();
             services.RemoveAll<DbContextOptions<AnalyticsDbContext>>();
@@ -75,6 +105,19 @@ public sealed class IntegrationTestFixture : WebApplicationFactory<Program>, IAs
             services.AddDbContext<NotificationsDbContext>(opts =>
                 opts.UseSqlServer(_notifsCs,
                     sql => sql.MigrationsAssembly(typeof(NotificationsDbContext).Assembly.FullName)));
+
+            // Fix JWT: AddIdentityModule captures Jwt:Secret/Issuer/Audience as local variables
+            // at service-registration time, before ConfigureAppConfiguration overrides are
+            // applied. PostConfigure runs after all Configure calls and patches the options
+            // that are actually used by the JWT middleware at request time.
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(TestJwtSecret));
+            services.PostConfigure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, opts =>
+            {
+                opts.TokenValidationParameters.ValidIssuer          = TestIssuer;
+                opts.TokenValidationParameters.ValidAudience        = TestAudience;
+                opts.TokenValidationParameters.IssuerSigningKey     = key;
+                opts.TokenValidationParameters.ValidateIssuerSigningKey = true;
+            });
         });
     }
 
@@ -92,29 +135,12 @@ public sealed class IntegrationTestFixture : WebApplicationFactory<Program>, IAs
             $"Server={host},{port};Database={db};User Id=sa;Password={pass};" +
             "TrustServerCertificate=True;MultipleActiveResultSets=True";
 
+        // Populate before CreateClient() so ConfigureWebHost closes over valid addresses.
         _platformCs  = Cs("ErpTest_Platform");
         _tenantCs    = Cs("ErpTest_Tenant");
         _analyticsCs = Cs("ErpTest_Analytics");
         _logCs       = Cs("ErpTest_Log");
         _notifsCs    = Cs("ErpTest_Notifications");
-
-        // For minimal-API apps, WebApplication.CreateBuilder(args) reads IConfiguration
-        // from the real process environment BEFORE ConfigureWebHost/ConfigureTestServices
-        // can run. Setting env vars here — before CreateClient() — ensures:
-        //   (a) appsettings.Testing.json is loaded (ASPNETCORE_ENVIRONMENT)
-        //   (b) AddInfrastructure's configuration.GetConnectionString() lambdas see
-        //       the Testcontainers strings instead of the appsettings.json localhost ones
-        //   (c) AddIdentityModule reads the test JWT secret/issuer/audience
-        // ConfigureTestServices below is kept as defence-in-depth for the DbContextOptions.
-        Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT",             "Testing");
-        Environment.SetEnvironmentVariable("ConnectionStrings__PlatformDb",      _platformCs);
-        Environment.SetEnvironmentVariable("ConnectionStrings__TenantDb",        _tenantCs);
-        Environment.SetEnvironmentVariable("ConnectionStrings__AnalyticsDb",     _analyticsCs);
-        Environment.SetEnvironmentVariable("ConnectionStrings__LogDb",           _logCs);
-        Environment.SetEnvironmentVariable("ConnectionStrings__NotificationsDb", _notifsCs);
-        Environment.SetEnvironmentVariable("Jwt__Secret",   TestJwtSecret);
-        Environment.SetEnvironmentVariable("Jwt__Issuer",   TestIssuer);
-        Environment.SetEnvironmentVariable("Jwt__Audience", TestAudience);
 
         // Warm up: triggers ConfigureWebHost → Program.cs startup →
         // migrations and seeds — all against the Testcontainers SQL Server.
