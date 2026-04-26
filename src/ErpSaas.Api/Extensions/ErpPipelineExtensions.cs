@@ -9,7 +9,7 @@ public static class ErpPipelineExtensions
 {
     public static WebApplication UseErpPipeline(this WebApplication app)
     {
-        if (app.Environment.IsDevelopment())
+        if (app.Environment.IsDevelopment() || app.Environment.IsStaging())
         {
             app.UseSwagger();
             app.UseSwaggerUI(c =>
