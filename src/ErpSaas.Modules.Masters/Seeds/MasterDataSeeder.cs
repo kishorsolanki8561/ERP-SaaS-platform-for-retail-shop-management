@@ -204,7 +204,8 @@ public sealed class MasterDataSeeder(
 
     private async Task SeedHsnSacCodesAsync(CancellationToken ct)
     {
-        if (await db.HsnSacCodes.AnyAsync(ct)) return;
+        var existingList = await db.HsnSacCodes.Select(x => x.Code).ToListAsync(ct);
+        var existing = existingList.ToHashSet();
 
         // Electrical / Electronics / Power tools HSN codes
         var codes = new[]
@@ -248,10 +249,8 @@ public sealed class MasterDataSeeder(
             ("8538", "Parts for electrical switching apparatus",             HsnSacType.HSN, 18m),
             // Batteries
             ("8506", "Primary cells and primary batteries",                  HsnSacType.HSN, 28m),
-            // UPS / Inverters
-            ("8504", "UPS / Inverters / Static converters",                  HsnSacType.HSN, 18m),
-            // Solar
-            ("8541", "Solar cells / photovoltaic cells",                     HsnSacType.HSN, 12m),
+            // Solar (8541 already listed above; 8504 already listed above — no duplicates)
+            ("8543", "Electrical machines and apparatus not elsewhere specified", HsnSacType.HSN, 18m),
             // SAC codes
             ("9954", "Construction services",                                HsnSacType.SAC, 18m),
             ("9983", "IT and telecom services",                              HsnSacType.SAC, 18m),
@@ -260,7 +259,10 @@ public sealed class MasterDataSeeder(
             ("9988", "Manufacturing services on physical inputs owned by others", HsnSacType.SAC, 18m),
         };
 
-        foreach (var (code, desc, type, rate) in codes)
+        var toInsert = codes.Where(c => !existing.Contains(c.Item1)).ToList();
+        if (toInsert.Count == 0) return;
+
+        foreach (var (code, desc, type, rate) in toInsert)
             db.HsnSacCodes.Add(new HsnSacCode
             {
                 Code = code, Description = desc, Type = type, GstRate = rate,
@@ -268,6 +270,6 @@ public sealed class MasterDataSeeder(
             });
 
         await db.SaveChangesAsync(ct);
-        logger.LogInformation("Seeded {Count} HSN/SAC codes", codes.Length);
+        logger.LogInformation("Seeded {Count} HSN/SAC codes", toInsert.Count);
     }
 }
