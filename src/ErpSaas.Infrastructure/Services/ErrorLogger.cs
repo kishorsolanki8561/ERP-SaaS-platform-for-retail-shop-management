@@ -26,6 +26,10 @@ public sealed class ErrorLogger : IErrorLogger, IHostedService, IAsyncDisposable
 
     public Task LogAsync(string operationName, Exception ex, CancellationToken ct = default)
     {
+        // Write to Serilog immediately so the error is always visible in the API console.
+        _logger.LogError(ex, "Operation '{Operation}' threw {ExceptionType}: {Message}",
+            operationName, ex.GetType().Name, ex.Message);
+
         var entry = new ErrorLog
         {
             OperationName = operationName,
