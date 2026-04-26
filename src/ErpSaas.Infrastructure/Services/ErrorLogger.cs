@@ -48,8 +48,12 @@ public sealed class ErrorLogger : IErrorLogger, IHostedService, IAsyncDisposable
 
     public async Task StopAsync(CancellationToken ct)
     {
-        _channel.Writer.TryComplete(); // TryComplete is idempotent; Complete() throws if already done
-        if (_cts is not null) await _cts.CancelAsync();
+        _channel.Writer.TryComplete();
+        if (_cts is not null)
+        {
+            try { await _cts.CancelAsync(); }
+            catch (ObjectDisposedException) { } // linked CTS disposed by host before StopAsync fires
+        }
         if (_drainTask is not null)
         {
             try { await _drainTask; }
@@ -79,8 +83,10 @@ public sealed class ErrorLogger : IErrorLogger, IHostedService, IAsyncDisposable
     {
         if (_cts is not null)
         {
-            await _cts.CancelAsync();
-            _cts.Dispose();
+            try { await _cts.CancelAsync(); }
+            catch (ObjectDisposedException) { } // may already be disposed by host shutdown
+            try { _cts.Dispose(); }
+            catch (ObjectDisposedException) { }
         }
     }
 }

@@ -18,11 +18,12 @@ export default defineConfig({
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
   ],
-  // In CI, the Angular dev server is expected to be started by the workflow.
-  // Locally, uncomment webServer to have Playwright auto-start it.
-  // webServer: {
-  //   command: 'npm run start',
-  //   url: 'http://localhost:4200',
-  //   reuseExistingServer: !process.env['CI'],
-  // },
+  // Auto-start the Angular dev server when running locally.
+  // In CI, APP_BASE_URL is set to the staging URL so this is skipped.
+  webServer: process.env['APP_BASE_URL'] ? undefined : {
+    command: 'npm run start',
+    url: 'http://localhost:4200',
+    reuseExistingServer: true,
+    timeout: 120_000,
+  },
 });
