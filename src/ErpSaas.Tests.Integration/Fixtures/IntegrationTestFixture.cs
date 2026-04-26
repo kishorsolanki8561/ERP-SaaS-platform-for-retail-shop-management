@@ -4,114 +4,157 @@ using System.Text;
 using ErpSaas.Infrastructure.Data;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.IdentityModel.Tokens;
 using Testcontainers.MsSql;
 
 namespace ErpSaas.Tests.Integration.Fixtures;
 
 /// <summary>
-/// Shared test fixture that starts one SQL Server container, creates all
-/// required databases, runs migrations, and seeds reference data.
+/// Shared test fixture. Inherits <see cref="WebApplicationFactory{TEntryPoint}"/> so that
+/// <c>ConfigureWebHost</c> is called at exactly the right time (after all application
+/// service registrations, before <c>builder.Build()</c>). This guarantees that the
+/// <c>RemoveAll + AddDbContext</c> overrides target the correct DI descriptors.
+///
 /// Use as xUnit <c>IClassFixture&lt;IntegrationTestFixture&gt;</c>.
 /// </summary>
-public sealed class IntegrationTestFixture : IAsyncLifetime
+public sealed class IntegrationTestFixture : WebApplicationFactory<Program>, IAsyncLifetime
 {
-    private readonly MsSqlContainer _sqlContainer = new MsSqlBuilder(
+    private readonly MsSqlContainer _container = new MsSqlBuilder(
             "mcr.microsoft.com/mssql/server:2022-latest")
         .WithPassword("Test@1234!StrongPass")
         .Build();
-
-    // Publicly visible after InitializeAsync
-    public WebApplicationFactory<Program> Factory { get; private set; } = null!;
-    public IServiceProvider Services => Factory.Services;
 
     // Deterministic JWT secret for tests — never a real secret
     private const string TestJwtSecret = "TestOnly_SuperSecretKey_AtLeast32Chars_DoNotUse";
     private const string TestIssuer    = "test-issuer";
     private const string TestAudience  = "test-audience";
 
-    // Connection-string env-var names that mirror the double-underscore convention
-    // used by ASP.NET Core to map env vars → IConfiguration keys.
-    private static readonly string[] CsEnvVarNames =
-    [
-        "ConnectionStrings__PlatformDb",
-        "ConnectionStrings__TenantDb",
-        "ConnectionStrings__AnalyticsDb",
-        "ConnectionStrings__LogDb",
-        "ConnectionStrings__NotificationsDb",
-    ];
+    // Set in InitializeAsync before CreateClient() triggers ConfigureWebHost
+    private string _platformCs  = null!;
+    private string _tenantCs    = null!;
+    private string _analyticsCs = null!;
+    private string _logCs       = null!;
+    private string _notifsCs    = null!;
 
-    public async Task InitializeAsync()
+    // ── WebApplicationFactory override ────────────────────────────────────────
+
+    protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        await _sqlContainer.StartAsync();
+        // appsettings.Testing.json (loaded via UseEnvironment) provides
+        // Jwt:Secret, Hangfire:DisableServer, Turnstile:AlwaysValidate.
+        builder.UseEnvironment("Testing");
 
-        var host = _sqlContainer.Hostname;
-        var port = _sqlContainer.GetMappedPublicPort(1433);
+        // ConfigureTestServices runs AFTER all application ConfigureServices calls,
+        // so RemoveAll correctly replaces the options registered by AddInfrastructure.
+        // The _*Cs fields are already populated because InitializeAsync starts the
+        // container and sets them before calling CreateClient().
+        builder.ConfigureTestServices(services =>
+        {
+            services.RemoveAll<DbContextOptions<PlatformDbContext>>();
+            services.RemoveAll<DbContextOptions<TenantDbContext>>();
+            services.RemoveAll<DbContextOptions<AnalyticsDbContext>>();
+            services.RemoveAll<DbContextOptions<LogDbContext>>();
+            services.RemoveAll<DbContextOptions<NotificationsDbContext>>();
+
+            services.AddDbContext<PlatformDbContext>(opts =>
+                opts.UseSqlServer(_platformCs,
+                    sql => sql.MigrationsAssembly(typeof(PlatformDbContext).Assembly.FullName)));
+            services.AddDbContext<TenantDbContext>(opts =>
+                opts.UseSqlServer(_tenantCs,
+                    sql => sql.MigrationsAssembly(typeof(TenantDbContext).Assembly.FullName)));
+            services.AddDbContext<AnalyticsDbContext>(opts =>
+                opts.UseSqlServer(_analyticsCs,
+                    sql => sql.MigrationsAssembly(typeof(AnalyticsDbContext).Assembly.FullName)));
+            services.AddDbContext<LogDbContext>(opts =>
+                opts.UseSqlServer(_logCs,
+                    sql => sql.MigrationsAssembly(typeof(LogDbContext).Assembly.FullName)));
+            services.AddDbContext<NotificationsDbContext>(opts =>
+                opts.UseSqlServer(_notifsCs,
+                    sql => sql.MigrationsAssembly(typeof(NotificationsDbContext).Assembly.FullName)));
+        });
+    }
+
+    // ── IAsyncLifetime ────────────────────────────────────────────────────────
+
+    async Task IAsyncLifetime.InitializeAsync()
+    {
+        await _container.StartAsync();
+
+        var host = _container.Hostname;
+        var port = _container.GetMappedPublicPort(1433);
         const string pass = "Test@1234!StrongPass";
 
         string Cs(string db) =>
             $"Server={host},{port};Database={db};User Id=sa;Password={pass};" +
             "TrustServerCertificate=True;MultipleActiveResultSets=True";
 
-        // Inject Testcontainers addresses as env vars BEFORE the factory runs
-        // Program.cs. WebApplication.CreateBuilder snapshots env vars into
-        // IConfiguration at construction time — before AddInfrastructure reads
-        // any connection string — so every DbContext is registered with a real
-        // SQL Server address from the very first DI registration.
-        Environment.SetEnvironmentVariable("ConnectionStrings__PlatformDb",     Cs("ErpTest_Platform"));
-        Environment.SetEnvironmentVariable("ConnectionStrings__TenantDb",        Cs("ErpTest_Tenant"));
-        Environment.SetEnvironmentVariable("ConnectionStrings__AnalyticsDb",     Cs("ErpTest_Analytics"));
-        Environment.SetEnvironmentVariable("ConnectionStrings__LogDb",           Cs("ErpTest_Log"));
-        Environment.SetEnvironmentVariable("ConnectionStrings__NotificationsDb", Cs("ErpTest_Notifications"));
+        // Populate before CreateClient() so ConfigureWebHost sees valid addresses.
+        _platformCs  = Cs("ErpTest_Platform");
+        _tenantCs    = Cs("ErpTest_Tenant");
+        _analyticsCs = Cs("ErpTest_Analytics");
+        _logCs       = Cs("ErpTest_Log");
+        _notifsCs    = Cs("ErpTest_Notifications");
 
-        Factory = new WebApplicationFactory<Program>()
-            .WithWebHostBuilder(builder =>
-            {
-                // appsettings.Testing.json (loaded via UseEnvironment) provides:
-                //   Jwt:Secret, Hangfire:DisableServer, Turnstile:AlwaysValidate
-                // Connection strings are already in IConfiguration via env vars above.
-                builder.UseEnvironment("Testing");
-            });
-
-        // Warm up — triggers Program.cs startup, migrations, and seeds.
-        _ = Factory.CreateClient();
+        // Warm up: triggers ConfigureWebHost, then Program.cs startup,
+        // migrations, and seeds — all against the Testcontainers SQL Server.
+        _ = CreateClient();
     }
 
-    public async Task DisposeAsync()
+    async Task IAsyncLifetime.DisposeAsync()
     {
-        await Factory.DisposeAsync();
-        await _sqlContainer.DisposeAsync();
-
-        // Remove env vars so they don't leak into subsequent test processes.
-        foreach (var name in CsEnvVarNames)
-            Environment.SetEnvironmentVariable(name, null);
+        // Dispose the WebApplicationFactory (stops the test server).
+        // WebApplicationFactory.Dispose() is idempotent so xUnit's own
+        // IDisposable.Dispose() call after this is safe.
+        Dispose();
+        await _container.DisposeAsync();
     }
 
-    /// <summary>
-    /// Returns an HttpClient authenticated as the given shop admin.
-    /// </summary>
+    // ── Public helpers used by test classes ───────────────────────────────────
+
+    /// <summary>Returns an HttpClient authenticated as the given shop admin.</summary>
     public HttpClient CreateAuthenticatedClient(
         long shopId = 1,
         string[] permissions = null!,
         string role = "Admin")
     {
         var token = GenerateJwt(shopId, permissions ?? ["*"], role);
-        var client = Factory.CreateClient();
+        var client = CreateClient();
         client.DefaultRequestHeaders.Authorization =
             new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
         client.DefaultRequestHeaders.Add("X-Shop-Id", shopId.ToString());
         return client;
     }
 
-    public HttpClient CreateUnauthenticatedClient() => Factory.CreateClient();
+    public HttpClient CreateUnauthenticatedClient() => CreateClient();
 
-    /// <summary>
-    /// Opens a new DI scope for direct service access in tests.
-    /// Dispose the returned scope after use.
-    /// </summary>
-    public AsyncServiceScope CreateScope() => Factory.Services.CreateAsyncScope();
+    /// <summary>Opens a new DI scope for direct service access in tests.</summary>
+    public AsyncServiceScope CreateScope() => Services.CreateAsyncScope();
+
+    public Microsoft.Data.SqlClient.SqlConnection OpenTenantConnection()
+    {
+        var scope    = Services.CreateScope();
+        var tenantDb = scope.ServiceProvider.GetRequiredService<TenantDbContext>();
+        var conn     = new Microsoft.Data.SqlClient.SqlConnection(
+            tenantDb.Database.GetConnectionString()!);
+        conn.Open();
+        return conn;
+    }
+
+    public Microsoft.Data.SqlClient.SqlConnection OpenPlatformConnection()
+    {
+        var scope = Services.CreateScope();
+        var db    = scope.ServiceProvider.GetRequiredService<PlatformDbContext>();
+        var conn  = new Microsoft.Data.SqlClient.SqlConnection(
+            db.Database.GetConnectionString()!);
+        conn.Open();
+        return conn;
+    }
+
+    // ── JWT helpers ───────────────────────────────────────────────────────────
 
     private static string GenerateJwt(long shopId, string[] permissions, string role)
     {
@@ -125,7 +168,7 @@ public sealed class IntegrationTestFixture : IAsyncLifetime
         foreach (var p in permissions)
             claims.Add(new Claim("permission", p));
 
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(TestJwtSecret));
+        var key   = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(TestJwtSecret));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
         var token = new JwtSecurityToken(
@@ -136,28 +179,5 @@ public sealed class IntegrationTestFixture : IAsyncLifetime
             signingCredentials: creds);
 
         return new JwtSecurityTokenHandler().WriteToken(token);
-    }
-
-    /// <summary>
-    /// Returns a direct connection to the Tenant test database for row-count assertions.
-    /// </summary>
-    public Microsoft.Data.SqlClient.SqlConnection OpenTenantConnection()
-    {
-        var scope = Factory.Services.CreateScope();
-        var tenantDb = scope.ServiceProvider.GetRequiredService<TenantDbContext>();
-        var connStr = tenantDb.Database.GetConnectionString()!;
-        var conn = new Microsoft.Data.SqlClient.SqlConnection(connStr);
-        conn.Open();
-        return conn;
-    }
-
-    public Microsoft.Data.SqlClient.SqlConnection OpenPlatformConnection()
-    {
-        var scope = Factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<PlatformDbContext>();
-        var connStr = db.Database.GetConnectionString()!;
-        var conn = new Microsoft.Data.SqlClient.SqlConnection(connStr);
-        conn.Open();
-        return conn;
     }
 }
