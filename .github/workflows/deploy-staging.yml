@@ -97,6 +97,8 @@ jobs:
     environment: staging
 
     steps:
+      - uses: actions/checkout@v4
+
       - uses: actions/download-artifact@v4
         with:
           name: api-publish
@@ -141,6 +143,9 @@ jobs:
         run: |
           rsync -avz --delete ./api-publish/ \
             ${{ env.VPS_USER }}@${{ env.VPS_HOST }}:/tmp/erp-staging-api-deploy/
+          # Also ship the systemd unit so it stays in sync with the repo
+          scp ops/erp-staging.service \
+            ${{ env.VPS_USER }}@${{ env.VPS_HOST }}:/tmp/erp-staging.service
 
       - name: Swap & restart API
         run: |
@@ -151,6 +156,10 @@ jobs:
           sudo cp -r /tmp/erp-staging-api-deploy/. /opt/erp-staging/api/
           sudo chown -R erp-staging:erp-staging /opt/erp-staging/api
           sudo chmod 600 /opt/erp-staging/api/.env.staging
+          # Install / update the systemd unit file and reload the daemon
+          sudo cp /tmp/erp-staging.service /etc/systemd/system/erp-staging.service
+          sudo systemctl daemon-reload
+          sudo systemctl enable erp-staging
           sudo systemctl start erp-staging
           dump_logs() {
             # sudo -n: non-interactive, fail silently if password required

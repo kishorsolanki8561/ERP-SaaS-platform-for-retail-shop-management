@@ -1,0 +1,22 @@
+[Unit]
+Description=ERP SaaS API — Staging
+After=network.target
+
+[Service]
+Type=notify
+User=erp-staging
+Group=erp-staging
+WorkingDirectory=/opt/erp-staging/api
+ExecStart=/usr/bin/dotnet /opt/erp-staging/api/ErpSaas.Api.dll
+Restart=on-failure
+RestartSec=10
+
+# Load all environment variables from the file written by CI/CD.
+# The file is chmod 600 and owned by erp-staging so no other user can read secrets.
+EnvironmentFile=/opt/erp-staging/api/.env.staging
+
+# Sensible resource limits
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
