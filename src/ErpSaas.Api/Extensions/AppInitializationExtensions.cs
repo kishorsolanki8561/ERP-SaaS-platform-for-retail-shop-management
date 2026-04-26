@@ -38,7 +38,8 @@ public static class AppInitializationExtensions
             var env = app.Services.GetRequiredService<IWebHostEnvironment>();
             if (!env.IsEnvironment("Testing"))
             {
-                RecurringJob.AddOrUpdate<NotificationDrainJob>(
+                var jobManager = sp.GetRequiredService<IRecurringJobManager>();
+                jobManager.AddOrUpdate<NotificationDrainJob>(
                     "notification-drain",
                     job => job.ExecuteAsync(CancellationToken.None),
                     Cron.Minutely);
