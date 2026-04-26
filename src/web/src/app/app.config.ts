@@ -10,6 +10,7 @@ import { authInterceptor } from './core/auth/auth.interceptor';
 import { tenantInterceptor } from './core/tenant/tenant.interceptor';
 import { loadingInterceptor } from './core/http/loading.interceptor';
 import { errorInterceptor } from './core/http/error.interceptor';
+import { apiBaseInterceptor } from './core/http/api-base.interceptor';
 
 const ErpPreset = definePreset(Aura, {
   semantic: {
@@ -35,6 +36,7 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes),
     provideAnimationsAsync(),
     provideHttpClient(withInterceptors([
+      apiBaseInterceptor,
       authInterceptor,
       tenantInterceptor,
       loadingInterceptor,
