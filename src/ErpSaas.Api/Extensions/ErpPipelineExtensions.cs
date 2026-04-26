@@ -16,6 +16,7 @@ public static class ErpPipelineExtensions
                 c.SwaggerEndpoint("/swagger/v1/swagger.json", "ShopEarth ERP v1"));
         }
 
+        app.UseCors();
         app.UseSerilogRequestLogging();
         app.UseAuthentication();
         app.UseTenantContext();

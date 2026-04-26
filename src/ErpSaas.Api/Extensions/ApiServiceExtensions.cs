@@ -20,6 +20,17 @@ public static class ApiServiceExtensions
     {
         services.AddScoped<CaptchaValidationFilter>();
 
+        var allowedOrigins = configuration
+            .GetSection("Cors:AllowedOrigins")
+            .Get<string[]>() ?? [];
+
+        services.AddCors(options =>
+            options.AddDefaultPolicy(policy =>
+                policy.WithOrigins(allowedOrigins)
+                      .AllowAnyHeader()
+                      .AllowAnyMethod()
+                      .AllowCredentials()));
+
         services.AddControllers(opts => opts.Filters.AddService<CaptchaValidationFilter>())
             .AddApplicationPart(typeof(Modules.Masters.Controllers.DdlController).Assembly)
             .AddApplicationPart(typeof(Modules.Identity.Controllers.AuthController).Assembly)

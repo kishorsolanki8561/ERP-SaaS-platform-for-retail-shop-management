@@ -119,6 +119,8 @@ jobs:
           PRODUCT_OWNER_EMAIL=POMAIL
           PRODUCT_OWNER_PASSWORD=POPASSWORD
           PRODUCT_OWNER_NAME=PONAME
+          Cors__AllowedOrigins__0=https://erp-app-staging.preptm.com
+          Cors__AllowedOrigins__1=https://erp-portal-staging.preptm.com
           ENVEOF
           # Replace placeholders with actual secret values (avoids heredoc expansion issues)
           sed -i "s|DBPASS|${{ secrets.DB_PASSWORD }}|g" ./api-publish/.env.staging
