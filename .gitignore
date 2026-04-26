@@ -5,6 +5,8 @@
 !.env.example
 **/appsettings.Production.json
 **/appsettings.Staging.json
+# Prevent real connection strings from being committed to appsettings.json
+# (use dotnet user-secrets for local overrides)
 
 # ── .NET build output ─────────────────────────────────────────────────────────
 **/bin/
@@ -33,6 +35,8 @@ TestResults/
 coverage/
 **/coverage.cobertura.xml
 *.trx
+**/test-results/
+**/playwright-report/
 
 # ── Angular / Node ────────────────────────────────────────────────────────────
 **/node_modules/
