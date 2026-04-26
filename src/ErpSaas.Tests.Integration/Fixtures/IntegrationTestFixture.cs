@@ -2,13 +2,10 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using ErpSaas.Infrastructure.Data;
-using ErpSaas.Infrastructure.Seeds;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.IdentityModel.Tokens;
 using Testcontainers.MsSql;
 
@@ -35,76 +32,50 @@ public sealed class IntegrationTestFixture : IAsyncLifetime
     private const string TestIssuer    = "test-issuer";
     private const string TestAudience  = "test-audience";
 
+    // Connection-string env-var names that mirror the double-underscore convention
+    // used by ASP.NET Core to map env vars → IConfiguration keys.
+    private static readonly string[] CsEnvVarNames =
+    [
+        "ConnectionStrings__PlatformDb",
+        "ConnectionStrings__TenantDb",
+        "ConnectionStrings__AnalyticsDb",
+        "ConnectionStrings__LogDb",
+        "ConnectionStrings__NotificationsDb",
+    ];
+
     public async Task InitializeAsync()
     {
         await _sqlContainer.StartAsync();
 
         var host = _sqlContainer.Hostname;
         var port = _sqlContainer.GetMappedPublicPort(1433);
-        var pass = "Test@1234!StrongPass";
+        const string pass = "Test@1234!StrongPass";
 
         string Cs(string db) =>
             $"Server={host},{port};Database={db};User Id=sa;Password={pass};" +
             "TrustServerCertificate=True;MultipleActiveResultSets=True";
 
+        // Inject Testcontainers addresses as env vars BEFORE the factory runs
+        // Program.cs. WebApplication.CreateBuilder snapshots env vars into
+        // IConfiguration at construction time — before AddInfrastructure reads
+        // any connection string — so every DbContext is registered with a real
+        // SQL Server address from the very first DI registration.
+        Environment.SetEnvironmentVariable("ConnectionStrings__PlatformDb",     Cs("ErpTest_Platform"));
+        Environment.SetEnvironmentVariable("ConnectionStrings__TenantDb",        Cs("ErpTest_Tenant"));
+        Environment.SetEnvironmentVariable("ConnectionStrings__AnalyticsDb",     Cs("ErpTest_Analytics"));
+        Environment.SetEnvironmentVariable("ConnectionStrings__LogDb",           Cs("ErpTest_Log"));
+        Environment.SetEnvironmentVariable("ConnectionStrings__NotificationsDb", Cs("ErpTest_Notifications"));
+
         Factory = new WebApplicationFactory<Program>()
             .WithWebHostBuilder(builder =>
             {
+                // appsettings.Testing.json (loaded via UseEnvironment) provides:
+                //   Jwt:Secret, Hangfire:DisableServer, Turnstile:AlwaysValidate
+                // Connection strings are already in IConfiguration via env vars above.
                 builder.UseEnvironment("Testing");
-
-                builder.ConfigureAppConfiguration((_, config) =>
-                {
-                    config.AddInMemoryCollection(new Dictionary<string, string?>
-                    {
-                        ["ConnectionStrings:PlatformDb"]       = Cs("ErpTest_Platform"),
-                        ["ConnectionStrings:TenantDb"]         = Cs("ErpTest_Tenant"),
-                        ["ConnectionStrings:AnalyticsDb"]      = Cs("ErpTest_Analytics"),
-                        ["ConnectionStrings:LogDb"]            = Cs("ErpTest_Log"),
-                        ["ConnectionStrings:NotificationsDb"]  = Cs("ErpTest_Notifications"),
-                        // Disable Hangfire background server in tests (avoids it connecting
-                        // to SQL Server before migrations have run)
-                        ["Hangfire:DisableServer"]             = "true",
-                        // Turnstile bypass in tests
-                        ["Turnstile:AlwaysValidate"]           = "false",
-                        // JWT
-                        ["Jwt:Secret"]                         = TestJwtSecret,
-                        ["Jwt:Issuer"]                         = TestIssuer,
-                        ["Jwt:Audience"]                       = TestAudience,
-                        ["Jwt:AccessTokenExpiryMinutes"]       = "60",
-                    });
-                });
-
-                // Override DbContext options at the DI level so the Testcontainers
-                // connection strings are used regardless of when AddInfrastructure()
-                // captured them from IConfiguration (service-registration-time capture
-                // predates ConfigureAppConfiguration overrides being applied).
-                builder.ConfigureServices(services =>
-                {
-                    services.RemoveAll<DbContextOptions<PlatformDbContext>>();
-                    services.RemoveAll<DbContextOptions<TenantDbContext>>();
-                    services.RemoveAll<DbContextOptions<AnalyticsDbContext>>();
-                    services.RemoveAll<DbContextOptions<LogDbContext>>();
-                    services.RemoveAll<DbContextOptions<NotificationsDbContext>>();
-
-                    services.AddDbContext<PlatformDbContext>(opts =>
-                        opts.UseSqlServer(Cs("ErpTest_Platform"),
-                            sql => sql.MigrationsAssembly(typeof(PlatformDbContext).Assembly.FullName)));
-                    services.AddDbContext<TenantDbContext>(opts =>
-                        opts.UseSqlServer(Cs("ErpTest_Tenant"),
-                            sql => sql.MigrationsAssembly(typeof(TenantDbContext).Assembly.FullName)));
-                    services.AddDbContext<AnalyticsDbContext>(opts =>
-                        opts.UseSqlServer(Cs("ErpTest_Analytics"),
-                            sql => sql.MigrationsAssembly(typeof(AnalyticsDbContext).Assembly.FullName)));
-                    services.AddDbContext<LogDbContext>(opts =>
-                        opts.UseSqlServer(Cs("ErpTest_Log"),
-                            sql => sql.MigrationsAssembly(typeof(LogDbContext).Assembly.FullName)));
-                    services.AddDbContext<NotificationsDbContext>(opts =>
-                        opts.UseSqlServer(Cs("ErpTest_Notifications"),
-                            sql => sql.MigrationsAssembly(typeof(NotificationsDbContext).Assembly.FullName)));
-                });
             });
 
-        // Warm up the factory — this runs InitializeAsync (migrations + seeds)
+        // Warm up — triggers Program.cs startup, migrations, and seeds.
         _ = Factory.CreateClient();
     }
 
@@ -112,6 +83,10 @@ public sealed class IntegrationTestFixture : IAsyncLifetime
     {
         await Factory.DisposeAsync();
         await _sqlContainer.DisposeAsync();
+
+        // Remove env vars so they don't leak into subsequent test processes.
+        foreach (var name in CsEnvVarNames)
+            Environment.SetEnvironmentVariable(name, null);
     }
 
     /// <summary>
