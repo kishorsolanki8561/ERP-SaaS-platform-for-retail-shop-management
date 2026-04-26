@@ -3,7 +3,7 @@ Description=ERP SaaS API — Staging
 After=network.target
 
 [Service]
-Type=notify
+Type=exec
 User=erp-staging
 Group=erp-staging
 WorkingDirectory=/opt/erp-staging/api
