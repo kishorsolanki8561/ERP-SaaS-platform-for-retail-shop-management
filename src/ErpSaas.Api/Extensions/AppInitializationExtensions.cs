@@ -24,11 +24,11 @@ public static class AppInitializationExtensions
         {
             // Migrations must run BEFORE SqlObjectMigrator so the databases exist
             // when DeployAsync() tries to open a connection to them.
-            await sp.GetRequiredService<PlatformDbContext>().Database.MigrateAsync();
-            await sp.GetRequiredService<TenantDbContext>().Database.MigrateAsync();
-            await sp.GetRequiredService<AnalyticsDbContext>().Database.MigrateAsync();
-            await sp.GetRequiredService<LogDbContext>().Database.MigrateAsync();
-            await sp.GetRequiredService<NotificationsDbContext>().Database.MigrateAsync();
+            await MigrateContextAsync(sp.GetRequiredService<PlatformDbContext>(),      "PlatformDb",       logger);
+            await MigrateContextAsync(sp.GetRequiredService<TenantDbContext>(),        "TenantDb",         logger);
+            await MigrateContextAsync(sp.GetRequiredService<AnalyticsDbContext>(),     "AnalyticsDb",      logger);
+            await MigrateContextAsync(sp.GetRequiredService<LogDbContext>(),           "LogDb",            logger);
+            await MigrateContextAsync(sp.GetRequiredService<NotificationsDbContext>(), "NotificationsDb",  logger);
 
             await sp.GetRequiredService<ISqlObjectMigrator>().DeployAsync();
 
@@ -48,5 +48,24 @@ public static class AppInitializationExtensions
         {
             logger.LogError(ex, "Startup initialization failed — continuing in dev mode");
         }
+    }
+
+    private static async Task MigrateContextAsync(DbContext db, string dbName, ILogger logger)
+    {
+        var pending = (await db.Database.GetPendingMigrationsAsync()).ToList();
+        if (pending.Count == 0)
+        {
+            logger.LogInformation("{DbName}: schema is up to date — no migrations to apply", dbName);
+        }
+        else
+        {
+            logger.LogInformation("{DbName}: applying {Count} pending migration(s): {Migrations}",
+                dbName, pending.Count, string.Join(", ", pending));
+        }
+
+        await db.Database.MigrateAsync();
+
+        if (pending.Count > 0)
+            logger.LogInformation("{DbName}: all migrations applied successfully", dbName);
     }
 }

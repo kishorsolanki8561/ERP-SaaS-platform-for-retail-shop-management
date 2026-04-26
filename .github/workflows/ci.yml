@@ -22,6 +22,9 @@ jobs:
     # IntegrationTestFixture.InitializeAsync() sets ConnectionStrings__* env vars
     # BEFORE CreateClient() fires, so AddDbContext lambdas see the Testcontainers
     # address at the IConfiguration level (env vars beat appsettings.json).
+    # After CreateClient() the fixture also calls MigrateAsync() on all DbContexts
+    # from a ConfigureTestServices-backed scope — guarantees databases exist even if
+    # Program.cs startup swallowed a migration exception.
     # JWT settings are in appsettings.Testing.json (loaded via UseEnvironment("Testing")).
 
     steps:
@@ -37,6 +40,54 @@ jobs:
 
       - name: Build (Release)
         run: dotnet build src/ErpSaas.sln --configuration Release --no-restore --warnaserror
+
+      - name: Install dotnet-ef tool
+        run: dotnet tool install --global dotnet-ef --version 8.*
+
+      - name: Check pending model changes
+        # Fails the build if any DbContext has entity changes without a migration file.
+        # Uses the startup project so TenantDbContext gets all module configurators via
+        # the app's full DI (no design-time factories required).
+        # Connection strings and JWT:Secret are set to dummy values so the DI container
+        # can build without a real SQL Server.  AppInitializationExtensions.InitializeAsync()
+        # is wrapped in try/catch so it fails silently when it can't reach the dummy server.
+        # The tool aborts the host after Build(), so RunAsync() never actually fires.
+        env:
+          ConnectionStrings__PlatformDb: "Server=localhost;Database=dt;User Id=sa;Password=Dummy!;TrustServerCertificate=True"
+          ConnectionStrings__TenantDb: "Server=localhost;Database=dt;User Id=sa;Password=Dummy!;TrustServerCertificate=True"
+          ConnectionStrings__AnalyticsDb: "Server=localhost;Database=dt;User Id=sa;Password=Dummy!;TrustServerCertificate=True"
+          ConnectionStrings__LogDb: "Server=localhost;Database=dt;User Id=sa;Password=Dummy!;TrustServerCertificate=True"
+          ConnectionStrings__NotificationsDb: "Server=localhost;Database=dt;User Id=sa;Password=Dummy!;TrustServerCertificate=True"
+          Jwt__Secret: "CiOnlyPlaceholderSecret_MustBe32CharsLong!"
+          Jwt__Issuer: "ci-check"
+          Jwt__Audience: "ci-check"
+          Hangfire__DisableServer: "true"
+        run: |
+          dotnet ef migrations has-pending-model-changes \
+            --project src/ErpSaas.Infrastructure \
+            --startup-project src/ErpSaas.Api \
+            --context PlatformDbContext \
+            --no-build
+          dotnet ef migrations has-pending-model-changes \
+            --project src/ErpSaas.Infrastructure \
+            --startup-project src/ErpSaas.Api \
+            --context TenantDbContext \
+            --no-build
+          dotnet ef migrations has-pending-model-changes \
+            --project src/ErpSaas.Infrastructure \
+            --startup-project src/ErpSaas.Api \
+            --context AnalyticsDbContext \
+            --no-build
+          dotnet ef migrations has-pending-model-changes \
+            --project src/ErpSaas.Infrastructure \
+            --startup-project src/ErpSaas.Api \
+            --context LogDbContext \
+            --no-build
+          dotnet ef migrations has-pending-model-changes \
+            --project src/ErpSaas.Infrastructure \
+            --startup-project src/ErpSaas.Api \
+            --context NotificationsDbContext \
+            --no-build
 
       - name: Unit tests
         run: dotnet test src/ErpSaas.sln --configuration Release --no-build --filter "Category=Unit" --logger "trx;LogFileName=unit-results.trx" --collect:"XPlat Code Coverage"

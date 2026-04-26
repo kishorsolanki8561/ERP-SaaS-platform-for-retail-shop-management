@@ -20,7 +20,7 @@ namespace ErpSaas.Tests.Integration.Fixtures;
 /// <c>ConfigureWebHost</c> is called at exactly the right time (after all application
 /// service registrations, before <c>builder.Build()</c> finalises the DI container).
 ///
-/// Two problems this fixture solves, and why each solution is needed:
+/// Three problems this fixture solves, and why each solution is needed:
 ///
 /// 1. Connection strings — <c>AddInfrastructure</c> registers <c>AddDbContext</c> lambdas
 ///    that call <c>configuration.GetConnectionString()</c> lazily (evaluated when the
@@ -35,7 +35,16 @@ namespace ErpSaas.Tests.Integration.Fixtures;
 ///    <c>PostConfigure&lt;JwtBearerOptions&gt;</c> patches the already-registered options
 ///    with the test values after all <c>Configure</c> calls complete.
 ///
-/// Use as xUnit <c>IClassFixture&lt;IntegrationTestFixture&gt;</c>.
+/// 3. Silent startup failures — <c>AppInitializationExtensions.InitializeAsync</c> wraps
+///    all migrations in a single try/catch that swallows exceptions (intentional for dev
+///    mode). If any <c>MigrateAsync()</c> call fails during startup the database is never
+///    created, causing "Cannot open database" failures in tests. After <c>CreateClient()</c>
+///    builds the host, <c>IAsyncLifetime.InitializeAsync</c> explicitly migrates all
+///    databases using <c>Services.CreateAsyncScope()</c> — a scope guaranteed to use the
+///    <c>ConfigureTestServices</c> overrides with the correct Testcontainers addresses.
+///    <c>MigrateAsync()</c> is idempotent so this is a no-op when startup succeeded.
+///
+/// Use as xUnit <c>ICollectionFixture&lt;IntegrationTestFixture&gt;</c>.
 /// </summary>
 public sealed class IntegrationTestFixture : WebApplicationFactory<Program>, IAsyncLifetime
 {
@@ -157,6 +166,26 @@ public sealed class IntegrationTestFixture : WebApplicationFactory<Program>, IAs
         // Warm up: triggers ConfigureWebHost → Program.cs startup →
         // migrations and seeds — all against the Testcontainers SQL Server.
         _ = CreateClient();
+
+        // Explicit migration safety net.
+        // Program.cs wraps all of InitializeAsync in a single try/catch that
+        // swallows every exception and logs it.  If any DbContext's MigrateAsync()
+        // fails during startup (wrong connection string captured before the env-var
+        // override takes effect, or any other transient issue) the database simply
+        // won't exist and every test that opens a connection will fail with
+        // "Cannot open database".  Running MigrateAsync() here, after CreateClient()
+        // has already built the test host, guarantees that we use the DI container
+        // produced by ConfigureTestServices — which is unconditionally wired to the
+        // Testcontainers addresses stored in the _*Cs fields above.
+        // MigrateAsync() is idempotent: if the migration was already applied by
+        // startup it becomes a fast no-op.
+        await using var migrationScope = Services.CreateAsyncScope();
+        var msp = migrationScope.ServiceProvider;
+        await msp.GetRequiredService<PlatformDbContext>().Database.MigrateAsync();
+        await msp.GetRequiredService<TenantDbContext>().Database.MigrateAsync();
+        await msp.GetRequiredService<AnalyticsDbContext>().Database.MigrateAsync();
+        await msp.GetRequiredService<LogDbContext>().Database.MigrateAsync();
+        await msp.GetRequiredService<NotificationsDbContext>().Database.MigrateAsync();
     }
 
     async Task IAsyncLifetime.DisposeAsync()
