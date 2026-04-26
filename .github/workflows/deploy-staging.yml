@@ -112,11 +112,17 @@ jobs:
           ConnectionStrings__NotificationsDb=Server=localhost,1433;Database=ErpSaas_NotificationsDb;User Id=sa;Password=DBPASS;TrustServerCertificate=True
           Jwt__Secret=JWTSECRET
           Turnstile__SecretKey=TURNSTILEKEY
+          PRODUCT_OWNER_EMAIL=POMAIL
+          PRODUCT_OWNER_PASSWORD=POPASSWORD
+          PRODUCT_OWNER_NAME=PONAME
           ENVEOF
           # Replace placeholders with actual secret values (avoids heredoc expansion issues)
           sed -i "s|DBPASS|${{ secrets.DB_PASSWORD }}|g" ./api-publish/.env.staging
           sed -i "s|JWTSECRET|${{ secrets.JWT_SECRET }}|g" ./api-publish/.env.staging
           sed -i "s|TURNSTILEKEY|${{ secrets.TURNSTILE_SECRET_KEY }}|g" ./api-publish/.env.staging
+          sed -i "s|POMAIL|${{ secrets.PRODUCT_OWNER_EMAIL }}|g" ./api-publish/.env.staging
+          sed -i "s|POPASSWORD|${{ secrets.PRODUCT_OWNER_PASSWORD }}|g" ./api-publish/.env.staging
+          sed -i "s|PONAME|${{ secrets.PRODUCT_OWNER_NAME }}|g" ./api-publish/.env.staging
           # Strip leading whitespace from heredoc indentation
           sed -i 's/^[[:space:]]*//' ./api-publish/.env.staging
 
