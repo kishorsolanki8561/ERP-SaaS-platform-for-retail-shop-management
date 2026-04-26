@@ -108,7 +108,7 @@ jobs:
         run: |
           cat > ./api-publish/.env.staging <<'ENVEOF'
           ASPNETCORE_ENVIRONMENT=Staging
-          ASPNETCORE_URLS=http://0.0.0.0:5000
+          ASPNETCORE_URLS=http://0.0.0.0:5100
           ConnectionStrings__PlatformDb=Server=localhost,1433;Database=ErpSaas_PlatformDb;User Id=sa;Password=DBPASS;TrustServerCertificate=True
           ConnectionStrings__TenantDb=Server=localhost,1433;Database=ErpSaas_TenantDb;User Id=sa;Password=DBPASS;TrustServerCertificate=True
           ConnectionStrings__AnalyticsDb=Server=localhost,1433;Database=ErpSaas_AnalyticsDb;User Id=sa;Password=DBPASS;TrustServerCertificate=True
