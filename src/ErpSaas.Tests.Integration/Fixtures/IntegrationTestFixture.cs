@@ -3,7 +3,6 @@ using System.Security.Claims;
 using System.Text;
 using ErpSaas.Infrastructure.Data;
 using ErpSaas.Infrastructure.Seeds;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -102,25 +101,6 @@ public sealed class IntegrationTestFixture : IAsyncLifetime
                     services.AddDbContext<NotificationsDbContext>(opts =>
                         opts.UseSqlServer(Cs("ErpTest_Notifications"),
                             sql => sql.MigrationsAssembly(typeof(NotificationsDbContext).Assembly.FullName)));
-
-                    // JWT is configured at registration time from IConfiguration, so the CI
-                    // env-var Jwt__Secret is captured before ConfigureAppConfiguration overrides
-                    // apply. PostConfigure runs after all Configure calls and overwrites the key.
-                    services.PostConfigure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, opts =>
-                    {
-                        opts.TokenValidationParameters = new TokenValidationParameters
-                        {
-                            ValidateIssuer           = true,
-                            ValidIssuer              = TestIssuer,
-                            ValidateAudience         = true,
-                            ValidAudience            = TestAudience,
-                            ValidateIssuerSigningKey = true,
-                            IssuerSigningKey         = new SymmetricSecurityKey(
-                                                           Encoding.UTF8.GetBytes(TestJwtSecret)),
-                            ValidateLifetime         = true,
-                            ClockSkew                = TimeSpan.Zero,
-                        };
-                    });
                 });
             });
 
