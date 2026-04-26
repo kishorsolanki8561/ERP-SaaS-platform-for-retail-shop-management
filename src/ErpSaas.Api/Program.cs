@@ -32,6 +32,7 @@ try
 catch (Exception ex) when (ex is not HostAbortedException)
 {
     Log.Fatal(ex, "Application terminated unexpectedly");
+    Environment.Exit(1); // non-zero so systemd Restart=on-failure fires
 }
 finally
 {
