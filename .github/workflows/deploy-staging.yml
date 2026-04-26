@@ -109,11 +109,11 @@ jobs:
           cat > ./api-publish/.env.staging <<'ENVEOF'
           ASPNETCORE_ENVIRONMENT=Staging
           ASPNETCORE_URLS=http://0.0.0.0:5100
-          ConnectionStrings__PlatformDb=Server=localhost,1433;Database=ErpSaas_PlatformDb;User Id=sa;Password=DBPASS;TrustServerCertificate=True
-          ConnectionStrings__TenantDb=Server=localhost,1433;Database=ErpSaas_TenantDb;User Id=sa;Password=DBPASS;TrustServerCertificate=True
-          ConnectionStrings__AnalyticsDb=Server=localhost,1433;Database=ErpSaas_AnalyticsDb;User Id=sa;Password=DBPASS;TrustServerCertificate=True
-          ConnectionStrings__LogDb=Server=localhost,1433;Database=ErpSaas_LogDb;User Id=sa;Password=DBPASS;TrustServerCertificate=True
-          ConnectionStrings__NotificationsDb=Server=localhost,1433;Database=ErpSaas_NotificationsDb;User Id=sa;Password=DBPASS;TrustServerCertificate=True
+          ConnectionStrings__PlatformDb=Server=DBHOST,DBPORT;Database=ErpSaas_PlatformDb;User Id=DBUSER;Password=DBPASS;TrustServerCertificate=True;MultipleActiveResultSets=True
+          ConnectionStrings__TenantDb=Server=DBHOST,DBPORT;Database=ErpSaas_TenantDb;User Id=DBUSER;Password=DBPASS;TrustServerCertificate=True;MultipleActiveResultSets=True
+          ConnectionStrings__AnalyticsDb=Server=DBHOST,DBPORT;Database=ErpSaas_AnalyticsDb;User Id=DBUSER;Password=DBPASS;TrustServerCertificate=True;MultipleActiveResultSets=True
+          ConnectionStrings__LogDb=Server=DBHOST,DBPORT;Database=ErpSaas_LogDb;User Id=DBUSER;Password=DBPASS;TrustServerCertificate=True;MultipleActiveResultSets=True
+          ConnectionStrings__NotificationsDb=Server=DBHOST,DBPORT;Database=ErpSaas_NotificationsDb;User Id=DBUSER;Password=DBPASS;TrustServerCertificate=True;MultipleActiveResultSets=True
           Jwt__Secret=JWTSECRET
           Turnstile__SecretKey=TURNSTILEKEY
           PRODUCT_OWNER_EMAIL=POMAIL
@@ -123,6 +123,9 @@ jobs:
           Cors__AllowedOrigins__1=https://erp-portal-staging.preptm.com
           ENVEOF
           # Replace placeholders with actual secret values (avoids heredoc expansion issues)
+          sed -i "s|DBHOST|${{ secrets.DB_HOST }}|g"     ./api-publish/.env.staging
+          sed -i "s|DBPORT|${{ secrets.DB_PORT }}|g"     ./api-publish/.env.staging
+          sed -i "s|DBUSER|${{ secrets.DB_USER }}|g"     ./api-publish/.env.staging
           sed -i "s|DBPASS|${{ secrets.DB_PASSWORD }}|g" ./api-publish/.env.staging
           sed -i "s|JWTSECRET|${{ secrets.JWT_SECRET }}|g" ./api-publish/.env.staging
           sed -i "s|TURNSTILEKEY|${{ secrets.TURNSTILE_SECRET_KEY }}|g" ./api-publish/.env.staging
