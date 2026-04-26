@@ -14,7 +14,7 @@ test.describe('Authentication', () => {
 
     await page.locator('input[type="text"]').first().fill(ADMIN_EMAIL);
     await page.locator('input[type="password"]').fill(ADMIN_PASSWORD);
-    await page.locator('button[type="submit"]').click();
+    await page.locator('[data-testid="login-submit"]').click();
 
     await expect(page).toHaveURL(/dashboard/, { timeout: 15_000 });
   });
@@ -24,7 +24,7 @@ test.describe('Authentication', () => {
 
     await page.locator('input[type="text"]').first().fill(ADMIN_EMAIL);
     await page.locator('input[type="password"]').fill('wrong-password-xyz!');
-    await page.locator('button[type="submit"]').click();
+    await page.locator('[data-testid="login-submit"]').click();
 
     // Should stay on login page and show an error
     await expect(page).not.toHaveURL(/dashboard/, { timeout: 8_000 });

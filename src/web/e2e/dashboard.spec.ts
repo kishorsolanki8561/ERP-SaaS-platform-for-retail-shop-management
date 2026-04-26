@@ -7,7 +7,7 @@ async function loginAs(page: import('@playwright/test').Page): Promise<void> {
   await page.goto('/login');
   await page.locator('input[type="text"]').first().fill(ADMIN_EMAIL);
   await page.locator('input[type="password"]').fill(ADMIN_PASSWORD);
-  await page.locator('button[type="submit"]').click();
+  await page.locator('[data-testid="login-submit"]').click();
   await page.waitForURL(/dashboard/, { timeout: 15_000 });
 }
 

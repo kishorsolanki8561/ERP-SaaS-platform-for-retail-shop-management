@@ -14,6 +14,7 @@ import { AppRoutes } from '../../../shared/messages/app-routes';
   selector: 'app-forgot-password',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { class: 'block' },
   imports: [CommonModule, FormsModule, RouterLink, InputTextModule, ButtonModule],
   template: `
     @if (!sent()) {

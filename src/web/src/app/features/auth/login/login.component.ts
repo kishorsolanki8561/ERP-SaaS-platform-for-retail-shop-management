@@ -11,6 +11,7 @@ import { AppRoutePaths, AppRoutes } from '../../../shared/messages/app-routes';
   selector: 'app-login',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { class: 'block' },
   imports: [ReactiveFormsModule, RouterLink],
   template: `
     <div class="mb-7">
@@ -92,6 +93,7 @@ import { AppRoutePaths, AppRoutes } from '../../../shared/messages/app-routes';
 
       <button
         type="submit"
+        data-testid="login-submit"
         [disabled]="loading()"
         class="w-full h-12 rounded-xl text-white font-semibold text-sm mt-1
                flex items-center justify-center gap-2 transition-all duration-200

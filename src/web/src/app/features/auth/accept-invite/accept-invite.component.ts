@@ -16,6 +16,7 @@ interface AcceptResponse { accessToken: string; refreshToken: string; expiresAtU
   selector: 'app-accept-invite',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { class: 'block' },
   imports: [CommonModule, FormsModule, RouterLink, InputTextModule, ButtonModule],
   template: `
     <div class="mb-8">
