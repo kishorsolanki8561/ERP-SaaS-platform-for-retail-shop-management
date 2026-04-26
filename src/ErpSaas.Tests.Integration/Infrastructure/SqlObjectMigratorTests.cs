@@ -14,9 +14,9 @@ namespace ErpSaas.Tests.Integration.Infrastructure;
 /// no exceptions on the second run.
 /// Phase exit-gate: universal check #7 / <c>SqlObjectMigratorTests</c>.
 /// </summary>
+[Collection("Integration")]
 [Trait("Category", "Integration")]
 public sealed class SqlObjectMigratorTests(IntegrationTestFixture fixture)
-    : IClassFixture<IntegrationTestFixture>
 {
     [Fact]
     public async Task DeployAsync_CalledTwice_VersionTableRowCountIsIdentical()

@@ -13,10 +13,10 @@ namespace ErpSaas.Tests.Integration.Infrastructure;
 /// identical row counts — no duplicate inserts, no errors on second run.
 /// Phase exit-gate: P1-8.
 /// </summary>
+[Collection("Integration")]
 [Trait("Category", "Integration")]
 [Trait("Category", "Seeder")]
 public sealed class SeederIdempotencyTests(IntegrationTestFixture fixture)
-    : IClassFixture<IntegrationTestFixture>
 {
     [Fact]
     public async Task SeedAllAsync_CalledTwice_RowCountsIdentical()

@@ -15,10 +15,10 @@ namespace ErpSaas.Tests.Integration.Infrastructure;
 ///
 /// Phase exit-gate: universal check #10 / <c>PerformanceBaselineTests</c>.
 /// </summary>
+[Collection("Integration")]
 [Trait("Category", "Integration")]
 [Trait("Category", "Performance")]
 public sealed class PerformanceBaselineTests(IntegrationTestFixture fixture)
-    : IClassFixture<IntegrationTestFixture>
 {
     private const int WarmUpRuns = 3;
     private const int MeasureRuns = 20;
