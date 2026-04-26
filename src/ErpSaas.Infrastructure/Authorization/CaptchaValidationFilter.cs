@@ -53,8 +53,12 @@ public sealed class CaptchaValidationFilter(
             return;
         }
 
-        var token = context.HttpContext.Request.Headers["cf-turnstile-response"].FirstOrDefault()
-            ?? context.HttpContext.Request.Form["cf-turnstile-response"].FirstOrDefault();
+        // Check header first (works for JSON API calls).
+        // Only fall back to form field if the request actually has a form body —
+        // calling .Form on a JSON request throws InvalidOperationException.
+        var token = context.HttpContext.Request.Headers["cf-turnstile-response"].FirstOrDefault();
+        if (string.IsNullOrWhiteSpace(token) && context.HttpContext.Request.HasFormContentType)
+            token = context.HttpContext.Request.Form["cf-turnstile-response"].FirstOrDefault();
 
         if (string.IsNullOrWhiteSpace(token))
         {
