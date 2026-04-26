@@ -65,26 +65,33 @@ public sealed class SeederIdempotencyTests(IntegrationTestFixture fixture)
     private static async Task<Dictionary<string, int>> GetKeyRowCountsAsync(IServiceProvider sp)
     {
         var platformDb = sp.GetRequiredService<PlatformDbContext>();
+        var tenantDb   = sp.GetRequiredService<TenantDbContext>();
         var notifDb    = sp.GetRequiredService<NotificationsDbContext>();
 
         // Open fresh connections from the connection string rather than reusing the
         // EF context's internal connection object, which may be in an unexpected state.
         await using var platformConn = new Microsoft.Data.SqlClient.SqlConnection(
             platformDb.Database.GetConnectionString());
+        await using var tenantConn = new Microsoft.Data.SqlClient.SqlConnection(
+            tenantDb.Database.GetConnectionString());
         await using var notifConn = new Microsoft.Data.SqlClient.SqlConnection(
             notifDb.Database.GetConnectionString());
 
         await platformConn.OpenAsync();
+        await tenantConn.OpenAsync();
         await notifConn.OpenAsync();
 
         return new Dictionary<string, int>
         {
+            // DdlCatalog lives in PlatformDb → masters schema
             ["DdlCatalog"] = await platformConn.ExecuteScalarAsync<int>(
                 "SELECT COUNT(*) FROM [masters].[DdlCatalog]"),
-            ["SequenceDefinition"] = await platformConn.ExecuteScalarAsync<int>(
-                "SELECT COUNT(*) FROM [masters].[SequenceDefinition]"),
+            // SequenceDefinition lives in TenantDb → sequence schema (not PlatformDb/masters)
+            ["SequenceDefinition"] = await tenantConn.ExecuteScalarAsync<int>(
+                "SELECT COUNT(*) FROM [sequence].[SequenceDefinition]"),
+            // NotificationTemplate lives in NotificationsDb → notifications schema (not messaging)
             ["NotificationTemplate"] = await notifConn.ExecuteScalarAsync<int>(
-                "SELECT COUNT(*) FROM [messaging].[NotificationTemplate]"),
+                "SELECT COUNT(*) FROM [notifications].[NotificationTemplate]"),
         };
     }
 }
