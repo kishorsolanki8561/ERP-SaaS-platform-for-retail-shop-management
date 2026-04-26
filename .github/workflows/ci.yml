@@ -67,26 +67,31 @@ jobs:
             --project src/ErpSaas.Infrastructure \
             --startup-project src/ErpSaas.Api \
             --context PlatformDbContext \
+            --configuration Release \
             --no-build
           dotnet ef migrations has-pending-model-changes \
             --project src/ErpSaas.Infrastructure \
             --startup-project src/ErpSaas.Api \
             --context TenantDbContext \
+            --configuration Release \
             --no-build
           dotnet ef migrations has-pending-model-changes \
             --project src/ErpSaas.Infrastructure \
             --startup-project src/ErpSaas.Api \
             --context AnalyticsDbContext \
+            --configuration Release \
             --no-build
           dotnet ef migrations has-pending-model-changes \
             --project src/ErpSaas.Infrastructure \
             --startup-project src/ErpSaas.Api \
             --context LogDbContext \
+            --configuration Release \
             --no-build
           dotnet ef migrations has-pending-model-changes \
             --project src/ErpSaas.Infrastructure \
             --startup-project src/ErpSaas.Api \
             --context NotificationsDbContext \
+            --configuration Release \
             --no-build
 
       - name: Unit tests
