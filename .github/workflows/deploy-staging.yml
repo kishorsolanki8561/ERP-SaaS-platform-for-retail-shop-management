@@ -154,6 +154,9 @@ jobs:
           ssh ${{ env.VPS_USER }}@${{ env.VPS_HOST }} bash << 'REMOTE'
           set -euo pipefail
           sudo systemctl stop erp-staging || true
+          # Kill any stale process still holding port 5100 (can happen when
+          # the previous process exited with code 0 and systemd lost track of it)
+          sudo fuser -k 5100/tcp 2>/dev/null || true
           sudo rm -rf /opt/erp-staging/api/*
           sudo cp -r /tmp/erp-staging-api-deploy/. /opt/erp-staging/api/
           sudo chown -R erp-staging:erp-staging /opt/erp-staging/api
