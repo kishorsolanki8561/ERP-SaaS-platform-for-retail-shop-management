@@ -43,6 +43,16 @@ public sealed class CaptchaValidationFilter(
             return;
         }
 
+        // No secret configured — skip validation rather than blocking all requests.
+        // This allows staging/prod to run without CAPTCHA until a Turnstile key is provisioned.
+        var secretKey = configuration["Turnstile:SecretKey"];
+        if (string.IsNullOrWhiteSpace(secretKey))
+        {
+            logger.LogWarning("Turnstile:SecretKey is not configured; skipping CAPTCHA validation");
+            await next();
+            return;
+        }
+
         var token = context.HttpContext.Request.Headers["cf-turnstile-response"].FirstOrDefault()
             ?? context.HttpContext.Request.Form["cf-turnstile-response"].FirstOrDefault();
 
@@ -53,16 +63,6 @@ public sealed class CaptchaValidationFilter(
             {
                 StatusCode = 400
             };
-            return;
-        }
-
-        var secretKey = configuration["Turnstile:SecretKey"];
-        if (string.IsNullOrWhiteSpace(secretKey))
-        {
-            // No secret configured — skip validation rather than blocking all requests.
-            // Log a warning so the ops team knows to configure the key.
-            logger.LogWarning("Turnstile:SecretKey is not configured; skipping CAPTCHA validation");
-            await next();
             return;
         }
 
