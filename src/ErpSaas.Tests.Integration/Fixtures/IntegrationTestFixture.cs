@@ -142,6 +142,18 @@ public sealed class IntegrationTestFixture : WebApplicationFactory<Program>, IAs
         _logCs       = Cs("ErpTest_Log");
         _notifsCs    = Cs("ErpTest_Notifications");
 
+        // Inject as environment variables BEFORE CreateClient() triggers the test host build.
+        // ASP.NET Core reads env vars with __ as the hierarchy separator, so
+        // ConnectionStrings__TenantDb maps to ConnectionStrings:TenantDb in IConfiguration.
+        // This beats appsettings.json at the config source level — no DI patching required —
+        // and guarantees that the AddDbContext<TenantDbContext> lambda inside AddInfrastructure
+        // receives the Testcontainers address when the options factory is first invoked.
+        Environment.SetEnvironmentVariable("ConnectionStrings__PlatformDb",      _platformCs);
+        Environment.SetEnvironmentVariable("ConnectionStrings__TenantDb",        _tenantCs);
+        Environment.SetEnvironmentVariable("ConnectionStrings__AnalyticsDb",     _analyticsCs);
+        Environment.SetEnvironmentVariable("ConnectionStrings__LogDb",           _logCs);
+        Environment.SetEnvironmentVariable("ConnectionStrings__NotificationsDb", _notifsCs);
+
         // Warm up: triggers ConfigureWebHost → Program.cs startup →
         // migrations and seeds — all against the Testcontainers SQL Server.
         _ = CreateClient();
@@ -154,6 +166,17 @@ public sealed class IntegrationTestFixture : WebApplicationFactory<Program>, IAs
         // IDisposable.Dispose() call after this is safe.
         Dispose();
         await _container.DisposeAsync();
+
+        // Remove env vars so they do not leak into any subsequent test process.
+        foreach (var key in new[]
+        {
+            "ConnectionStrings__PlatformDb",
+            "ConnectionStrings__TenantDb",
+            "ConnectionStrings__AnalyticsDb",
+            "ConnectionStrings__LogDb",
+            "ConnectionStrings__NotificationsDb",
+        })
+            Environment.SetEnvironmentVariable(key, null);
     }
 
     // ── Public helpers used by test classes ───────────────────────────────────

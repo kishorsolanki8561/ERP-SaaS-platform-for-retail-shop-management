@@ -16,11 +16,13 @@ jobs:
     runs-on: ubuntu-latest
 
     # No SQL Server service container here — integration tests use Testcontainers
-    # which spins up its own isolated container. Running two SQL Server instances
-    # on a 7 GB runner caused resource contention and intermittent connection failures.
-    # JWT + connection-string config is supplied by appsettings.Testing.json
-    # (loaded when UseEnvironment("Testing") is set in IntegrationTestFixture),
-    # so no env-var overrides are needed or wanted here.
+    # which spins up its own isolated container per collection fixture. Running two
+    # SQL Server instances on a 7 GB runner caused resource contention and connection
+    # failures — ICollectionFixture keeps it to one container.
+    # IntegrationTestFixture.InitializeAsync() sets ConnectionStrings__* env vars
+    # BEFORE CreateClient() fires, so AddDbContext lambdas see the Testcontainers
+    # address at the IConfiguration level (env vars beat appsettings.json).
+    # JWT settings are in appsettings.Testing.json (loaded via UseEnvironment("Testing")).
 
     steps:
       - uses: actions/checkout@v4
