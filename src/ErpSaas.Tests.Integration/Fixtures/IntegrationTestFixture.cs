@@ -92,15 +92,32 @@ public sealed class IntegrationTestFixture : WebApplicationFactory<Program>, IAs
             $"Server={host},{port};Database={db};User Id=sa;Password={pass};" +
             "TrustServerCertificate=True;MultipleActiveResultSets=True";
 
-        // Populate before CreateClient() so ConfigureWebHost sees valid addresses.
         _platformCs  = Cs("ErpTest_Platform");
         _tenantCs    = Cs("ErpTest_Tenant");
         _analyticsCs = Cs("ErpTest_Analytics");
         _logCs       = Cs("ErpTest_Log");
         _notifsCs    = Cs("ErpTest_Notifications");
 
-        // Warm up: triggers ConfigureWebHost, then Program.cs startup,
-        // migrations, and seeds — all against the Testcontainers SQL Server.
+        // For minimal-API apps, WebApplication.CreateBuilder(args) reads IConfiguration
+        // from the real process environment BEFORE ConfigureWebHost/ConfigureTestServices
+        // can run. Setting env vars here — before CreateClient() — ensures:
+        //   (a) appsettings.Testing.json is loaded (ASPNETCORE_ENVIRONMENT)
+        //   (b) AddInfrastructure's configuration.GetConnectionString() lambdas see
+        //       the Testcontainers strings instead of the appsettings.json localhost ones
+        //   (c) AddIdentityModule reads the test JWT secret/issuer/audience
+        // ConfigureTestServices below is kept as defence-in-depth for the DbContextOptions.
+        Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT",             "Testing");
+        Environment.SetEnvironmentVariable("ConnectionStrings__PlatformDb",      _platformCs);
+        Environment.SetEnvironmentVariable("ConnectionStrings__TenantDb",        _tenantCs);
+        Environment.SetEnvironmentVariable("ConnectionStrings__AnalyticsDb",     _analyticsCs);
+        Environment.SetEnvironmentVariable("ConnectionStrings__LogDb",           _logCs);
+        Environment.SetEnvironmentVariable("ConnectionStrings__NotificationsDb", _notifsCs);
+        Environment.SetEnvironmentVariable("Jwt__Secret",   TestJwtSecret);
+        Environment.SetEnvironmentVariable("Jwt__Issuer",   TestIssuer);
+        Environment.SetEnvironmentVariable("Jwt__Audience", TestAudience);
+
+        // Warm up: triggers ConfigureWebHost → Program.cs startup →
+        // migrations and seeds — all against the Testcontainers SQL Server.
         _ = CreateClient();
     }
 
