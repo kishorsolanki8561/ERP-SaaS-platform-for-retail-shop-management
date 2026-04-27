@@ -35,9 +35,12 @@ public sealed class CaptchaValidationFilter(
             return;
         }
 
-        // Bypass in Development unless explicitly forced
-        if (environment.IsDevelopment() &&
-            !configuration.GetValue<bool>("Turnstile:AlwaysValidate"))
+        // Bypass in Development and Staging unless explicitly forced.
+        // Staging runs with real secrets but the Turnstile widget is not yet
+        // integrated into the Angular app. Set Turnstile:AlwaysValidate=true
+        // to force real validation in any environment (e.g. when testing the widget).
+        var isNonProd = environment.IsDevelopment() || environment.IsStaging();
+        if (isNonProd && !configuration.GetValue<bool>("Turnstile:AlwaysValidate"))
         {
             await next();
             return;
