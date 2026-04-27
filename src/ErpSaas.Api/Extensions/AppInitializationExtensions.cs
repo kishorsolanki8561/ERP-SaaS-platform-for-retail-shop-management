@@ -28,7 +28,9 @@ public static class AppInitializationExtensions
             await MigrateContextAsync(sp.GetRequiredService<TenantDbContext>(),        "TenantDb",         logger);
             await MigrateContextAsync(sp.GetRequiredService<AnalyticsDbContext>(),     "AnalyticsDb",      logger);
             await MigrateContextAsync(sp.GetRequiredService<LogDbContext>(),           "LogDb",            logger);
-            await MigrateContextAsync(sp.GetRequiredService<NotificationsDbContext>(), "NotificationsDb",  logger);
+            await MigrateContextAsync(sp.GetRequiredService<NotificationsDbContext>(),     "NotificationsDb",      logger);
+            await MigrateContextAsync(sp.GetRequiredService<MarketplaceEventsDbContext>(), "MarketplaceEventsDb",  logger);
+            await MigrateContextAsync(sp.GetRequiredService<SyncDbContext>(),              "SyncDb",               logger);
 
             await sp.GetRequiredService<ISqlObjectMigrator>().DeployAsync();
 

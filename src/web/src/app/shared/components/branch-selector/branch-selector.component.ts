@@ -34,7 +34,7 @@ import { BranchStore } from '../../../core/branch/branch.store';
           <div class="flex items-center gap-1.5 text-sm">
             <i class="pi pi-building text-xs text-slate-500"></i>
             <span class="text-slate-700 dark:text-slate-300 font-medium">
-              {{ store.activeBranch()?.name ?? 'Select branch' }}
+              {{ store.activeBranch()!.name }}
             </span>
           </div>
         </ng-template>

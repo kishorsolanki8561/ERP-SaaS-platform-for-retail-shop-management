@@ -57,6 +57,16 @@ public static class InfrastructureServiceExtensions
                 configuration.GetConnectionString("NotificationsDb"),
                 sql => sql.MigrationsAssembly(typeof(NotificationsDbContext).Assembly.FullName)));
 
+        services.AddDbContext<MarketplaceEventsDbContext>(opts =>
+            opts.UseSqlServer(
+                configuration.GetConnectionString("MarketplaceEventsDb"),
+                sql => sql.MigrationsAssembly(typeof(MarketplaceEventsDbContext).Assembly.FullName)));
+
+        services.AddDbContext<SyncDbContext>(opts =>
+            opts.UseSqlServer(
+                configuration.GetConnectionString("SyncDb"),
+                sql => sql.MigrationsAssembly(typeof(SyncDbContext).Assembly.FullName)));
+
         // ── File storage ───────────────────────────────────────────────────────
         var useAzure = !string.IsNullOrEmpty(configuration.GetConnectionString("AzureStorage"));
         if (useAzure)

@@ -25,6 +25,13 @@ try
     var app = builder.Build();
 
     await app.InitializeAsync();
+
+    if (args.Contains("--seed-and-exit"))
+    {
+        Log.Information("Seed-and-exit: all migrations and seeds complete — shutting down");
+        return;
+    }
+
     app.UseErpPipeline();
 
     await app.RunAsync();
