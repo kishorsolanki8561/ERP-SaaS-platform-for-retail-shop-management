@@ -14,8 +14,13 @@ import { BranchStore } from '../../../core/branch/branch.store';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, DropdownModule, FormsModule],
   template: `
-    @if (store.branches().length > 1) {
+    @if (!store.loaded()) {
+      <div data-testid="branch-selector"
+           class="w-32 h-8 rounded-lg bg-slate-200 dark:bg-slate-700 animate-pulse">
+      </div>
+    } @else if (store.branches().length > 1) {
       <p-dropdown
+        data-testid="branch-selector"
         [options]="store.branches()"
         [ngModel]="store.activeBranchId()"
         (ngModelChange)="store.setActive($event)"
@@ -43,11 +48,18 @@ import { BranchStore } from '../../../core/branch/branch.store';
         </ng-template>
       </p-dropdown>
     } @else if (store.branches().length === 1) {
-      <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-sm">
+      <div data-testid="branch-selector"
+           class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-sm">
         <i class="pi pi-building text-xs text-slate-500"></i>
         <span class="text-slate-700 dark:text-slate-300 font-medium">
           {{ store.branches()[0].name }}
         </span>
+      </div>
+    } @else {
+      <div data-testid="branch-selector"
+           class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-sm text-slate-500">
+        <i class="pi pi-building text-xs"></i>
+        <span>No branch</span>
       </div>
     }
   `,

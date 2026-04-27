@@ -18,6 +18,7 @@ export class BranchStore {
   private readonly http = inject(HttpClient);
 
   readonly branches = signal<BranchItem[]>([]);
+  readonly loaded = signal(false);
   readonly activeBranchId = signal<number | null>(
     Number(localStorage.getItem(STORAGE_KEY)) || null
   );
@@ -30,13 +31,16 @@ export class BranchStore {
   load(): void {
     this.http
       .get<BranchItem[]>(ApiEndpoints.admin.branches)
-      .subscribe(list => {
-        this.branches.set(list.filter(b => b.isActive));
-        // If stored selection is gone (deactivated), clear it
-        const id = this.activeBranchId();
-        if (id && !list.some(b => b.id === id && b.isActive)) {
-          this.setActive(null);
-        }
+      .subscribe({
+        next: list => {
+          this.branches.set(list.filter(b => b.isActive));
+          const id = this.activeBranchId();
+          if (id && !list.some(b => b.id === id && b.isActive)) {
+            this.setActive(null);
+          }
+          this.loaded.set(true);
+        },
+        error: () => this.loaded.set(true),
       });
   }
 
