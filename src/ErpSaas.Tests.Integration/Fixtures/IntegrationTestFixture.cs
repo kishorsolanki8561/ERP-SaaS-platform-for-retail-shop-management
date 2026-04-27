@@ -59,11 +59,13 @@ public sealed class IntegrationTestFixture : WebApplicationFactory<Program>, IAs
     private const string TestAudience  = "test-audience";
 
     // Set in InitializeAsync before CreateClient() triggers ConfigureWebHost
-    private string _platformCs  = null!;
-    private string _tenantCs    = null!;
-    private string _analyticsCs = null!;
-    private string _logCs       = null!;
-    private string _notifsCs    = null!;
+    private string _platformCs    = null!;
+    private string _tenantCs      = null!;
+    private string _analyticsCs   = null!;
+    private string _logCs         = null!;
+    private string _notifsCs      = null!;
+    private string _marketplaceCs = null!;
+    private string _syncCs        = null!;
 
     // ── WebApplicationFactory override ────────────────────────────────────────
 
@@ -80,11 +82,13 @@ public sealed class IntegrationTestFixture : WebApplicationFactory<Program>, IAs
         {
             config.AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["ConnectionStrings:PlatformDb"]     = _platformCs,
-                ["ConnectionStrings:TenantDb"]       = _tenantCs,
-                ["ConnectionStrings:AnalyticsDb"]    = _analyticsCs,
-                ["ConnectionStrings:LogDb"]          = _logCs,
-                ["ConnectionStrings:NotificationsDb"] = _notifsCs,
+                ["ConnectionStrings:PlatformDb"]          = _platformCs,
+                ["ConnectionStrings:TenantDb"]            = _tenantCs,
+                ["ConnectionStrings:AnalyticsDb"]         = _analyticsCs,
+                ["ConnectionStrings:LogDb"]               = _logCs,
+                ["ConnectionStrings:NotificationsDb"]     = _notifsCs,
+                ["ConnectionStrings:MarketplaceEventsDb"] = _marketplaceCs,
+                ["ConnectionStrings:SyncDb"]              = _syncCs,
             });
         });
 
@@ -98,6 +102,8 @@ public sealed class IntegrationTestFixture : WebApplicationFactory<Program>, IAs
             services.RemoveAll<DbContextOptions<AnalyticsDbContext>>();
             services.RemoveAll<DbContextOptions<LogDbContext>>();
             services.RemoveAll<DbContextOptions<NotificationsDbContext>>();
+            services.RemoveAll<DbContextOptions<MarketplaceEventsDbContext>>();
+            services.RemoveAll<DbContextOptions<SyncDbContext>>();
 
             services.AddDbContext<PlatformDbContext>(opts =>
                 opts.UseSqlServer(_platformCs,
@@ -114,6 +120,12 @@ public sealed class IntegrationTestFixture : WebApplicationFactory<Program>, IAs
             services.AddDbContext<NotificationsDbContext>(opts =>
                 opts.UseSqlServer(_notifsCs,
                     sql => sql.MigrationsAssembly(typeof(NotificationsDbContext).Assembly.FullName)));
+            services.AddDbContext<MarketplaceEventsDbContext>(opts =>
+                opts.UseSqlServer(_marketplaceCs,
+                    sql => sql.MigrationsAssembly(typeof(MarketplaceEventsDbContext).Assembly.FullName)));
+            services.AddDbContext<SyncDbContext>(opts =>
+                opts.UseSqlServer(_syncCs,
+                    sql => sql.MigrationsAssembly(typeof(SyncDbContext).Assembly.FullName)));
 
             // Fix JWT: AddIdentityModule captures Jwt:Secret/Issuer/Audience as local variables
             // at service-registration time, before ConfigureAppConfiguration overrides are
@@ -145,11 +157,13 @@ public sealed class IntegrationTestFixture : WebApplicationFactory<Program>, IAs
             "TrustServerCertificate=True;MultipleActiveResultSets=True";
 
         // Populate before CreateClient() so ConfigureWebHost closes over valid addresses.
-        _platformCs  = Cs("ErpTest_Platform");
-        _tenantCs    = Cs("ErpTest_Tenant");
-        _analyticsCs = Cs("ErpTest_Analytics");
-        _logCs       = Cs("ErpTest_Log");
-        _notifsCs    = Cs("ErpTest_Notifications");
+        _platformCs    = Cs("ErpTest_Platform");
+        _tenantCs      = Cs("ErpTest_Tenant");
+        _analyticsCs   = Cs("ErpTest_Analytics");
+        _logCs         = Cs("ErpTest_Log");
+        _notifsCs      = Cs("ErpTest_Notifications");
+        _marketplaceCs = Cs("ErpTest_MarketplaceEvents");
+        _syncCs        = Cs("ErpTest_Sync");
 
         // Inject as environment variables BEFORE CreateClient() triggers the test host build.
         // ASP.NET Core reads env vars with __ as the hierarchy separator, so
@@ -157,11 +171,13 @@ public sealed class IntegrationTestFixture : WebApplicationFactory<Program>, IAs
         // This beats appsettings.json at the config source level — no DI patching required —
         // and guarantees that the AddDbContext<TenantDbContext> lambda inside AddInfrastructure
         // receives the Testcontainers address when the options factory is first invoked.
-        Environment.SetEnvironmentVariable("ConnectionStrings__PlatformDb",      _platformCs);
-        Environment.SetEnvironmentVariable("ConnectionStrings__TenantDb",        _tenantCs);
-        Environment.SetEnvironmentVariable("ConnectionStrings__AnalyticsDb",     _analyticsCs);
-        Environment.SetEnvironmentVariable("ConnectionStrings__LogDb",           _logCs);
-        Environment.SetEnvironmentVariable("ConnectionStrings__NotificationsDb", _notifsCs);
+        Environment.SetEnvironmentVariable("ConnectionStrings__PlatformDb",          _platformCs);
+        Environment.SetEnvironmentVariable("ConnectionStrings__TenantDb",            _tenantCs);
+        Environment.SetEnvironmentVariable("ConnectionStrings__AnalyticsDb",         _analyticsCs);
+        Environment.SetEnvironmentVariable("ConnectionStrings__LogDb",               _logCs);
+        Environment.SetEnvironmentVariable("ConnectionStrings__NotificationsDb",     _notifsCs);
+        Environment.SetEnvironmentVariable("ConnectionStrings__MarketplaceEventsDb", _marketplaceCs);
+        Environment.SetEnvironmentVariable("ConnectionStrings__SyncDb",              _syncCs);
 
         // Warm up: triggers ConfigureWebHost → Program.cs startup →
         // migrations and seeds — all against the Testcontainers SQL Server.
@@ -186,6 +202,8 @@ public sealed class IntegrationTestFixture : WebApplicationFactory<Program>, IAs
         await msp.GetRequiredService<AnalyticsDbContext>().Database.MigrateAsync();
         await msp.GetRequiredService<LogDbContext>().Database.MigrateAsync();
         await msp.GetRequiredService<NotificationsDbContext>().Database.MigrateAsync();
+        await msp.GetRequiredService<MarketplaceEventsDbContext>().Database.MigrateAsync();
+        await msp.GetRequiredService<SyncDbContext>().Database.MigrateAsync();
     }
 
     async Task IAsyncLifetime.DisposeAsync()
@@ -204,6 +222,8 @@ public sealed class IntegrationTestFixture : WebApplicationFactory<Program>, IAs
             "ConnectionStrings__AnalyticsDb",
             "ConnectionStrings__LogDb",
             "ConnectionStrings__NotificationsDb",
+            "ConnectionStrings__MarketplaceEventsDb",
+            "ConnectionStrings__SyncDb",
         })
             Environment.SetEnvironmentVariable(key, null);
     }
