@@ -277,7 +277,7 @@ dotnet test --filter Category=Architecture
 > **Update this section at the end of every session.** It's the one piece of state that survives between sessions.
 
 - [x] **Phase 0 — Foundation** — ✅ DONE (2026-04-24)
-- [x] **Phase 1 — Core Retail Loop** — ✅ DONE (2026-04-25) ← just closed
+- [x] **Phase 1 — Core Retail Loop** — ✅ DONE (2026-04-28) ← gate-checked with Docker
 - [ ] **Phase 2 — Financial Core** ← current
 - [ ] **Phase 3 — Operations**
 - [ ] **Phase 4 — HR + Marketplace**
@@ -286,19 +286,21 @@ dotnet test --filter Category=Architecture
 - [ ] **Phase 7 — Vertical Packs**
 
 **Current sprint:** Phase 2 — Week 1: Chart of Accounts + Journal Entry skeleton (accounting schema) + Purchase Orders (purchasing schema)
-**Blockers:** Staging deployment + full Testcontainers integration test suite (integration stubs are in place, need IntegrationTestFixture Testcontainers wiring) + Cloudflare Turnstile CAPTCHA
-**Phase 1 delivered (2026-04-25):**
+**Blockers:** Staging deployment + Cloudflare Turnstile CAPTCHA + 151 integration test stubs need real implementations (Billing/Inventory/CRM/Identity/Shift controller + isolation + subscription gate tests)
+**Phase 1 delivered (2026-04-28, gate-checked):**
 - Identity: Branch CRUD + branch-selector UI + BranchStore + X-Branch-Id header; Role management API + Angular page
 - Inventory: Product entity, Warehouse, StockLevel, StockMovement, barcode field
 - CRM: Customer + CustomerGroup entities, CRUD API, Angular page
 - Billing: Invoice state machine (Draft→Finalized→Paid|Cancelled), split-tender PayInvoice, PaymentTerms/DueDate, InvoicePayment, IInvoicePdfGenerator (A4 + 80mm thermal, QuestPDF), IWalletDebit cross-module contract
 - Wallet: WalletBalance + WalletTransaction, credit/debit/debit-for-invoice, IWalletDebit interface, wallet credit SMS
-- Shift: Shift + ShiftCashMovement + ShiftDenominationCount, full CRUD, IShiftLookup, shift-close SMS
+- Shift: Shift + ShiftCashMovement + ShiftDenominationCount, full CRUD, IShiftLookup, shift-close SMS; decimal precisions fixed (HasPrecision(18,2) on all money fields)
 - Notifications: INVOICE_FINALIZED + WALLET_CREDITED + SHIFT_CLOSED templates seeded
 - Dashboard: /api/dashboard/summary with Paid status filter fix; Angular quick actions wired
 - Hardware: BarcodeListenerService + ThermalPrintService + CashDrawerService + HardwareController (POST /api/hardware/cash-drawer/pop) + PosTerminalComponent
-- Tests: 117 unit tests (Wallet/Shift/Masters/Identity), 49 arch tests all green; integration stubs in place
-**Next action:** `dotnet new classlib -n ErpSaas.Modules.Accounting` — scaffold Accounting module per `erp-scaffold-module` skill
+- UI: Full Tailwind revamp of all feature pages (DataTable typed columns, outer wrappers, p-card removed)
+- Tests: 126 unit + 25 integration + 49 arch all green; 151 integration stubs deferred to Phase 2 cleanup
+- Infra: SQL files CopyToOutputDirectory fixed; MarketplaceEventsDbContext + SyncDbContext added
+**Next action:** Implement 151 skipped integration tests OR scaffold Accounting module — see Phase 2 plan
 
 ---
 

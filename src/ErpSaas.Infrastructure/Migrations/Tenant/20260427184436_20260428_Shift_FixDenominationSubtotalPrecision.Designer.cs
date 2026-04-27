@@ -4,6 +4,7 @@ using ErpSaas.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ErpSaas.Infrastructure.Migrations.Tenant
 {
     [DbContext(typeof(TenantDbContext))]
-    partial class TenantDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260427184436_20260428_Shift_FixDenominationSubtotalPrecision")]
+    partial class _20260428_Shift_FixDenominationSubtotalPrecision
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1216,7 +1219,6 @@ namespace ErpSaas.Infrastructure.Migrations.Tenant
                         .HasColumnType("bigint");
 
                     b.Property<decimal?>("CashVariance")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("CashierNameSnapshot")
@@ -1235,7 +1237,6 @@ namespace ErpSaas.Infrastructure.Migrations.Tenant
                         .HasColumnType("datetime2");
 
                     b.Property<decimal?>("ClosingCashCounted")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("ClosingNotes")
@@ -1258,7 +1259,6 @@ namespace ErpSaas.Infrastructure.Migrations.Tenant
                         .HasColumnType("datetime2");
 
                     b.Property<decimal>("OpeningCash")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<byte[]>("RowVersion")
@@ -1274,31 +1274,24 @@ namespace ErpSaas.Infrastructure.Migrations.Tenant
                         .HasColumnType("nvarchar(20)");
 
                     b.Property<decimal?>("SystemComputedCash")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("TotalCardSales")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("TotalCashRefunds")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("TotalCashSales")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("TotalSales")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("TotalUpiSales")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("TotalWalletDebits")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("TransactionCount")
@@ -1326,7 +1319,6 @@ namespace ErpSaas.Infrastructure.Migrations.Tenant
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
                     b.Property<decimal>("Amount")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<long?>("AuthorizedByUserId")
