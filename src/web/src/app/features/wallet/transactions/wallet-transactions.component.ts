@@ -40,44 +40,46 @@ interface DebitForm {
     DdlDropdownComponent, HasPermissionDirective,
   ],
   template: `
-    <app-page-header
-      [title]="labels.wallet.transactionsTitle"
-      [subtitle]="customerId() ? 'Customer ID: ' + customerId() : labels.wallet.transactionsSubtitle"
-    />
+    <div class="p-6 space-y-6 max-w-7xl mx-auto">
+      <app-page-header
+        [title]="labels.wallet.transactionsTitle"
+        [subtitle]="customerId() ? 'Customer ID: ' + customerId() : labels.wallet.transactionsSubtitle"
+      />
 
-    @if (customerId()) {
-      <!-- Balance card -->
-      @if (balance() !== null) {
-        <div class="mb-6 p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200
-                    dark:border-slate-800 flex items-center gap-6">
-          <div>
-            <div class="text-xs text-slate-400 uppercase tracking-wide">
-              {{ labels.wallet.currentBalance }}
+      @if (customerId()) {
+        @if (balance() !== null) {
+          <div class="p-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200
+                      dark:border-slate-800 flex items-center gap-6">
+            <div>
+              <div class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">
+                {{ labels.wallet.currentBalance }}
+              </div>
+              <div class="text-3xl font-bold text-emerald-600 tabular-nums">
+                ₹{{ balance()! | number:'1.2-2' }}
+              </div>
             </div>
-            <div class="text-2xl font-bold text-emerald-600">
-              {{ balance()! | currency:'INR':'symbol':'1.2-2' }}
+            <div class="flex gap-2 ml-auto">
+              <ng-container *hasPermission="permissions.wallet.debit">
+                <p-button [label]="labels.wallet.debitWallet" icon="pi pi-minus-circle"
+                          severity="danger" [outlined]="true" size="small"
+                          (onClick)="debitVisible = true" />
+              </ng-container>
             </div>
           </div>
-          <div class="flex gap-2 ml-auto">
-            <ng-container *hasPermission="permissions.wallet.debit">
-              <p-button [label]="labels.wallet.debitWallet" icon="pi pi-minus-circle"
-                        severity="danger" [outlined]="true" size="small"
-                        (onClick)="debitVisible = true" />
-            </ng-container>
-          </div>
+        }
+
+        <app-data-table
+          [columns]="columns"
+          [apiUrl]="transactionsUrl()"
+          [searchable]="false"
+        />
+      } @else {
+        <div class="flex flex-col items-center justify-center py-24 gap-3 text-slate-400">
+          <i class="pi pi-wallet text-5xl opacity-30"></i>
+          <span class="text-sm">Open from the Customer Balances page to see transactions.</span>
         </div>
       }
-
-      <app-data-table
-        [columns]="columns"
-        [apiUrl]="transactionsUrl()"
-        [searchable]="false"
-      />
-    } @else {
-      <div class="text-center py-20 text-slate-400">
-        Open from the Customer Balances page to see transactions.
-      </div>
-    }
+    </div>
 
     <!-- Debit dialog -->
     <p-dialog [(visible)]="debitVisible" [header]="labels.wallet.debitWallet"
@@ -132,14 +134,14 @@ export class WalletTransactionsComponent implements OnInit {
   );
 
   protected readonly columns: TableColumn[] = [
-    { field: 'transactionType', header: 'Type',    width: '100px' },
-    { field: 'amount',          header: 'Amount',  width: '120px', sortable: true },
-    { field: 'balanceBefore',   header: 'Before',  width: '120px' },
-    { field: 'balanceAfter',    header: 'After',   width: '120px' },
+    { field: 'transactionType', header: 'Type',     width: '100px', type: 'status' },
+    { field: 'amount',          header: 'Amount',   width: '130px', sortable: true, type: 'currency' },
+    { field: 'balanceBefore',   header: 'Before',   width: '130px', type: 'currency' },
+    { field: 'balanceAfter',    header: 'After',    width: '130px', type: 'currency' },
     { field: 'referenceType',   header: 'Ref Type', width: '110px' },
-    { field: 'referenceNumber', header: 'Ref #',   width: '130px' },
+    { field: 'referenceNumber', header: 'Ref #',    width: '130px' },
     { field: 'receiptNumber',   header: AppLabels.wallet.receipt, width: '130px' },
-    { field: 'createdAtUtc',    header: 'Date',    width: '140px', sortable: true },
+    { field: 'createdAtUtc',    header: 'Date',     width: '150px', sortable: true, type: 'datetime' },
   ];
 
   async ngOnInit(): Promise<void> {

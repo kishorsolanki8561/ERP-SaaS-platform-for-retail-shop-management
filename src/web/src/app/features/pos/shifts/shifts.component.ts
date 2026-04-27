@@ -26,19 +26,21 @@ interface ShiftListItem extends Record<string, unknown> {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [TagModule, PageHeaderComponent, DataTableComponent],
   template: `
-    <app-page-header
-      [title]="labels.shiftsTitle"
-      [subtitle]="labels.shiftsSubtitle"
-      [actions]="headerActions"
-      (actionClick)="onHeaderAction($event)"
-    />
+    <div class="p-6 space-y-6 max-w-7xl mx-auto">
+      <app-page-header
+        [title]="labels.shiftsTitle"
+        [subtitle]="labels.shiftsSubtitle"
+        [actions]="headerActions"
+        (actionClick)="onHeaderAction($event)"
+      />
 
-    <app-data-table
-      [apiUrl]="listUrl"
-      [columns]="columns"
-      [rowActions]="rowActions"
-      (rowAction)="onRowAction($event)"
-    />
+      <app-data-table
+        [apiUrl]="listUrl"
+        [columns]="columns"
+        [rowActions]="rowActions"
+        (rowAction)="onRowAction($event)"
+      />
+    </div>
   `,
 })
 export class ShiftsComponent {
@@ -58,11 +60,11 @@ export class ShiftsComponent {
 
   protected readonly columns: TableColumn[] = [
     { field: 'cashierName',      header: AppLabels.pos.cashier,       sortable: true },
-    { field: 'openedAtUtc',      header: AppLabels.pos.openedAt,      sortable: true },
-    { field: 'status',           header: AppLabels.common.status,     sortable: true },
-    { field: 'transactionCount', header: AppLabels.pos.transactions,  sortable: true },
-    { field: 'totalSales',       header: AppLabels.pos.totalSales,    sortable: true },
-    { field: 'cashVariance',     header: AppLabels.pos.cashVariance,  sortable: true },
+    { field: 'openedAtUtc',      header: AppLabels.pos.openedAt,      sortable: true, width: '160px', type: 'datetime' },
+    { field: 'status',           header: AppLabels.common.status,     sortable: true, width: '110px', type: 'status' },
+    { field: 'transactionCount', header: AppLabels.pos.transactions,  sortable: true, width: '110px', type: 'number' },
+    { field: 'totalSales',       header: AppLabels.pos.totalSales,    sortable: true, width: '130px', type: 'currency' },
+    { field: 'cashVariance',     header: AppLabels.pos.cashVariance,  sortable: true, width: '120px', type: 'currency' },
   ];
 
   protected readonly rowActions: RowAction[] = [

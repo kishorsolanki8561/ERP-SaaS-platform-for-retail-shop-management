@@ -30,20 +30,22 @@ import { Permissions } from '../../../shared/messages/app-permissions';
     PageHeaderComponent, DataTableComponent, FormFieldComponent,
   ],
   template: `
-    <app-page-header
-      [title]="labels.billing.invoicesTitle"
-      [subtitle]="labels.billing.invoicesSubtitle"
-      [actions]="headerActions"
-      (actionClick)="onHeaderAction($event)"
-    />
+    <div class="p-6 space-y-6 max-w-7xl mx-auto">
+      <app-page-header
+        [title]="labels.billing.invoicesTitle"
+        [subtitle]="labels.billing.invoicesSubtitle"
+        [actions]="headerActions"
+        (actionClick)="onHeaderAction($event)"
+      />
 
-    <app-data-table
-      [columns]="columns"
-      [apiUrl]="apiUrl"
-      [rowActions]="rowActions"
-      [searchable]="true"
-      (rowAction)="onRowAction($event)"
-    />
+      <app-data-table
+        [columns]="columns"
+        [apiUrl]="apiUrl"
+        [rowActions]="rowActions"
+        [searchable]="true"
+        (rowAction)="onRowAction($event)"
+      />
+    </div>
 
     <!-- New Invoice dialog — collects minimal info to create a Draft -->
     <p-dialog
@@ -88,11 +90,11 @@ export class InvoicesComponent {
   protected draftForm = { customerId: 0, warehouseId: 0, notes: '' };
 
   protected readonly columns: TableColumn[] = [
-    { field: 'invoiceNumber',       header: 'Invoice #',  width: '130px', sortable: true },
-    { field: 'invoiceDate',         header: 'Date',       width: '120px', sortable: true },
+    { field: 'invoiceNumber',        header: 'Invoice #', width: '130px', sortable: true },
+    { field: 'invoiceDate',          header: 'Date',      width: '120px', sortable: true, type: 'date' },
     { field: 'customerNameSnapshot', header: 'Customer',  sortable: true },
-    { field: 'status',              header: 'Status',     width: '110px' },
-    { field: 'grandTotal',          header: 'Amount',     width: '120px', sortable: true },
+    { field: 'status',               header: 'Status',    width: '120px', type: 'status' },
+    { field: 'grandTotal',           header: 'Amount',    width: '130px', sortable: true, type: 'currency' },
   ];
 
   protected readonly rowActions: RowAction[] = [

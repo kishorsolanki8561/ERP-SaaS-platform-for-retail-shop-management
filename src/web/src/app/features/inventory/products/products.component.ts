@@ -43,20 +43,22 @@ interface ProductForm {
     PageHeaderComponent, DataTableComponent, FormFieldComponent, DdlDropdownComponent,
   ],
   template: `
-    <app-page-header
-      [title]="labels.inventory.productsTitle"
-      [subtitle]="labels.inventory.productsSubtitle"
-      [actions]="headerActions"
-      (actionClick)="onHeaderAction($event)"
-    />
+    <div class="p-6 space-y-6 max-w-7xl mx-auto">
+      <app-page-header
+        [title]="labels.inventory.productsTitle"
+        [subtitle]="labels.inventory.productsSubtitle"
+        [actions]="headerActions"
+        (actionClick)="onHeaderAction($event)"
+      />
 
-    <app-data-table
-      [columns]="columns"
-      [apiUrl]="apiUrl"
-      [rowActions]="rowActions"
-      [searchable]="true"
-      (rowAction)="onRowAction($event)"
-    />
+      <app-data-table
+        [columns]="columns"
+        [apiUrl]="apiUrl"
+        [rowActions]="rowActions"
+        [searchable]="true"
+        (rowAction)="onRowAction($event)"
+      />
+    </div>
 
     <!-- Create / Edit dialog -->
     <p-dialog
@@ -146,8 +148,8 @@ export class ProductsComponent {
     { field: 'name',         header: 'Name',     sortable: true },
     { field: 'categoryCode', header: 'Category', width: '120px' },
     { field: 'baseUnitCode', header: 'Unit',     width: '80px' },
-    { field: 'salePrice',    header: 'Price',    width: '100px' },
-    { field: 'isActive',     header: 'Active',   width: '80px' },
+    { field: 'salePrice',    header: 'Price',    width: '110px', type: 'currency' },
+    { field: 'isActive',     header: 'Active',   width: '80px',  type: 'boolean' },
   ];
 
   protected readonly rowActions: RowAction[] = [

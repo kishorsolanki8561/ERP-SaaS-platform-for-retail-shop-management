@@ -32,55 +32,64 @@ interface PermissionGroup { module: string; items: PermissionDto[]; }
     PageHeaderComponent, FormFieldComponent,
   ],
   template: `
-    <app-page-header
-      [title]="labels.admin.rolesTitle"
-      [subtitle]="labels.admin.rolesSubtitle"
-      [actions]="headerActions"
-      (actionClick)="onHeaderAction($event)"
-    />
+    <div class="p-6 space-y-6 max-w-7xl mx-auto">
+      <app-page-header
+        [title]="labels.admin.rolesTitle"
+        [subtitle]="labels.admin.rolesSubtitle"
+        [actions]="headerActions"
+        (actionClick)="onHeaderAction($event)"
+      />
 
-    <!-- Roles list -->
-    <div class="space-y-3">
-      @for (role of roles(); track role.id) {
-        <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200
-                    dark:border-slate-800 p-5">
-          <div class="flex items-start justify-between">
-            <div>
-              <div class="flex items-center gap-2">
-                <span class="font-semibold text-slate-900 dark:text-white">{{ role.label }}</span>
-                @if (role.isSystemRole) {
-                  <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800
-                               text-slate-500">System</span>
-                }
+      <div class="space-y-3">
+        @for (role of roles(); track role.id) {
+          <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200
+                      dark:border-slate-800 p-5 transition-shadow hover:shadow-sm">
+            <div class="flex items-start justify-between gap-4">
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="font-semibold text-slate-900 dark:text-white">{{ role.label }}</span>
+                  @if (role.isSystemRole) {
+                    <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800
+                                 text-slate-500 font-medium">System</span>
+                  }
+                </div>
+                <div class="text-xs text-slate-400 mt-0.5 font-mono">{{ role.code }}</div>
+                <div class="mt-2.5 flex flex-wrap gap-1.5">
+                  @for (code of role.permissionCodes.slice(0, 8); track code) {
+                    <span class="text-xs px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/40
+                                 text-indigo-600 dark:text-indigo-400 font-mono">{{ code }}</span>
+                  }
+                  @if (role.permissionCodes.length > 8) {
+                    <span class="text-xs text-slate-400 font-medium">+{{ role.permissionCodes.length - 8 }} more</span>
+                  }
+                  @if (role.permissionCodes.length === 0) {
+                    <span class="text-xs text-slate-400 italic">No permissions assigned</span>
+                  }
+                </div>
               </div>
-              <div class="text-xs text-slate-400 mt-0.5 font-mono">{{ role.code }}</div>
-              <div class="mt-2 flex flex-wrap gap-1.5">
-                @for (code of role.permissionCodes.slice(0, 8); track code) {
-                  <span class="text-xs px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/40
-                               text-indigo-600 dark:text-indigo-400 font-mono">{{ code }}</span>
-                }
-                @if (role.permissionCodes.length > 8) {
-                  <span class="text-xs text-slate-400">+{{ role.permissionCodes.length - 8 }} more</span>
-                }
-                @if (role.permissionCodes.length === 0) {
-                  <span class="text-xs text-slate-400 italic">No permissions assigned</span>
-                }
-              </div>
+              @if (!role.isSystemRole) {
+                <button class="shrink-0 text-sm font-medium text-indigo-500 hover:text-indigo-700
+                               dark:hover:text-indigo-300 transition-colors"
+                        (click)="openEditPermissions(role)">
+                  {{ labels.admin.editRole }}
+                </button>
+              }
             </div>
-            @if (!role.isSystemRole) {
-              <button class="text-sm text-indigo-500 hover:text-indigo-600 font-medium shrink-0 ml-4"
-                      (click)="openEditPermissions(role)">
-                {{ labels.admin.editRole }}
-              </button>
-            }
           </div>
-        </div>
-      }
-      @if (loading()) {
-        <div class="flex justify-center py-12">
-          <i class="pi pi-spin pi-spinner text-2xl text-primary-500"></i>
-        </div>
-      }
+        }
+        @if (loading()) {
+          <div class="flex justify-center py-12">
+            <i class="pi pi-spin pi-spinner text-2xl text-primary-500"></i>
+          </div>
+        }
+        @if (!loading() && roles().length === 0) {
+          <div class="flex flex-col items-center justify-center py-16 gap-3 text-slate-400
+                      bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
+            <i class="pi pi-shield text-4xl opacity-30"></i>
+            <span class="text-sm">No roles found</span>
+          </div>
+        }
+      </div>
     </div>
 
     <!-- New Role dialog -->

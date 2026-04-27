@@ -7,7 +7,6 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
-import { CardModule } from 'primeng/card';
 import { InputTextModule } from 'primeng/inputtext';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { ButtonModule } from 'primeng/button';
@@ -37,62 +36,64 @@ const DENOMINATIONS = [2000, 500, 200, 100, 50, 20, 10, 5, 2, 1];
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule, FormsModule,
-    CardModule, InputTextModule, InputNumberModule, ButtonModule,
+    InputTextModule, InputNumberModule, ButtonModule,
     PageHeaderComponent, FormFieldComponent,
   ],
   template: `
-    <app-page-header
-      [title]="labels.openShiftTitle"
-      [subtitle]="labels.openShiftSubtitle"
-    />
+    <div class="p-6 max-w-2xl mx-auto space-y-6">
+      <app-page-header
+        [title]="labels.openShiftTitle"
+        [subtitle]="labels.openShiftSubtitle"
+      />
 
-    <div class="max-w-2xl mx-auto">
-      <p-card>
-        <div class="flex flex-col gap-4">
-          <app-form-field [label]="labels.branchId" [required]="true">
-            <p-inputNumber
-              [(ngModel)]="form().branchId"
-              [useGrouping]="false"
-              placeholder="Branch ID"
-              fluid
-            />
-          </app-form-field>
+      <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 space-y-5">
+        <app-form-field [label]="labels.branchId" [required]="true">
+          <p-inputNumber
+            [(ngModel)]="form().branchId"
+            [useGrouping]="false"
+            placeholder="Branch ID"
+            fluid
+          />
+        </app-form-field>
 
-          <app-form-field [label]="labels.cashier" [required]="true">
-            <input
-              pInputText
-              [(ngModel)]="form().cashierName"
-              placeholder="Cashier name"
-              class="w-full"
-            />
-          </app-form-field>
+        <app-form-field [label]="labels.cashier" [required]="true">
+          <input
+            pInputText
+            [(ngModel)]="form().cashierName"
+            placeholder="Cashier name"
+            class="w-full"
+          />
+        </app-form-field>
 
-          <app-form-field [label]="labels.openingCash" [required]="true">
-            <p-inputNumber
-              [(ngModel)]="form().openingCash"
-              mode="decimal"
-              [minFractionDigits]="2"
-              [maxFractionDigits]="2"
-              placeholder="0.00"
-              fluid
-            />
-          </app-form-field>
+        <app-form-field [label]="labels.openingCash" [required]="true">
+          <p-inputNumber
+            [(ngModel)]="form().openingCash"
+            mode="decimal"
+            [minFractionDigits]="2"
+            [maxFractionDigits]="2"
+            placeholder="0.00"
+            fluid
+          />
+        </app-form-field>
 
-          <div>
-            <p class="font-medium mb-2">Denomination Breakdown (optional)</p>
+        <div>
+          <p class="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">
+            Denomination Breakdown <span class="font-normal text-slate-400">(optional)</span>
+          </p>
+          <div class="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
             <table class="w-full text-sm">
               <thead>
-                <tr class="text-left border-b">
-                  <th class="py-1">{{ labels.denomination }}</th>
-                  <th class="py-1">{{ labels.count }}</th>
-                  <th class="py-1 text-right">Subtotal</th>
+                <tr class="bg-slate-50 dark:bg-slate-800/60">
+                  <th class="px-4 py-2.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">{{ labels.denomination }}</th>
+                  <th class="px-4 py-2.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">{{ labels.count }}</th>
+                  <th class="px-4 py-2.5 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide">Subtotal</th>
                 </tr>
               </thead>
               <tbody>
                 @for (row of denominations(); track row.denomination) {
-                  <tr class="border-b border-surface-100">
-                    <td class="py-1">₹{{ row.denomination }}</td>
-                    <td class="py-1">
+                  <tr class="border-t border-slate-100 dark:border-slate-800">
+                    <td class="px-4 py-2 font-medium text-slate-700 dark:text-slate-300">₹{{ row.denomination }}</td>
+                    <td class="px-4 py-2">
                       <p-inputNumber
                         [(ngModel)]="row.count"
                         [min]="0"
@@ -101,29 +102,32 @@ const DENOMINATIONS = [2000, 500, 200, 100, 50, 20, 10, 5, 2, 1];
                         (ngModelChange)="updateOpeningCash()"
                       />
                     </td>
-                    <td class="py-1 text-right">₹{{ (row.denomination * row.count) | number:'1.2-2' }}</td>
+                    <td class="px-4 py-2 text-right tabular-nums text-slate-600 dark:text-slate-300">
+                      ₹{{ (row.denomination * row.count) | number:'1.2-2' }}
+                    </td>
                   </tr>
                 }
               </tbody>
             </table>
           </div>
-
-          <div class="flex justify-end gap-2 pt-2">
-            <p-button
-              [label]="commonLabels.cancel"
-              severity="secondary"
-              (click)="cancel()"
-            />
-            <p-button
-              [label]="labels.openShift"
-              icon="pi pi-play-circle"
-              severity="success"
-              [loading]="saving()"
-              (click)="submit()"
-            />
-          </div>
         </div>
-      </p-card>
+
+        <div class="flex justify-end gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
+          <p-button
+            [label]="commonLabels.cancel"
+            severity="secondary"
+            [outlined]="true"
+            (click)="cancel()"
+          />
+          <p-button
+            [label]="labels.openShift"
+            icon="pi pi-play-circle"
+            severity="success"
+            [loading]="saving()"
+            (click)="submit()"
+          />
+        </div>
+      </div>
     </div>
   `,
 })
@@ -155,7 +159,7 @@ export class OpenShiftComponent {
   protected async submit(): Promise<void> {
     const f = this.form();
     if (!f.branchId || !f.cashierName.trim()) {
-      this.toasts.add({ severity: 'warn', summary: 'Validation', detail: 'Branch and cashier name are [required]="true".' });
+      this.toasts.add({ severity: 'warn', summary: 'Validation', detail: 'Branch and cashier name are required.' });
       return;
     }
 

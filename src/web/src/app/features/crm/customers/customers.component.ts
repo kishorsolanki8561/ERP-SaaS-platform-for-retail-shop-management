@@ -40,22 +40,23 @@ interface CustomerForm {
     PageHeaderComponent, DataTableComponent, FormFieldComponent, DdlDropdownComponent,
   ],
   template: `
-    <app-page-header
-      [title]="labels.crm.customersTitle"
-      [subtitle]="labels.crm.customersSubtitle"
-      [actions]="headerActions"
-      (actionClick)="onHeaderAction($event)"
-    />
+    <div class="p-6 space-y-6 max-w-7xl mx-auto">
+      <app-page-header
+        [title]="labels.crm.customersTitle"
+        [subtitle]="labels.crm.customersSubtitle"
+        [actions]="headerActions"
+        (actionClick)="onHeaderAction($event)"
+      />
 
-    <app-data-table
-      [columns]="columns"
-      [apiUrl]="apiUrl"
-      [rowActions]="rowActions"
-      [searchable]="true"
-      (rowAction)="onRowAction($event)"
-    />
+      <app-data-table
+        [columns]="columns"
+        [apiUrl]="apiUrl"
+        [rowActions]="rowActions"
+        [searchable]="true"
+        (rowAction)="onRowAction($event)"
+      />
+    </div>
 
-    <!-- Create / Edit dialog -->
     <p-dialog
       [(visible)]="dialogVisible"
       [header]="editId() ? labels.crm.editCustomer : labels.crm.newCustomer"
@@ -121,12 +122,12 @@ export class CustomersComponent {
   protected form: CustomerForm = this.emptyForm();
 
   protected readonly columns: TableColumn[] = [
-    { field: 'customerCode', header: 'Code',  width: '110px' },
-    { field: 'displayName',  header: 'Name',  sortable: true },
-    { field: 'customerType', header: 'Type',  width: '110px' },
-    { field: 'phone',        header: 'Phone', width: '140px' },
-    { field: 'email',        header: 'Email', sortable: true },
-    { field: 'isActive',     header: 'Active', width: '80px' },
+    { field: 'customerCode', header: 'Code',   width: '110px' },
+    { field: 'displayName',  header: 'Name',   sortable: true },
+    { field: 'customerType', header: 'Type',   width: '120px' },
+    { field: 'phone',        header: 'Phone',  width: '140px' },
+    { field: 'email',        header: 'Email',  sortable: true },
+    { field: 'isActive',     header: 'Active', width: '80px', type: 'boolean' },
   ];
 
   protected readonly rowActions: RowAction[] = [

@@ -41,20 +41,22 @@ interface CreditForm {
     PageHeaderComponent, DataTableComponent, FormFieldComponent, DdlDropdownComponent,
   ],
   template: `
-    <app-page-header
-      [title]="labels.wallet.balancesTitle"
-      [subtitle]="labels.wallet.balancesSubtitle"
-      [actions]="headerActions"
-      (actionClick)="onHeaderAction($event)"
-    />
+    <div class="p-6 space-y-6 max-w-7xl mx-auto">
+      <app-page-header
+        [title]="labels.wallet.balancesTitle"
+        [subtitle]="labels.wallet.balancesSubtitle"
+        [actions]="headerActions"
+        (actionClick)="onHeaderAction($event)"
+      />
 
-    <app-data-table
-      [columns]="columns"
-      [apiUrl]="apiUrl"
-      [rowActions]="rowActions"
-      [searchable]="true"
-      (rowAction)="onRowAction($event)"
-    />
+      <app-data-table
+        [columns]="columns"
+        [apiUrl]="apiUrl"
+        [rowActions]="rowActions"
+        [searchable]="true"
+        (rowAction)="onRowAction($event)"
+      />
+    </div>
 
     <!-- Credit dialog -->
     <p-dialog
@@ -119,8 +121,8 @@ export class WalletBalancesComponent {
   protected readonly columns: TableColumn[] = [
     { field: 'customerCode',        header: 'Code',     width: '110px' },
     { field: 'customerNameSnapshot', header: 'Customer', sortable: true },
-    { field: 'balance',             header: 'Balance',  width: '140px', sortable: true },
-    { field: 'lastTransactionAtUtc', header: 'Last Txn', width: '140px', sortable: true },
+    { field: 'balance',              header: 'Balance',  width: '140px', sortable: true, type: 'currency' },
+    { field: 'lastTransactionAtUtc', header: 'Last Txn', width: '150px', sortable: true, type: 'datetime' },
   ];
 
   protected readonly rowActions: RowAction[] = [

@@ -2,7 +2,7 @@ import {
   ChangeDetectionStrategy, Component, OnInit,
   inject, signal, computed
 } from '@angular/core';
-import { CommonModule, CurrencyPipe } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
@@ -61,12 +61,13 @@ interface AddLineForm {
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule, FormsModule, RouterModule, CurrencyPipe,
+    CommonModule, FormsModule, RouterModule,
     TableModule, ButtonModule, TagModule, DialogModule,
     InputTextModule, InputNumberModule,
     PageHeaderComponent, FormFieldComponent, HasPermissionDirective,
   ],
   template: `
+    <div class="p-6 space-y-6 max-w-7xl mx-auto">
     @if (invoice()) {
       <app-page-header
         [title]="invoice()!.invoiceNumber"
@@ -74,7 +75,7 @@ interface AddLineForm {
       />
 
       <!-- Status + actions bar -->
-      <div class="flex items-center gap-3 mb-6">
+      <div class="flex items-center gap-3 flex-wrap">
         <span [class]="statusClass()">{{ invoice()!.status }}</span>
 
         @if (invoice()!.status === 'Draft') {
@@ -93,64 +94,80 @@ interface AddLineForm {
       </div>
 
       <!-- Invoice lines table -->
-      <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden mb-6">
+      <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
         <p-table [value]="invoice()!.lines" styleClass="p-datatable-sm">
           <ng-template pTemplate="header">
-            <tr>
-              <th>Product</th>
-              <th class="w-20 text-right">Qty</th>
-              <th class="w-24 text-right">Unit Price</th>
-              <th class="w-20 text-right">Disc %</th>
-              <th class="w-24 text-right">Taxable</th>
-              <th class="w-20 text-right">GST %</th>
-              <th class="w-28 text-right">Total</th>
+            <tr class="bg-slate-50 dark:bg-slate-800/60">
+              <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Product</th>
+              <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide text-right w-20">Qty</th>
+              <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide text-right w-28">Unit Price</th>
+              <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide text-right w-20">Disc %</th>
+              <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide text-right w-28">Taxable</th>
+              <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide text-right w-20">GST %</th>
+              <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide text-right w-32">Total</th>
             </tr>
           </ng-template>
           <ng-template pTemplate="body" let-line>
-            <tr>
-              <td>{{ line.productName }} <span class="text-xs text-slate-400 ml-1">{{ line.unitCode }}</span></td>
-              <td class="text-right">{{ line.qty }}</td>
-              <td class="text-right">{{ line.unitPrice | currency:'INR':'symbol':'1.2-2' }}</td>
-              <td class="text-right">{{ line.discountPercent }}%</td>
-              <td class="text-right">{{ line.taxableAmount | currency:'INR':'symbol':'1.2-2' }}</td>
-              <td class="text-right">{{ line.gstRate }}%</td>
-              <td class="text-right font-medium">{{ line.lineTotal | currency:'INR':'symbol':'1.2-2' }}</td>
+            <tr class="border-t border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+              <td class="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
+                {{ line.productName }}
+                <span class="ml-1.5 text-xs text-slate-400 font-mono">{{ line.unitCode }}</span>
+              </td>
+              <td class="px-4 py-3 text-sm text-right tabular-nums">{{ line.qty }}</td>
+              <td class="px-4 py-3 text-sm text-right tabular-nums">₹{{ line.unitPrice | number:'1.2-2' }}</td>
+              <td class="px-4 py-3 text-sm text-right">{{ line.discountPercent }}%</td>
+              <td class="px-4 py-3 text-sm text-right tabular-nums">₹{{ line.taxableAmount | number:'1.2-2' }}</td>
+              <td class="px-4 py-3 text-sm text-right">{{ line.gstRate }}%</td>
+              <td class="px-4 py-3 text-sm text-right tabular-nums font-semibold text-slate-900 dark:text-white">
+                ₹{{ line.lineTotal | number:'1.2-2' }}
+              </td>
             </tr>
           </ng-template>
           <ng-template pTemplate="emptymessage">
-            <tr><td colspan="7" class="text-center py-8 text-slate-400">No lines added yet.</td></tr>
+            <tr>
+              <td colspan="7">
+                <div class="flex flex-col items-center justify-center py-12 gap-2 text-slate-400">
+                  <i class="pi pi-file text-3xl opacity-30"></i>
+                  <span class="text-sm">No lines added yet</span>
+                </div>
+              </td>
+            </tr>
           </ng-template>
         </p-table>
       </div>
 
       <!-- Totals -->
       <div class="flex justify-end">
-        <div class="w-72 space-y-2 text-sm">
+        <div class="w-72 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 space-y-2 text-sm">
           <div class="flex justify-between text-slate-500">
             <span>Subtotal</span>
-            <span>{{ invoice()!.subTotal | currency:'INR':'symbol':'1.2-2' }}</span>
+            <span class="tabular-nums">₹{{ invoice()!.subTotal | number:'1.2-2' }}</span>
           </div>
           <div class="flex justify-between text-slate-500">
             <span>Discount</span>
-            <span class="text-red-500">-{{ invoice()!.totalDiscount | currency:'INR':'symbol':'1.2-2' }}</span>
+            <span class="tabular-nums text-red-500">−₹{{ invoice()!.totalDiscount | number:'1.2-2' }}</span>
           </div>
           <div class="flex justify-between text-slate-500">
             <span>Tax (GST)</span>
-            <span>{{ invoice()!.totalTaxAmount | currency:'INR':'symbol':'1.2-2' }}</span>
+            <span class="tabular-nums">₹{{ invoice()!.totalTaxAmount | number:'1.2-2' }}</span>
           </div>
-          <div class="flex justify-between font-bold text-base border-t border-slate-200 dark:border-slate-700 pt-2 mt-2">
+          <div class="flex justify-between font-bold text-base border-t border-slate-200 dark:border-slate-700 pt-3 mt-1">
             <span>Grand Total</span>
-            <span>{{ invoice()!.grandTotal | currency:'INR':'symbol':'1.2-2' }}</span>
+            <span class="tabular-nums text-slate-900 dark:text-white">₹{{ invoice()!.grandTotal | number:'1.2-2' }}</span>
           </div>
         </div>
       </div>
     } @else if (loadError()) {
-      <div class="text-center py-20 text-slate-400">Invoice not found.</div>
+      <div class="flex flex-col items-center justify-center py-24 gap-3 text-slate-400">
+        <i class="pi pi-exclamation-triangle text-4xl opacity-40"></i>
+        <span class="text-sm">Invoice not found</span>
+      </div>
     } @else {
-      <div class="flex justify-center py-20">
-        <i class="pi pi-spin pi-spinner text-2xl text-primary-500"></i>
+      <div class="flex flex-col items-center justify-center py-24 gap-3 text-slate-400">
+        <i class="pi pi-spin pi-spinner text-3xl text-indigo-500"></i>
       </div>
     }
+    </div>
 
     <!-- Add Line dialog -->
     <p-dialog [(visible)]="addLineVisible" header="Add Line" [modal]="true"

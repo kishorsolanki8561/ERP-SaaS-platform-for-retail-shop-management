@@ -4,7 +4,6 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { CardModule } from 'primeng/card';
 import { InputTextModule } from 'primeng/inputtext';
 import { ButtonModule } from 'primeng/button';
 import { HttpClient } from '@angular/common/http';
@@ -35,71 +34,74 @@ interface ShopProfile {
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule, FormsModule, CardModule, InputTextModule, ButtonModule,
+    CommonModule, FormsModule, InputTextModule, ButtonModule,
     PageHeaderComponent, FormFieldComponent, DdlDropdownComponent
   ],
   template: `
-    <app-page-header [title]="labels.admin.shopProfileTitle"
-                     subtitle="Update your shop details and settings." />
+    <div class="p-6 space-y-6 max-w-4xl mx-auto">
+      <app-page-header [title]="labels.admin.shopProfileTitle"
+                       subtitle="Update your shop details and settings." />
 
-    <p-card>
-      @if (profile()) {
-        <form (ngSubmit)="save()" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <app-form-field [label]="labels.admin.shopCode">
-            <input pInputText [ngModel]="profile()!.shopCode" name="shopCode"
-                   class="w-full" [disabled]="true" />
-          </app-form-field>
+      <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
+        @if (profile()) {
+          <form (ngSubmit)="save()" class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <app-form-field [label]="labels.admin.shopCode">
+              <input pInputText [ngModel]="profile()!.shopCode" name="shopCode"
+                     class="w-full" [disabled]="true" />
+            </app-form-field>
 
-          <app-form-field [label]="labels.admin.legalName" [required]="true">
-            <input pInputText [(ngModel)]="profile()!.legalName" name="legalName" class="w-full" />
-          </app-form-field>
+            <app-form-field [label]="labels.admin.legalName" [required]="true">
+              <input pInputText [(ngModel)]="profile()!.legalName" name="legalName" class="w-full" />
+            </app-form-field>
 
-          <app-form-field [label]="labels.admin.tradeName">
-            <input pInputText [(ngModel)]="profile()!.tradeName" name="tradeName" class="w-full" />
-          </app-form-field>
+            <app-form-field [label]="labels.admin.tradeName">
+              <input pInputText [(ngModel)]="profile()!.tradeName" name="tradeName" class="w-full" />
+            </app-form-field>
 
-          <app-form-field [label]="labels.admin.gstNumber">
-            <input pInputText [(ngModel)]="profile()!.gstNumber" name="gstNumber"
-                   class="w-full" maxlength="15" />
-          </app-form-field>
+            <app-form-field [label]="labels.admin.gstNumber">
+              <input pInputText [(ngModel)]="profile()!.gstNumber" name="gstNumber"
+                     class="w-full" maxlength="15" />
+            </app-form-field>
 
-          <app-form-field [label]="labels.admin.addressLine1">
-            <input pInputText [(ngModel)]="profile()!.addressLine1" name="addressLine1" class="w-full" />
-          </app-form-field>
+            <app-form-field [label]="labels.admin.addressLine1">
+              <input pInputText [(ngModel)]="profile()!.addressLine1" name="addressLine1" class="w-full" />
+            </app-form-field>
 
-          <app-form-field [label]="labels.admin.addressLine2">
-            <input pInputText [(ngModel)]="profile()!.addressLine2" name="addressLine2" class="w-full" />
-          </app-form-field>
+            <app-form-field [label]="labels.admin.addressLine2">
+              <input pInputText [(ngModel)]="profile()!.addressLine2" name="addressLine2" class="w-full" />
+            </app-form-field>
 
-          <app-form-field [label]="labels.admin.city">
-            <input pInputText [(ngModel)]="profile()!.city" name="city" class="w-full" />
-          </app-form-field>
+            <app-form-field [label]="labels.admin.city">
+              <input pInputText [(ngModel)]="profile()!.city" name="city" class="w-full" />
+            </app-form-field>
 
-          <app-form-field [label]="labels.admin.state">
-            <app-ddl-dropdown [dkey]="ddlKeys.indianState"
-                              [(ngModel)]="profile()!.stateCode" name="stateCode" />
-          </app-form-field>
+            <app-form-field [label]="labels.admin.state">
+              <app-ddl-dropdown [dkey]="ddlKeys.indianState"
+                                [(ngModel)]="profile()!.stateCode" name="stateCode" />
+            </app-form-field>
 
-          <app-form-field [label]="labels.admin.pinCode">
-            <input pInputText [(ngModel)]="profile()!.pinCode" name="pinCode"
-                   class="w-full" maxlength="6" />
-          </app-form-field>
+            <app-form-field [label]="labels.admin.pinCode">
+              <input pInputText [(ngModel)]="profile()!.pinCode" name="pinCode"
+                     class="w-full" maxlength="6" />
+            </app-form-field>
 
-          <app-form-field [label]="labels.admin.currency">
-            <app-ddl-dropdown [dkey]="ddlKeys.currency"
-                              [(ngModel)]="profile()!.currencyCode" name="currencyCode" />
-          </app-form-field>
+            <app-form-field [label]="labels.admin.currency">
+              <app-ddl-dropdown [dkey]="ddlKeys.currency"
+                                [(ngModel)]="profile()!.currencyCode" name="currencyCode" />
+            </app-form-field>
 
-          <div class="md:col-span-2 flex justify-end gap-2 mt-2">
-            <p-button type="submit" [label]="labels.admin.saveChanges" [loading]="saving()" />
+            <div class="md:col-span-2 flex justify-end gap-3 pt-2 border-t border-slate-100 dark:border-slate-800 mt-1">
+              <p-button type="submit" [label]="labels.admin.saveChanges" [loading]="saving()" />
+            </div>
+          </form>
+        } @else {
+          <div class="flex flex-col items-center justify-center py-16 gap-3 text-slate-400">
+            <i class="pi pi-spin pi-spinner text-3xl text-indigo-500"></i>
+            <span class="text-sm">Loading profile…</span>
           </div>
-        </form>
-      } @else {
-        <div class="flex justify-center p-8">
-          <i class="pi pi-spin pi-spinner text-2xl text-primary-500"></i>
-        </div>
-      }
-    </p-card>
+        }
+      </div>
+    </div>
   `
 })
 export class ShopProfileComponent implements OnInit {

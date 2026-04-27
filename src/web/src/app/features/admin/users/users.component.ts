@@ -11,18 +11,20 @@ import { Permissions } from '../../../shared/messages/app-permissions';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [PageHeaderComponent, DataTableComponent],
   template: `
-    <app-page-header
-      [title]="labels.admin.usersTitle"
-      [subtitle]="labels.admin.usersSubtitle"
-      [actions]="headerActions"
-      (actionClick)="onAction($event)"
-    />
-    <app-data-table
-      [columns]="columns"
-      [apiUrl]="apiUrl"
-      [rowActions]="rowActions"
-      [searchable]="true"
-    />
+    <div class="p-6 space-y-6 max-w-7xl mx-auto">
+      <app-page-header
+        [title]="labels.admin.usersTitle"
+        [subtitle]="labels.admin.usersSubtitle"
+        [actions]="headerActions"
+        (actionClick)="onAction($event)"
+      />
+      <app-data-table
+        [columns]="columns"
+        [apiUrl]="apiUrl"
+        [rowActions]="rowActions"
+        [searchable]="true"
+      />
+    </div>
   `
 })
 export class UsersComponent {
@@ -30,10 +32,10 @@ export class UsersComponent {
   protected readonly apiUrl = ApiEndpoints.admin.users;
 
   protected readonly columns: TableColumn[] = [
-    { field: 'displayName', header: 'Name', sortable: true },
-    { field: 'email', header: 'Email', sortable: true },
-    { field: 'phone', header: 'Phone' },
-    { field: 'isActive', header: 'Active', width: '80px' },
+    { field: 'displayName', header: 'Name',   sortable: true },
+    { field: 'email',       header: 'Email',  sortable: true },
+    { field: 'phone',       header: 'Phone' },
+    { field: 'isActive',    header: 'Active', width: '80px', type: 'boolean' },
   ];
 
   protected readonly rowActions: RowAction[] = [

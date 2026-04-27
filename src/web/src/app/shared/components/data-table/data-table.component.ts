@@ -18,6 +18,10 @@ export interface TableColumn {
   header: string;
   sortable?: boolean;
   width?: string;
+  /** Drives cell rendering. Default: 'text' */
+  type?: 'text' | 'currency' | 'date' | 'datetime' | 'status' | 'boolean' | 'number';
+  /** Maps status string → Tailwind badge classes. Key '*' is the fallback. */
+  statusMap?: Record<string, string>;
 }
 
 export interface PagedResult<T> {
@@ -36,21 +40,41 @@ export interface RowAction {
   permission?: string;
 }
 
+const DEFAULT_STATUS_MAP: Record<string, string> = {
+  Draft:     'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
+  Finalized: 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400',
+  Paid:      'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400',
+  Cancelled: 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400',
+  Open:      'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400',
+  Closed:    'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
+  Active:    'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400',
+  Inactive:  'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400',
+  Credit:    'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400',
+  Debit:     'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400',
+  '*':       'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-400',
+};
+
 @Component({
   selector: 'app-data-table',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, TableModule, ButtonModule, InputTextModule, TooltipModule],
   template: `
-    <div class="card">
-      <div class="flex justify-between items-center mb-3">
+    <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+      <!-- Toolbar -->
+      <div class="flex items-center justify-between px-5 py-3.5 border-b border-slate-100 dark:border-slate-800">
         @if (searchable()) {
-          <span class="p-input-icon-left">
-            <i class="pi pi-search"></i>
+          <div class="relative">
+            <i class="pi pi-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none"></i>
             <input pInputText [ngModel]="searchQuery()" (ngModelChange)="onSearch($event)"
-                   [placeholder]="labels.shared.search" class="w-64" />
-          </span>
-        } @else { <span></span> }
+                   [placeholder]="labels.shared.search"
+                   class="pl-9 pr-4 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700
+                          bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100
+                          focus:outline-none focus:ring-2 focus:ring-indigo-500 w-64" />
+          </div>
+        } @else {
+          <span></span>
+        }
 
         @if (exportable()) {
           <p-button icon="pi pi-download" label="Export" severity="secondary" size="small"
@@ -69,33 +93,80 @@ export interface RowAction {
         (onLazyLoad)="onLazyLoad($event)"
         [sortField]="currentSortField()"
         [sortOrder]="currentSortOrder()"
-        styleClass="p-datatable-sm p-datatable-striped"
+        styleClass="p-datatable-sm"
         [tableStyle]="{'min-width': '100%'}"
       >
         <ng-template pTemplate="header">
-          <tr>
+          <tr class="bg-slate-50 dark:bg-slate-800/60">
             @for (col of columns(); track col.field) {
               <th [pSortableColumn]="col.sortable ? col.field : ''"
-                  [style.width]="col.width ?? 'auto'">
+                  [style.width]="col.width ?? 'auto'"
+                  class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide px-4 py-3">
                 {{ col.header }}
                 @if (col.sortable) { <p-sortIcon [field]="col.field" /> }
               </th>
             }
-            @if (rowActions().length) { <th [style.width]="actionsColWidth">Actions</th> }
+            @if (rowActions().length) {
+              <th [style.width]="actionsColWidth"
+                  class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide px-4 py-3 text-right">
+                Actions
+              </th>
+            }
           </tr>
         </ng-template>
 
         <ng-template pTemplate="body" let-row>
-          <tr>
+          <tr class="border-t border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
             @for (col of columns(); track col.field) {
-              <td>{{ row[col.field] }}</td>
+              <td class="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
+                @switch (col.type) {
+                  @case ('currency') {
+                    <span class="tabular-nums font-medium">
+                      {{ (row[col.field] | number:'1.2-2') ? ('₹' + (row[col.field] | number:'1.2-2')) : '—' }}
+                    </span>
+                  }
+                  @case ('date') {
+                    <span class="tabular-nums text-slate-500 dark:text-slate-400">
+                      {{ row[col.field] ? (row[col.field] | date:'dd MMM yyyy') : '—' }}
+                    </span>
+                  }
+                  @case ('datetime') {
+                    <span class="tabular-nums text-slate-500 dark:text-slate-400">
+                      {{ row[col.field] ? (row[col.field] | date:'dd MMM yyyy, HH:mm') : '—' }}
+                    </span>
+                  }
+                  @case ('number') {
+                    <span class="tabular-nums">{{ row[col.field] ?? '—' }}</span>
+                  }
+                  @case ('boolean') {
+                    @if (row[col.field]) {
+                      <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-900/40">
+                        <i class="pi pi-check text-emerald-600 dark:text-emerald-400" style="font-size:0.625rem"></i>
+                      </span>
+                    } @else {
+                      <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-800">
+                        <i class="pi pi-times text-slate-400" style="font-size:0.625rem"></i>
+                      </span>
+                    }
+                  }
+                  @case ('status') {
+                    <span [class]="getStatusClass(col, row[col.field])">
+                      {{ row[col.field] ?? '—' }}
+                    </span>
+                  }
+                  @default {
+                    {{ row[col.field] ?? '—' }}
+                  }
+                }
+              </td>
             }
             @if (rowActions().length) {
-              <td>
-                <div class="flex gap-1">
+              <td class="px-4 py-3 text-right">
+                <div class="flex items-center justify-end gap-1">
                   @for (action of rowActions(); track action.label) {
                     <p-button [icon]="action.icon ?? ''" [severity]="action.severity ?? 'secondary'"
-                              size="small" pTooltip="{{ action.label }}"
+                              size="small" pTooltip="{{ action.label }}" tooltipPosition="left"
+                              [rounded]="true" [text]="true"
                               (onClick)="rowAction.emit({ action: action.label, row })" />
                   }
                 </div>
@@ -105,8 +176,17 @@ export interface RowAction {
         </ng-template>
 
         <ng-template pTemplate="emptymessage">
-          <tr><td [attr.colspan]="columns().length + (rowActions().length ? 1 : 0)"
-                  class="text-center p-6 text-surface-500">No records found.</td></tr>
+          <tr>
+            <td [attr.colspan]="columns().length + (rowActions().length ? 1 : 0)">
+              <div class="flex flex-col items-center justify-center py-16 gap-3 text-slate-400">
+                <i class="pi pi-inbox text-4xl opacity-40"></i>
+                <span class="text-sm font-medium">No records found</span>
+                @if (searchQuery()) {
+                  <span class="text-xs">Try adjusting your search term</span>
+                }
+              </div>
+            </td>
+          </tr>
         </ng-template>
       </p-table>
     </div>
@@ -139,6 +219,12 @@ export class DataTableComponent<T extends Record<string, unknown>> implements On
   private currentFirst = 0;
 
   ngOnInit(): void { this.fetch(0, this.pageSize()); }
+
+  protected getStatusClass(col: TableColumn, value: unknown): string {
+    const v = String(value ?? '');
+    const map = col.statusMap ?? DEFAULT_STATUS_MAP;
+    return map[v] ?? map['*'] ?? DEFAULT_STATUS_MAP['*'];
+  }
 
   protected onSearch(query: string): void {
     this.searchQuery.set(query);
