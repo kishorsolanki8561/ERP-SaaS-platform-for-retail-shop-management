@@ -23,13 +23,21 @@ test.describe('Dashboard', () => {
   });
 
   test('branch selector is visible in topbar', async ({ page }) => {
+    // The host element <app-branch-selector> is always in the DOM, but its
+    // inner content is rendered only after BranchStore finishes loading
+    // (either a <div> badge for 1 branch or a <p-dropdown> for >1 branches).
+    // Wait for that inner content instead of the host element itself.
     await expect(
-      page.locator('app-branch-selector, [data-testid="branch-selector"]')
-    ).toBeVisible({ timeout: 8_000 });
+      page.locator(
+        'app-branch-selector div, app-branch-selector p-dropdown, [data-testid="branch-selector"]'
+      )
+    ).toBeVisible({ timeout: 12_000 });
   });
 
   test('sidebar navigation is present', async ({ page }) => {
-    await expect(page.locator('nav')).toBeVisible({ timeout: 5_000 });
+    // <nav> renders immediately but <a> links depend on menuStore.tree() loading.
+    // Wait for the first link to appear before counting.
+    await expect(page.locator('nav a').first()).toBeVisible({ timeout: 10_000 });
     const linkCount = await page.locator('nav a').count();
     expect(linkCount).toBeGreaterThan(0);
   });
