@@ -259,17 +259,19 @@ jobs:
         run: |
           PORT="${{ steps.cfg.outputs.port }}"
           echo "Verifying deployment — probing http://${{ env.VPS_HOST }}:${PORT}/api/health ..."
-          for i in $(seq 1 6); do
+          echo "Waiting 30s for DB migrations to complete before first probe..."
+          sleep 30
+          for i in $(seq 1 18); do
             HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 \
               "http://${{ env.VPS_HOST }}:${PORT}/api/health" || echo "000")
-            echo "  attempt $i/6 → HTTP ${HTTP_CODE}"
+            echo "  attempt $i/18 → HTTP ${HTTP_CODE}"
             if [ "${HTTP_CODE}" = "200" ]; then
               echo "Health check passed — deployment verified."
               exit 0
             fi
             sleep 10
           done
-          echo "Health check failed after 60s. Deployment may be broken."
+          echo "Health check failed after 210s. Deployment may be broken."
           exit 1
 
       - name: Purge Cloudflare cache (API)
