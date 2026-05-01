@@ -209,6 +209,8 @@ jobs:
           # before sending to SSH. Remote subshell expressions are escaped with \.
           ssh ${{ env.VPS_USER }}@${{ env.VPS_HOST }} bash << REMOTE
           set -euo pipefail
+          # Create service user on first deploy (idempotent)
+          id ${SVC_USER} &>/dev/null || useradd --system --no-create-home --shell /usr/sbin/nologin ${SVC_USER}
           systemctl stop ${SERVICE} || true
           # Kill any stale process still holding the port
           fuser -k ${PORT}/tcp 2>/dev/null || true
