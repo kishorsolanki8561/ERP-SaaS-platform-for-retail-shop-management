@@ -10,7 +10,6 @@ using ErpSaas.Shared.Messages;
 using ErpSaas.Shared.Services;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using NSubstitute;
 
 namespace ErpSaas.Tests.Unit.Modules.Warranty;
@@ -53,7 +52,7 @@ public sealed class WarrantyServiceTests : IDisposable
         _sequence.NextAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>())
             .Returns(_ => Task.FromResult($"WC-{++_seqCounter:000000}"));
 
-        _sut = new WarrantyService(_db, _errorLogger, _sequence, ctx, Substitute.For<ILogger<WarrantyService>>());
+        _sut = new WarrantyService(_db, _errorLogger, _sequence, ctx);
     }
 
     public void Dispose()

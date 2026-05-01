@@ -10,7 +10,6 @@ using ErpSaas.Shared.Messages;
 using ErpSaas.Shared.Services;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using NSubstitute;
 
 namespace ErpSaas.Tests.Unit.Modules.Quotations;
@@ -64,7 +63,7 @@ public sealed class QuotationsServiceTests : IDisposable
                 return Task.FromResult($"{prefix}-{++_seqCounter:000000}");
             });
 
-        _sut = new QuotationsService(_db, _errorLogger, _sequence, ctx, Substitute.For<ILogger<QuotationsService>>());
+        _sut = new QuotationsService(_db, _errorLogger, _sequence, ctx);
     }
 
     public void Dispose()

@@ -7,16 +7,13 @@ using ErpSaas.Shared.Data;
 using ErpSaas.Shared.Messages;
 using ErpSaas.Shared.Services;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
-
 namespace ErpSaas.Modules.Accounting.Services;
 
 public sealed class PettyCashService(
     TenantDbContext db,
     IErrorLogger errorLogger,
     ISequenceService sequence,
-    ITenantContext tenant,
-    ILogger<PettyCashService> logger)
+    ITenantContext tenant)
     : BaseService<TenantDbContext>(db, errorLogger), IPettyCashService
 {
     // COA code seeded in AccountingTenantSeeder
@@ -29,7 +26,7 @@ public sealed class PettyCashService(
             if (pettyCash is null)
                 return Result<long>.Failure("Petty Cash account (1110) not found in COA");
 
-            var bankAccount = await db.Set<BankAccount>()
+            var bankAccount = await _db.Set<BankAccount>()
                 .FirstOrDefaultAsync(b => b.Id == dto.FromBankAccountId && !b.IsDeleted, ct);
             if (bankAccount is null)
                 return Result<long>.NotFound("Bank account not found");
@@ -68,8 +65,8 @@ public sealed class PettyCashService(
                 Amount = dto.Amount,
                 CreatedAtUtc = DateTime.UtcNow,
             });
-            db.Set<Voucher>().Add(voucher);
-            await db.SaveChangesAsync(ct);
+            _db.Set<Voucher>().Add(voucher);
+            await _db.SaveChangesAsync(ct);
 
             return Result<long>.Success(voucher.Id);
         }, ct, useTransaction: true);
@@ -81,7 +78,7 @@ public sealed class PettyCashService(
             if (pettyCash is null)
                 return Result<long>.Failure("Petty Cash account (1110) not found in COA");
 
-            var expenseAccount = await db.Set<Account>()
+            var expenseAccount = await _db.Set<Account>()
                 .FirstOrDefaultAsync(a => a.Id == dto.ExpenseAccountId && !a.IsDeleted, ct);
             if (expenseAccount is null)
                 return Result<long>.NotFound("Expense account not found");
@@ -120,8 +117,8 @@ public sealed class PettyCashService(
                 Amount = dto.Amount,
                 CreatedAtUtc = DateTime.UtcNow,
             });
-            db.Set<Voucher>().Add(voucher);
-            await db.SaveChangesAsync(ct);
+            _db.Set<Voucher>().Add(voucher);
+            await _db.SaveChangesAsync(ct);
 
             return Result<long>.Success(voucher.Id);
         }, ct, useTransaction: true);
@@ -135,7 +132,7 @@ public sealed class PettyCashService(
 
             // Running balance = sum of debit entries minus credit entries on petty cash account
             // Materialized to client to stay compatible with both SQL Server and SQLite
-            var entries = await db.Set<VoucherEntry>()
+            var entries = await _db.Set<VoucherEntry>()
                 .Where(ve => ve.AccountId == pettyCash.Id && !ve.IsDeleted)
                 .Select(ve => new { ve.Type, ve.Amount })
                 .ToListAsync(ct);
@@ -147,7 +144,7 @@ public sealed class PettyCashService(
             long? varianceVoucherId = null;
             if (variance != 0)
             {
-                var overshortAccount = await db.Set<Account>()
+                var overshortAccount = await _db.Set<Account>()
                     .FirstOrDefaultAsync(a => a.ShopId == tenant.ShopId
                         && a.Code == (variance > 0 ? "4810" : "5810") && !a.IsDeleted, ct);
 
@@ -184,8 +181,8 @@ public sealed class PettyCashService(
                         varianceVoucher.Entries.Add(new VoucherEntry { ShopId = tenant.ShopId, AccountId = pettyCash.Id, Type = DebitCredit.Credit, Amount = Math.Abs(variance), CreatedAtUtc = DateTime.UtcNow });
                     }
 
-                    db.Set<Voucher>().Add(varianceVoucher);
-                    await db.SaveChangesAsync(ct);
+                    _db.Set<Voucher>().Add(varianceVoucher);
+                    await _db.SaveChangesAsync(ct);
                     varianceVoucherId = varianceVoucher.Id;
                 }
             }
@@ -201,14 +198,14 @@ public sealed class PettyCashService(
                 VarianceVoucherId = varianceVoucherId,
                 CreatedAtUtc = DateTime.UtcNow,
             };
-            db.Set<PettyCashClosure>().Add(closure);
-            await db.SaveChangesAsync(ct);
+            _db.Set<PettyCashClosure>().Add(closure);
+            await _db.SaveChangesAsync(ct);
 
             return Result<long>.Success(closure.Id);
         }, ct, useTransaction: true);
 
     public async Task<IReadOnlyList<PettyCashClosureListDto>> ListClosuresAsync(CancellationToken ct = default)
-        => await db.Set<PettyCashClosure>()
+        => await _db.Set<PettyCashClosure>()
             .Where(c => !c.IsDeleted)
             .OrderByDescending(c => c.ClosureDate)
             .Select(c => new PettyCashClosureListDto(
@@ -216,6 +213,6 @@ public sealed class PettyCashService(
             .ToListAsync(ct);
 
     private Task<Account?> GetPettyCashAccountAsync(CancellationToken ct)
-        => db.Set<Account>()
+        => _db.Set<Account>()
             .FirstOrDefaultAsync(a => a.ShopId == tenant.ShopId && a.Code == PettyCashCode && !a.IsDeleted, ct);
 }

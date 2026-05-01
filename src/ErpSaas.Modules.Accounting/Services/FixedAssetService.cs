@@ -29,7 +29,7 @@ public sealed class FixedAssetService(
     public async Task<PagedResult<FixedAssetListDto>> ListAsync(
         FixedAssetStatus? status, int page, int pageSize, CancellationToken ct = default)
     {
-        var query = db.Set<FixedAsset>()
+        var query = _db.Set<FixedAsset>()
             .Where(f => !f.IsDeleted && (status == null || f.Status == status));
 
         var total = await query.CountAsync(ct);
@@ -76,8 +76,8 @@ public sealed class FixedAssetService(
                 AssignedToEmployeeId = dto.AssignedToEmployeeId,
                 CreatedAtUtc = DateTime.UtcNow,
             };
-            db.Set<FixedAsset>().Add(asset);
-            await db.SaveChangesAsync(ct);
+            _db.Set<FixedAsset>().Add(asset);
+            await _db.SaveChangesAsync(ct);
 
             return Result<long>.Success(asset.Id);
         }, ct, useTransaction: true);
@@ -85,7 +85,7 @@ public sealed class FixedAssetService(
     public async Task<Result<bool>> RetireAsync(long id, CancellationToken ct = default)
         => await ExecuteAsync("FixedAsset.Retire", async () =>
         {
-            var asset = await db.Set<FixedAsset>()
+            var asset = await _db.Set<FixedAsset>()
                 .FirstOrDefaultAsync(f => f.Id == id && !f.IsDeleted, ct);
             if (asset is null) return Result<bool>.NotFound("Fixed asset not found");
 
@@ -94,7 +94,7 @@ public sealed class FixedAssetService(
 
             asset.Status = FixedAssetStatus.Retired;
             asset.UpdatedAtUtc = DateTime.UtcNow;
-            await db.SaveChangesAsync(ct);
+            await _db.SaveChangesAsync(ct);
 
             return Result<bool>.Success(true);
         }, ct, useTransaction: true);
@@ -102,7 +102,7 @@ public sealed class FixedAssetService(
     public async Task<Result<bool>> DisposeAsync(long id, DisposeFixedAssetDto dto, CancellationToken ct = default)
         => await ExecuteAsync("FixedAsset.Dispose", async () =>
         {
-            var asset = await db.Set<FixedAsset>()
+            var asset = await _db.Set<FixedAsset>()
                 .FirstOrDefaultAsync(f => f.Id == id && !f.IsDeleted, ct);
             if (asset is null) return Result<bool>.NotFound("Fixed asset not found");
 
@@ -152,21 +152,21 @@ public sealed class FixedAssetService(
             if (gainOrLoss > 0 && gainAccount is not null)
                 disposeVoucher.Entries.Add(new VoucherEntry { ShopId = tenant.ShopId, AccountId = gainAccount.Id, Type = DebitCredit.Credit, Amount = gainOrLoss, CreatedAtUtc = DateTime.UtcNow });
 
-            db.Set<Voucher>().Add(disposeVoucher);
-            await db.SaveChangesAsync(ct);
+            _db.Set<Voucher>().Add(disposeVoucher);
+            await _db.SaveChangesAsync(ct);
 
             asset.Status = FixedAssetStatus.Sold;
             asset.DisposalDate = dto.DisposalDate;
             asset.DisposalValue = dto.DisposalValue;
             asset.UpdatedAtUtc = DateTime.UtcNow;
-            await db.SaveChangesAsync(ct);
+            await _db.SaveChangesAsync(ct);
 
             return Result<bool>.Success(true);
         }, ct, useTransaction: true);
 
     public async Task<IReadOnlyList<DepreciationScheduleEntryDto>> GetDepreciationScheduleAsync(
         long id, CancellationToken ct = default)
-        => await db.Set<DepreciationEntry>()
+        => await _db.Set<DepreciationEntry>()
             .Where(d => d.FixedAssetId == id && !d.IsDeleted)
             .OrderBy(d => d.PeriodDate)
             .Select(d => new DepreciationScheduleEntryDto(
@@ -176,7 +176,7 @@ public sealed class FixedAssetService(
     public async Task<Result<int>> RunDepreciationAsync(DateTime periodDate, CancellationToken ct = default)
         => await ExecuteAsync("FixedAsset.RunDepreciation", async () =>
         {
-            var assets = await db.Set<FixedAsset>()
+            var assets = await _db.Set<FixedAsset>()
                 .Where(f => !f.IsDeleted && f.Status == FixedAssetStatus.InUse)
                 .ToListAsync(ct);
 
@@ -193,7 +193,7 @@ public sealed class FixedAssetService(
             foreach (var asset in assets)
             {
                 // Idempotent — skip if entry already posted for this period
-                var alreadyRun = await db.Set<DepreciationEntry>()
+                var alreadyRun = await _db.Set<DepreciationEntry>()
                     .AnyAsync(d => d.FixedAssetId == asset.Id && d.PeriodDate == periodDate.Date, ct);
                 if (alreadyRun) continue;
 
@@ -226,13 +226,13 @@ public sealed class FixedAssetService(
                 };
                 v.Entries.Add(new VoucherEntry { ShopId = tenant.ShopId, AccountId = depExpenseAccount.Id, Type = DebitCredit.Debit,  Amount = depAmount, CreatedAtUtc = DateTime.UtcNow });
                 v.Entries.Add(new VoucherEntry { ShopId = tenant.ShopId, AccountId = accumDepAccount.Id,   Type = DebitCredit.Credit, Amount = depAmount, CreatedAtUtc = DateTime.UtcNow });
-                db.Set<Voucher>().Add(v);
-                await db.SaveChangesAsync(ct);
+                _db.Set<Voucher>().Add(v);
+                await _db.SaveChangesAsync(ct);
 
                 var newAccumulated = asset.AccumulatedDepreciation + depAmount;
                 var newNbv = asset.PurchaseCost - newAccumulated;
 
-                db.Set<DepreciationEntry>().Add(new DepreciationEntry
+                _db.Set<DepreciationEntry>().Add(new DepreciationEntry
                 {
                     ShopId = tenant.ShopId,
                     FixedAssetId = asset.Id,
@@ -247,7 +247,7 @@ public sealed class FixedAssetService(
                 asset.AccumulatedDepreciation = newAccumulated;
                 asset.NetBookValue = newNbv;
                 asset.UpdatedAtUtc = DateTime.UtcNow;
-                await db.SaveChangesAsync(ct);
+                await _db.SaveChangesAsync(ct);
 
                 processed++;
             }
@@ -272,6 +272,6 @@ public sealed class FixedAssetService(
     }
 
     private Task<Account?> FindAccountByCodeAsync(string code, CancellationToken ct)
-        => db.Set<Account>()
+        => _db.Set<Account>()
             .FirstOrDefaultAsync(a => a.ShopId == tenant.ShopId && a.Code == code && !a.IsDeleted, ct);
 }

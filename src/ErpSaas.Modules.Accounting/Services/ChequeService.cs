@@ -22,7 +22,7 @@ public sealed class ChequeService(
     public async Task<PagedResult<ChequeListDto>> ListChequesAsync(
         ChequeStatus? status, int page, int pageSize, CancellationToken ct = default)
     {
-        var query = db.Set<Cheque>()
+        var query = _db.Set<Cheque>()
             .Where(c => !c.IsDeleted && (status == null || c.Status == status));
 
         var total = await query.CountAsync(ct);
@@ -41,12 +41,12 @@ public sealed class ChequeService(
         => await ExecuteAsync("Cheque.Receive", async () =>
         {
             // Find Cheques-in-Hand and the customer/supplier account from bank account's linked account
-            var bankAccount = await db.Set<BankAccount>()
+            var bankAccount = await _db.Set<BankAccount>()
                 .FirstOrDefaultAsync(b => b.Id == dto.BankAccountId && !b.IsDeleted, ct);
             if (bankAccount is null)
                 return Result<long>.NotFound("Bank account not found");
 
-            var chequesInHandAccount = await db.Set<Account>()
+            var chequesInHandAccount = await _db.Set<Account>()
                 .FirstOrDefaultAsync(a => a.ShopId == tenant.ShopId && a.Code == "1030" && !a.IsDeleted, ct);
             if (chequesInHandAccount is null)
                 return Result<long>.Failure("Cheques-in-Hand account (1030) not found in COA");
@@ -86,8 +86,8 @@ public sealed class ChequeService(
                 Amount = dto.Amount,
                 CreatedAtUtc = DateTime.UtcNow,
             });
-            db.Set<Voucher>().Add(receiptVoucher);
-            await db.SaveChangesAsync(ct);
+            _db.Set<Voucher>().Add(receiptVoucher);
+            await _db.SaveChangesAsync(ct);
 
             var cheque = new Cheque
             {
@@ -106,8 +106,8 @@ public sealed class ChequeService(
                 RelatedSupplierBillId = dto.RelatedSupplierBillId,
                 CreatedAtUtc = DateTime.UtcNow,
             };
-            db.Set<Cheque>().Add(cheque);
-            await db.SaveChangesAsync(ct);
+            _db.Set<Cheque>().Add(cheque);
+            await _db.SaveChangesAsync(ct);
 
             return Result<long>.Success(cheque.Id);
         }, ct, useTransaction: true);
@@ -115,7 +115,7 @@ public sealed class ChequeService(
     public async Task<Result<bool>> DepositChequeAsync(long id, DateTime depositedDate, CancellationToken ct = default)
         => await ExecuteAsync("Cheque.Deposit", async () =>
         {
-            var cheque = await db.Set<Cheque>()
+            var cheque = await _db.Set<Cheque>()
                 .FirstOrDefaultAsync(c => c.Id == id && !c.IsDeleted, ct);
             if (cheque is null) return Result<bool>.NotFound("Cheque not found");
 
@@ -125,7 +125,7 @@ public sealed class ChequeService(
             cheque.Status = ChequeStatus.Deposited;
             cheque.DepositedDate = depositedDate;
             cheque.UpdatedAtUtc = DateTime.UtcNow;
-            await db.SaveChangesAsync(ct);
+            await _db.SaveChangesAsync(ct);
 
             return Result<bool>.Success(true);
         }, ct, useTransaction: true);
@@ -133,7 +133,7 @@ public sealed class ChequeService(
     public async Task<Result<bool>> ClearChequeAsync(long id, DateTime clearedDate, CancellationToken ct = default)
         => await ExecuteAsync("Cheque.Clear", async () =>
         {
-            var cheque = await db.Set<Cheque>()
+            var cheque = await _db.Set<Cheque>()
                 .Include(c => c.BankAccount)
                 .FirstOrDefaultAsync(c => c.Id == id && !c.IsDeleted, ct);
             if (cheque is null) return Result<bool>.NotFound("Cheque not found");
@@ -141,7 +141,7 @@ public sealed class ChequeService(
             if (cheque.Status != ChequeStatus.Deposited && cheque.Status != ChequeStatus.Received)
                 return Result<bool>.Conflict("Cheque must be in Received or Deposited status to clear");
 
-            var chequesInHandAccount = await db.Set<Account>()
+            var chequesInHandAccount = await _db.Set<Account>()
                 .FirstOrDefaultAsync(a => a.ShopId == tenant.ShopId && a.Code == "1030" && !a.IsDeleted, ct);
             if (chequesInHandAccount is null)
                 return Result<bool>.Failure("Cheques-in-Hand account (1030) not found in COA");
@@ -182,14 +182,14 @@ public sealed class ChequeService(
                 Amount = cheque.Amount,
                 CreatedAtUtc = DateTime.UtcNow,
             });
-            db.Set<Voucher>().Add(clearVoucher);
-            await db.SaveChangesAsync(ct);
+            _db.Set<Voucher>().Add(clearVoucher);
+            await _db.SaveChangesAsync(ct);
 
             cheque.Status = ChequeStatus.Cleared;
             cheque.ClearedDate = clearedDate;
             cheque.VoucherIdOnClear = clearVoucher.Id;
             cheque.UpdatedAtUtc = DateTime.UtcNow;
-            await db.SaveChangesAsync(ct);
+            await _db.SaveChangesAsync(ct);
 
             return Result<bool>.Success(true);
         }, ct, useTransaction: true);
@@ -197,7 +197,7 @@ public sealed class ChequeService(
     public async Task<Result<bool>> BounceChequeAsync(long id, BounceChequeDtoRequest dto, CancellationToken ct = default)
         => await ExecuteAsync("Cheque.Bounce", async () =>
         {
-            var cheque = await db.Set<Cheque>()
+            var cheque = await _db.Set<Cheque>()
                 .Include(c => c.BankAccount)
                 .FirstOrDefaultAsync(c => c.Id == id && !c.IsDeleted, ct);
             if (cheque is null) return Result<bool>.NotFound("Cheque not found");
@@ -208,7 +208,7 @@ public sealed class ChequeService(
             if (!cheque.VoucherIdOnReceive.HasValue)
                 return Result<bool>.Failure("No receipt voucher found to reverse");
 
-            var originalVoucher = await db.Set<Voucher>()
+            var originalVoucher = await _db.Set<Voucher>()
                 .Include(v => v.Entries)
                 .FirstOrDefaultAsync(v => v.Id == cheque.VoucherIdOnReceive, ct);
             if (originalVoucher is null)
@@ -286,18 +286,18 @@ public sealed class ChequeService(
                     Amount = dto.BounceCharges,
                     CreatedAtUtc = DateTime.UtcNow,
                 });
-                db.Set<Voucher>().Add(chargesVoucher);
+                _db.Set<Voucher>().Add(chargesVoucher);
             }
 
-            db.Set<Voucher>().Add(reversalVoucher);
-            await db.SaveChangesAsync(ct);
+            _db.Set<Voucher>().Add(reversalVoucher);
+            await _db.SaveChangesAsync(ct);
 
             cheque.Status = ChequeStatus.Bounced;
             cheque.BouncedDate = DateTime.UtcNow;
             cheque.BounceReasonCode = dto.BounceReasonCode;
             cheque.VoucherIdOnBounce = reversalVoucher.Id;
             cheque.UpdatedAtUtc = DateTime.UtcNow;
-            await db.SaveChangesAsync(ct);
+            await _db.SaveChangesAsync(ct);
 
             return Result<bool>.Success(true);
         }, ct, useTransaction: true);
@@ -305,7 +305,7 @@ public sealed class ChequeService(
     public async Task<Result<bool>> CancelChequeAsync(long id, CancellationToken ct = default)
         => await ExecuteAsync("Cheque.Cancel", async () =>
         {
-            var cheque = await db.Set<Cheque>()
+            var cheque = await _db.Set<Cheque>()
                 .FirstOrDefaultAsync(c => c.Id == id && !c.IsDeleted, ct);
             if (cheque is null) return Result<bool>.NotFound("Cheque not found");
 
@@ -314,7 +314,7 @@ public sealed class ChequeService(
 
             cheque.Status = ChequeStatus.Cancelled;
             cheque.UpdatedAtUtc = DateTime.UtcNow;
-            await db.SaveChangesAsync(ct);
+            await _db.SaveChangesAsync(ct);
 
             return Result<bool>.Success(true);
         }, ct, useTransaction: true);
@@ -322,7 +322,7 @@ public sealed class ChequeService(
     public async Task MarkStaleDatedAsync(CancellationToken ct = default)
     {
         var cutoff = DateTime.UtcNow.AddMonths(-3);
-        var stale = await db.Set<Cheque>()
+        var stale = await _db.Set<Cheque>()
             .IgnoreQueryFilters()
             .Where(c => !c.IsDeleted
                 && (c.Status == ChequeStatus.Received || c.Status == ChequeStatus.Deposited)
@@ -336,7 +336,7 @@ public sealed class ChequeService(
             cheque.Status = ChequeStatus.StaleDated;
             cheque.UpdatedAtUtc = DateTime.UtcNow;
         }
-        await db.SaveChangesAsync(ct);
+        await _db.SaveChangesAsync(ct);
         logger.LogInformation("Marked {Count} cheques as stale-dated", stale.Count);
     }
 }

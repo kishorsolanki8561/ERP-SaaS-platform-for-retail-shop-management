@@ -7,16 +7,13 @@ using ErpSaas.Shared.Data;
 using ErpSaas.Shared.Messages;
 using ErpSaas.Shared.Services;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
-
 namespace ErpSaas.Modules.Accounting.Services;
 
 public sealed class BankReconciliationService(
     TenantDbContext db,
     IErrorLogger errorLogger,
     ISequenceService sequence,
-    ITenantContext tenant,
-    ILogger<BankReconciliationService> logger)
+    ITenantContext tenant)
     : BaseService<TenantDbContext>(db, errorLogger), IBankReconciliationService
 {
     // ── Bank Statements ───────────────────────────────────────────────────────
@@ -24,7 +21,7 @@ public sealed class BankReconciliationService(
     public async Task<PagedResult<BankStatementListDto>> ListBankStatementsAsync(
         long? bankAccountId, int page, int pageSize, CancellationToken ct = default)
     {
-        var query = db.Set<BankStatement>()
+        var query = _db.Set<BankStatement>()
             .Include(s => s.BankAccount)
             .Include(s => s.Lines)
             .Where(s => !s.IsDeleted && (bankAccountId == null || s.BankAccountId == bankAccountId));
@@ -53,7 +50,7 @@ public sealed class BankReconciliationService(
         CreateBankStatementDto dto, CancellationToken ct = default)
         => await ExecuteAsync<long>("Accounting.CreateBankStatement", async () =>
         {
-            var bankAccount = await db.Set<BankAccount>()
+            var bankAccount = await _db.Set<BankAccount>()
                 .FirstOrDefaultAsync(b => b.Id == dto.BankAccountId && !b.IsDeleted, ct);
             if (bankAccount is null)
                 return Result<long>.NotFound(Errors.Accounting.BankStatementNotFound);
@@ -69,13 +66,13 @@ public sealed class BankReconciliationService(
                 IsCompleted = false,
                 CreatedAtUtc = DateTime.UtcNow,
             };
-            db.Set<BankStatement>().Add(entity);
-            await db.SaveChangesAsync(ct);
+            _db.Set<BankStatement>().Add(entity);
+            await _db.SaveChangesAsync(ct);
             return Result<long>.Success(entity.Id);
         }, ct, useTransaction: true);
 
     public async Task<BankStatementDetailDto?> GetBankStatementAsync(long id, CancellationToken ct = default)
-        => await db.Set<BankStatement>()
+        => await _db.Set<BankStatement>()
             .Include(s => s.BankAccount)
             .Include(s => s.Lines)
             .Where(s => s.Id == id && !s.IsDeleted)
@@ -99,7 +96,7 @@ public sealed class BankReconciliationService(
         long statementId, IReadOnlyList<ImportBankStatementLineDto> lines, CancellationToken ct = default)
         => await ExecuteAsync<int>("Accounting.ImportBankStatementLines", async () =>
         {
-            var statement = await db.Set<BankStatement>()
+            var statement = await _db.Set<BankStatement>()
                 .FirstOrDefaultAsync(s => s.Id == statementId && !s.IsDeleted, ct);
             if (statement is null)
                 return Result<int>.NotFound(Errors.Accounting.BankStatementNotFound);
@@ -117,8 +114,8 @@ public sealed class BankReconciliationService(
                 MatchStatus = BankStatementLineStatus.Unmatched,
             }).ToList();
 
-            db.Set<BankStatementLine>().AddRange(entities);
-            await db.SaveChangesAsync(ct);
+            _db.Set<BankStatementLine>().AddRange(entities);
+            await _db.SaveChangesAsync(ct);
             return Result<int>.Success(entities.Count);
         }, ct, useTransaction: true);
 
@@ -128,7 +125,7 @@ public sealed class BankReconciliationService(
         long statementId, CancellationToken ct = default)
         => await ExecuteAsync<AutoMatchResultDto>("Accounting.AutoMatch", async () =>
         {
-            var statement = await db.Set<BankStatement>()
+            var statement = await _db.Set<BankStatement>()
                 .Include(s => s.Lines)
                 .FirstOrDefaultAsync(s => s.Id == statementId && !s.IsDeleted, ct);
             if (statement is null)
@@ -136,7 +133,7 @@ public sealed class BankReconciliationService(
             if (statement.IsCompleted)
                 return Result<AutoMatchResultDto>.Conflict(Errors.Accounting.BankStatementAlreadyComplete);
 
-            var rules = await db.Set<ReconciliationRule>()
+            var rules = await _db.Set<ReconciliationRule>()
                 .Where(r => r.IsActive && !r.IsDeleted)
                 .ToListAsync(ct);
 
@@ -158,7 +155,7 @@ public sealed class BankReconciliationService(
                 var minDate = line.TransactionDate - window;
                 var maxDate = line.TransactionDate + window;
 
-                var matchingVoucher = await db.Set<Voucher>()
+                var matchingVoucher = await _db.Set<Voucher>()
                     .Where(v => !v.IsDeleted
                         && v.VoucherType == matchingRule.VoucherType
                         && v.VoucherDate >= minDate
@@ -178,7 +175,7 @@ public sealed class BankReconciliationService(
             }
 
             if (matchedCount > 0)
-                await db.SaveChangesAsync(ct);
+                await _db.SaveChangesAsync(ct);
 
             var stillUnmatched = unmatchedLines.Count - matchedCount;
             return Result<AutoMatchResultDto>.Success(new AutoMatchResultDto(matchedCount, stillUnmatched));
@@ -190,7 +187,7 @@ public sealed class BankReconciliationService(
         long lineId, ManualMatchLineDto dto, CancellationToken ct = default)
         => await ExecuteAsync<bool>("Accounting.ManualMatchLine", async () =>
         {
-            var line = await db.Set<BankStatementLine>()
+            var line = await _db.Set<BankStatementLine>()
                 .Include(l => l.BankStatement)
                 .FirstOrDefaultAsync(l => l.Id == lineId, ct);
             if (line is null) return Result<bool>.NotFound(Errors.Accounting.BankStatementLineNotFound);
@@ -199,7 +196,7 @@ public sealed class BankReconciliationService(
             if (line.MatchStatus == BankStatementLineStatus.Matched)
                 return Result<bool>.Conflict(Errors.Accounting.BankStatementLineAlreadyMatched);
 
-            var voucher = await db.Set<Voucher>()
+            var voucher = await _db.Set<Voucher>()
                 .FirstOrDefaultAsync(v => v.Id == dto.VoucherId && !v.IsDeleted, ct);
             if (voucher is null) return Result<bool>.NotFound(Errors.Accounting.VoucherNotFound);
 
@@ -207,14 +204,14 @@ public sealed class BankReconciliationService(
             line.MatchedVoucherId = dto.VoucherId;
             line.MatchedByUserId = tenant.CurrentUserId;
             line.MatchedAtUtc = DateTime.UtcNow;
-            await db.SaveChangesAsync(ct);
+            await _db.SaveChangesAsync(ct);
             return Result<bool>.Success(true);
         }, ct, useTransaction: true);
 
     public async Task<Result<bool>> IgnoreLineAsync(long lineId, CancellationToken ct = default)
         => await ExecuteAsync<bool>("Accounting.IgnoreLine", async () =>
         {
-            var line = await db.Set<BankStatementLine>()
+            var line = await _db.Set<BankStatementLine>()
                 .Include(l => l.BankStatement)
                 .FirstOrDefaultAsync(l => l.Id == lineId, ct);
             if (line is null) return Result<bool>.NotFound(Errors.Accounting.BankStatementLineNotFound);
@@ -224,7 +221,7 @@ public sealed class BankReconciliationService(
                 return Result<bool>.Conflict(Errors.Accounting.BankStatementLineAlreadyMatched);
 
             line.MatchStatus = BankStatementLineStatus.Ignored;
-            await db.SaveChangesAsync(ct);
+            await _db.SaveChangesAsync(ct);
             return Result<bool>.Success(true);
         }, ct, useTransaction: true);
 
@@ -232,7 +229,7 @@ public sealed class BankReconciliationService(
         PostAdjustmentDto dto, CancellationToken ct = default)
         => await ExecuteAsync<long>("Accounting.PostAdjustment", async () =>
         {
-            var line = await db.Set<BankStatementLine>()
+            var line = await _db.Set<BankStatementLine>()
                 .Include(l => l.BankStatement)
                 .FirstOrDefaultAsync(l => l.Id == dto.BankStatementLineId, ct);
             if (line is null) return Result<long>.NotFound(Errors.Accounting.BankStatementLineNotFound);
@@ -241,7 +238,7 @@ public sealed class BankReconciliationService(
             if (line.MatchStatus == BankStatementLineStatus.Matched)
                 return Result<long>.Conflict(Errors.Accounting.BankStatementLineAlreadyMatched);
 
-            var account = await db.Set<Account>()
+            var account = await _db.Set<Account>()
                 .FirstOrDefaultAsync(a => a.Id == dto.AccountId && !a.IsDeleted, ct);
             if (account is null) return Result<long>.NotFound(Errors.Accounting.AccountNotFound);
 
@@ -251,7 +248,7 @@ public sealed class BankReconciliationService(
             var voucherNumber = await sequence.NextAsync(
                 Constants.SequenceCodes.VoucherJournal, tenant.ShopId, ct);
 
-            var bankAccount = await db.Set<BankAccount>()
+            var bankAccount = await _db.Set<BankAccount>()
                 .FirstOrDefaultAsync(b => b.Id == line.BankStatement.BankAccountId, ct);
 
             var voucher = new Voucher
@@ -287,14 +284,14 @@ public sealed class BankReconciliationService(
                 },
             ];
 
-            db.Set<Voucher>().Add(voucher);
-            await db.SaveChangesAsync(ct);
+            _db.Set<Voucher>().Add(voucher);
+            await _db.SaveChangesAsync(ct);
 
             line.MatchStatus = BankStatementLineStatus.Adjustment;
             line.MatchedVoucherId = voucher.Id;
             line.MatchedByUserId = tenant.CurrentUserId;
             line.MatchedAtUtc = DateTime.UtcNow;
-            await db.SaveChangesAsync(ct);
+            await _db.SaveChangesAsync(ct);
 
             return Result<long>.Success(voucher.Id);
         }, ct, useTransaction: true);
@@ -303,7 +300,7 @@ public sealed class BankReconciliationService(
         long statementId, CancellationToken ct = default)
         => await ExecuteAsync<bool>("Accounting.CompleteReconciliation", async () =>
         {
-            var statement = await db.Set<BankStatement>()
+            var statement = await _db.Set<BankStatement>()
                 .Include(s => s.Lines)
                 .FirstOrDefaultAsync(s => s.Id == statementId && !s.IsDeleted, ct);
             if (statement is null) return Result<bool>.NotFound(Errors.Accounting.BankStatementNotFound);
@@ -318,7 +315,7 @@ public sealed class BankReconciliationService(
             statement.CompletedAtUtc = DateTime.UtcNow;
             statement.CompletedByUserId = tenant.CurrentUserId;
             statement.UpdatedAtUtc = DateTime.UtcNow;
-            await db.SaveChangesAsync(ct);
+            await _db.SaveChangesAsync(ct);
             return Result<bool>.Success(true);
         }, ct, useTransaction: true);
 
@@ -326,7 +323,7 @@ public sealed class BankReconciliationService(
 
     public async Task<IReadOnlyList<ReconciliationRuleDto>> ListReconciliationRulesAsync(
         CancellationToken ct = default)
-        => await db.Set<ReconciliationRule>()
+        => await _db.Set<ReconciliationRule>()
             .Include(r => r.Account)
             .Where(r => !r.IsDeleted)
             .OrderBy(r => r.Name)
@@ -339,7 +336,7 @@ public sealed class BankReconciliationService(
         CreateReconciliationRuleDto dto, CancellationToken ct = default)
         => await ExecuteAsync<long>("Accounting.CreateReconciliationRule", async () =>
         {
-            var account = await db.Set<Account>()
+            var account = await _db.Set<Account>()
                 .FirstOrDefaultAsync(a => a.Id == dto.AccountId && !a.IsDeleted, ct);
             if (account is null) return Result<long>.NotFound(Errors.Accounting.AccountNotFound);
 
@@ -352,8 +349,8 @@ public sealed class BankReconciliationService(
                 IsActive = true,
                 CreatedAtUtc = DateTime.UtcNow,
             };
-            db.Set<ReconciliationRule>().Add(rule);
-            await db.SaveChangesAsync(ct);
+            _db.Set<ReconciliationRule>().Add(rule);
+            await _db.SaveChangesAsync(ct);
             return Result<long>.Success(rule.Id);
         }, ct, useTransaction: true);
 
@@ -361,13 +358,13 @@ public sealed class BankReconciliationService(
         long ruleId, CancellationToken ct = default)
         => await ExecuteAsync<bool>("Accounting.ToggleReconciliationRule", async () =>
         {
-            var rule = await db.Set<ReconciliationRule>()
+            var rule = await _db.Set<ReconciliationRule>()
                 .FirstOrDefaultAsync(r => r.Id == ruleId && !r.IsDeleted, ct);
             if (rule is null) return Result<bool>.NotFound(Errors.Accounting.ReconciliationRuleNotFound);
 
             rule.IsActive = !rule.IsActive;
             rule.UpdatedAtUtc = DateTime.UtcNow;
-            await db.SaveChangesAsync(ct);
+            await _db.SaveChangesAsync(ct);
             return Result<bool>.Success(true);
         }, ct, useTransaction: true);
 }

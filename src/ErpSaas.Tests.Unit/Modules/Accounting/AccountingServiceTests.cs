@@ -426,8 +426,7 @@ public class BankReconciliationServiceTests : IDisposable
         _sequence.NextAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>())
             .Returns(_ => $"VJ-{++_seqCounter:D6}");
 
-        _sut = new BankReconciliationService(_db, _errorLogger, _sequence, _tenant,
-            Substitute.For<ILogger<BankReconciliationService>>());
+        _sut = new BankReconciliationService(_db, _errorLogger, _sequence, _tenant);
     }
 
     public void Dispose()

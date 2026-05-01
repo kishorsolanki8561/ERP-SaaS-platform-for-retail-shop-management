@@ -7,23 +7,20 @@ using ErpSaas.Shared.Data;
 using ErpSaas.Shared.Messages;
 using ErpSaas.Shared.Services;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
-
 namespace ErpSaas.Modules.Warranty.Services;
 
 public sealed class WarrantyService(
     TenantDbContext db,
     IErrorLogger errorLogger,
     ISequenceService sequence,
-    ITenantContext tenant,
-    ILogger<WarrantyService> logger)
+    ITenantContext tenant)
     : BaseService<TenantDbContext>(db, errorLogger), IWarrantyService
 {
     public async Task<Result<long>> RegisterWarrantyAsync(RegisterWarrantyDto dto, CancellationToken ct = default)
     {
         return await ExecuteAsync("Warranty.RegisterWarranty", async () =>
         {
-            var exists = await db.Set<WarrantyRegistration>()
+            var exists = await _db.Set<WarrantyRegistration>()
                 .AnyAsync(w => w.SerialNumber == dto.SerialNumber, ct);
             if (exists) return Result<long>.Conflict(Errors.Warranty.SerialNumberExists);
 
@@ -47,15 +44,15 @@ public sealed class WarrantyService(
                 BranchId = dto.BranchId,
                 CreatedAtUtc = DateTime.UtcNow,
             };
-            db.Set<WarrantyRegistration>().Add(reg);
-            await db.SaveChangesAsync(ct);
+            _db.Set<WarrantyRegistration>().Add(reg);
+            await _db.SaveChangesAsync(ct);
             return Result<long>.Success(reg.Id);
         }, ct, useTransaction: true);
     }
 
     public async Task<WarrantyRegistrationDto?> GetBySerialAsync(string serial, CancellationToken ct = default)
     {
-        var reg = await db.Set<WarrantyRegistration>()
+        var reg = await _db.Set<WarrantyRegistration>()
             .FirstOrDefaultAsync(w => w.SerialNumber == serial, ct);
         if (reg is null) return null;
         return Map(reg);
@@ -64,7 +61,7 @@ public sealed class WarrantyService(
     public async Task<IReadOnlyList<WarrantyRegistrationDto>> ListExpiringAsync(int days, CancellationToken ct = default)
     {
         var cutoff = DateTime.UtcNow.AddDays(days);
-        return await db.Set<WarrantyRegistration>()
+        return await _db.Set<WarrantyRegistration>()
             .Where(w => w.WarrantyEndDate <= cutoff && w.StatusCode == "Active")
             .Select(w => new WarrantyRegistrationDto(
                 w.Id, w.SerialNumber, w.ProductNameSnapshot, w.CustomerNameSnapshot,
@@ -74,7 +71,7 @@ public sealed class WarrantyService(
 
     public async Task<IReadOnlyList<WarrantyRegistrationDto>> ListByCustomerAsync(long customerId, CancellationToken ct = default)
     {
-        return await db.Set<WarrantyRegistration>()
+        return await _db.Set<WarrantyRegistration>()
             .Where(w => w.CustomerId == customerId)
             .Select(w => new WarrantyRegistrationDto(
                 w.Id, w.SerialNumber, w.ProductNameSnapshot, w.CustomerNameSnapshot,
@@ -86,7 +83,7 @@ public sealed class WarrantyService(
     {
         return await ExecuteAsync("Warranty.CreateClaim", async () =>
         {
-            var reg = await db.Set<WarrantyRegistration>()
+            var reg = await _db.Set<WarrantyRegistration>()
                 .FirstOrDefaultAsync(w => w.Id == dto.WarrantyRegistrationId, ct);
             if (reg is null) return Result<long>.NotFound(Errors.Warranty.RegistrationNotFound);
             if (reg.StatusCode != "Active") return Result<long>.Conflict(Errors.Warranty.WarrantyNotActive);
@@ -105,11 +102,11 @@ public sealed class WarrantyService(
                 AttachmentFileIds = dto.AttachmentFileIds,
                 CreatedAtUtc = DateTime.UtcNow,
             };
-            db.Set<WarrantyClaim>().Add(claim);
+            _db.Set<WarrantyClaim>().Add(claim);
 
             reg.StatusCode = "Claimed";
             reg.UpdatedAtUtc = DateTime.UtcNow;
-            await db.SaveChangesAsync(ct);
+            await _db.SaveChangesAsync(ct);
             return Result<long>.Success(claim.Id);
         }, ct, useTransaction: true);
     }
@@ -118,7 +115,7 @@ public sealed class WarrantyService(
     {
         return await ExecuteAsync("Warranty.ResolveClaim", async () =>
         {
-            var claim = await db.Set<WarrantyClaim>()
+            var claim = await _db.Set<WarrantyClaim>()
                 .Include(c => c.Registration)
                 .FirstOrDefaultAsync(c => c.Id == claimId, ct);
             if (claim is null) return Result<bool>.NotFound(Errors.Warranty.ClaimNotFound);
@@ -137,14 +134,14 @@ public sealed class WarrantyService(
                 claim.Registration.UpdatedAtUtc = DateTime.UtcNow;
             }
 
-            await db.SaveChangesAsync(ct);
+            await _db.SaveChangesAsync(ct);
             return Result<bool>.Success(true);
         }, ct, useTransaction: true);
     }
 
     public async Task<IReadOnlyList<WarrantyClaimDto>> ListClaimsAsync(CancellationToken ct = default)
     {
-        return await db.Set<WarrantyClaim>()
+        return await _db.Set<WarrantyClaim>()
             .Select(c => new WarrantyClaimDto(
                 c.Id, c.ClaimNumber, c.WarrantyRegistrationId,
                 c.ClaimDate, c.IssueDescription, c.Status,

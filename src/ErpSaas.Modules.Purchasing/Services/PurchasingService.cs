@@ -7,8 +7,6 @@ using ErpSaas.Shared.Data;
 using ErpSaas.Shared.Messages;
 using ErpSaas.Shared.Services;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
-
 namespace ErpSaas.Modules.Purchasing.Services;
 
 public sealed class PurchasingService(
@@ -16,7 +14,6 @@ public sealed class PurchasingService(
     IErrorLogger errorLogger,
     ISequenceService sequence,
     ITenantContext tenant,
-    ILogger<PurchasingService> logger,
     IAutoVoucherService autoVoucher)
     : BaseService<TenantDbContext>(db, errorLogger), IPurchasingService
 {
@@ -24,7 +21,7 @@ public sealed class PurchasingService(
 
     public async Task<IReadOnlyList<SupplierDto>> ListSuppliersAsync(CancellationToken ct = default)
     {
-        return await db.Set<Supplier>()
+        return await _db.Set<Supplier>()
             .Where(s => !s.IsDeleted)
             .Select(s => new SupplierDto(s.Id, s.Name, s.Code, s.GstNumber, s.Phone, s.Email, s.IsActive))
             .ToListAsync(ct);
@@ -35,7 +32,7 @@ public sealed class PurchasingService(
         return await ExecuteAsync("Purchasing.CreateSupplier", async () =>
         {
             if (dto.Code is not null &&
-                await db.Set<Supplier>().AnyAsync(s => s.ShopId == tenant.ShopId && s.Code == dto.Code, ct))
+                await _db.Set<Supplier>().AnyAsync(s => s.ShopId == tenant.ShopId && s.Code == dto.Code, ct))
                 return Result<long>.Conflict(Errors.Purchasing.SupplierCodeExists);
 
             var supplier = new Supplier
@@ -48,8 +45,8 @@ public sealed class PurchasingService(
                 OpeningBalance = dto.OpeningBalance, Notes = dto.Notes,
                 IsActive = true, CreatedAtUtc = DateTime.UtcNow,
             };
-            db.Set<Supplier>().Add(supplier);
-            await db.SaveChangesAsync(ct);
+            _db.Set<Supplier>().Add(supplier);
+            await _db.SaveChangesAsync(ct);
             return Result<long>.Success(supplier.Id);
         }, ct, useTransaction: true);
     }
@@ -58,7 +55,7 @@ public sealed class PurchasingService(
     {
         return await ExecuteAsync("Purchasing.UpdateSupplier", async () =>
         {
-            var supplier = await db.Set<Supplier>().FirstOrDefaultAsync(s => s.Id == id, ct);
+            var supplier = await _db.Set<Supplier>().FirstOrDefaultAsync(s => s.Id == id, ct);
             if (supplier is null) return Result<bool>.NotFound(Errors.Purchasing.SupplierNotFound);
 
             supplier.Name = dto.Name; supplier.GstNumber = dto.GstNumber;
@@ -67,7 +64,7 @@ public sealed class PurchasingService(
             supplier.City = dto.City; supplier.State = dto.State; supplier.Pincode = dto.Pincode;
             supplier.IsActive = dto.IsActive; supplier.Notes = dto.Notes;
             supplier.UpdatedAtUtc = DateTime.UtcNow;
-            await db.SaveChangesAsync(ct);
+            await _db.SaveChangesAsync(ct);
             return Result<bool>.Success(true);
         }, ct, useTransaction: true);
     }
@@ -76,11 +73,11 @@ public sealed class PurchasingService(
     {
         return await ExecuteAsync("Purchasing.DeleteSupplier", async () =>
         {
-            var supplier = await db.Set<Supplier>().FirstOrDefaultAsync(s => s.Id == id, ct);
+            var supplier = await _db.Set<Supplier>().FirstOrDefaultAsync(s => s.Id == id, ct);
             if (supplier is null) return Result<bool>.NotFound(Errors.Purchasing.SupplierNotFound);
 
             supplier.IsDeleted = true; supplier.UpdatedAtUtc = DateTime.UtcNow;
-            await db.SaveChangesAsync(ct);
+            await _db.SaveChangesAsync(ct);
             return Result<bool>.Success(true);
         }, ct, useTransaction: true);
     }
@@ -91,7 +88,7 @@ public sealed class PurchasingService(
     {
         return await ExecuteAsync("Purchasing.CreatePurchaseOrder", async () =>
         {
-            var supplier = await db.Set<Supplier>().FirstOrDefaultAsync(s => s.Id == dto.SupplierId, ct);
+            var supplier = await _db.Set<Supplier>().FirstOrDefaultAsync(s => s.Id == dto.SupplierId, ct);
             if (supplier is null) return Result<long>.NotFound(Errors.Purchasing.SupplierNotFound);
 
             var poNumber = await sequence.NextAsync(Constants.SequenceCodes.PurchaseOrder, tenant.ShopId, ct);
@@ -146,8 +143,8 @@ public sealed class PurchasingService(
             po.TotalTaxAmount = totalTax;
             po.GrandTotal = subTotal + totalTax;
 
-            db.Set<PurchaseOrder>().Add(po);
-            await db.SaveChangesAsync(ct);
+            _db.Set<PurchaseOrder>().Add(po);
+            await _db.SaveChangesAsync(ct);
             return Result<long>.Success(po.Id);
         }, ct, useTransaction: true);
     }
@@ -156,13 +153,13 @@ public sealed class PurchasingService(
     {
         return await ExecuteAsync("Purchasing.SendPurchaseOrder", async () =>
         {
-            var po = await db.Set<PurchaseOrder>().FirstOrDefaultAsync(x => x.Id == id, ct);
+            var po = await _db.Set<PurchaseOrder>().FirstOrDefaultAsync(x => x.Id == id, ct);
             if (po is null) return Result<bool>.NotFound(Errors.Purchasing.PoNotFound);
             if (po.Status != PurchaseOrderStatus.Draft) return Result<bool>.Conflict(Errors.Purchasing.PoNotDraft);
 
             po.Status = PurchaseOrderStatus.Sent;
             po.UpdatedAtUtc = DateTime.UtcNow;
-            await db.SaveChangesAsync(ct);
+            await _db.SaveChangesAsync(ct);
             return Result<bool>.Success(true);
         }, ct, useTransaction: true);
     }
@@ -171,7 +168,7 @@ public sealed class PurchasingService(
     {
         return await ExecuteAsync("Purchasing.ReceivePurchaseOrder", async () =>
         {
-            var po = await db.Set<PurchaseOrder>()
+            var po = await _db.Set<PurchaseOrder>()
                 .Include(x => x.Lines)
                 .FirstOrDefaultAsync(x => x.Id == dto.PurchaseOrderId, ct);
             if (po is null) return Result<bool>.NotFound(Errors.Purchasing.PoNotFound);
@@ -187,7 +184,7 @@ public sealed class PurchasingService(
             var allReceived = po.Lines.All(l => l.QuantityReceived >= l.QuantityInBilledUnit);
             po.Status = allReceived ? PurchaseOrderStatus.Received : PurchaseOrderStatus.PartiallyReceived;
             po.UpdatedAtUtc = DateTime.UtcNow;
-            await db.SaveChangesAsync(ct);
+            await _db.SaveChangesAsync(ct);
             return Result<bool>.Success(true);
         }, ct, useTransaction: true);
     }
@@ -196,13 +193,13 @@ public sealed class PurchasingService(
     {
         return await ExecuteAsync("Purchasing.CancelPurchaseOrder", async () =>
         {
-            var po = await db.Set<PurchaseOrder>().FirstOrDefaultAsync(x => x.Id == id, ct);
+            var po = await _db.Set<PurchaseOrder>().FirstOrDefaultAsync(x => x.Id == id, ct);
             if (po is null) return Result<bool>.NotFound(Errors.Purchasing.PoNotFound);
             if (po.Status == PurchaseOrderStatus.Cancelled) return Result<bool>.Conflict(Errors.Purchasing.PoAlreadyCancelled);
 
             po.Status = PurchaseOrderStatus.Cancelled;
             po.UpdatedAtUtc = DateTime.UtcNow;
-            await db.SaveChangesAsync(ct);
+            await _db.SaveChangesAsync(ct);
             return Result<bool>.Success(true);
         }, ct, useTransaction: true);
     }
@@ -213,7 +210,7 @@ public sealed class PurchasingService(
     {
         return await ExecuteAsync("Purchasing.CreateBill", async () =>
         {
-            var supplier = await db.Set<Supplier>().FirstOrDefaultAsync(s => s.Id == dto.SupplierId, ct);
+            var supplier = await _db.Set<Supplier>().FirstOrDefaultAsync(s => s.Id == dto.SupplierId, ct);
             if (supplier is null) return Result<long>.NotFound(Errors.Purchasing.SupplierNotFound);
 
             var billNumber = await sequence.NextAsync(Constants.SequenceCodes.Bill, tenant.ShopId, ct);
@@ -237,8 +234,8 @@ public sealed class PurchasingService(
                 Notes = dto.Notes,
                 CreatedAtUtc = DateTime.UtcNow,
             };
-            db.Set<Bill>().Add(bill);
-            await db.SaveChangesAsync(ct);
+            _db.Set<Bill>().Add(bill);
+            await _db.SaveChangesAsync(ct);
             return Result<long>.Success(bill.Id);
         }, ct, useTransaction: true);
     }
@@ -247,13 +244,13 @@ public sealed class PurchasingService(
     {
         return await ExecuteAsync("Purchasing.ApproveBill", async () =>
         {
-            var bill = await db.Set<Bill>().FirstOrDefaultAsync(b => b.Id == id, ct);
+            var bill = await _db.Set<Bill>().FirstOrDefaultAsync(b => b.Id == id, ct);
             if (bill is null) return Result<bool>.NotFound(Errors.Purchasing.BillNotFound);
             if (bill.Status != BillStatus.Draft) return Result<bool>.Conflict(Errors.Purchasing.BillNotDraft);
 
             bill.Status = BillStatus.Approved;
             bill.UpdatedAtUtc = DateTime.UtcNow;
-            await db.SaveChangesAsync(ct);
+            await _db.SaveChangesAsync(ct);
             await autoVoucher.PostPurchaseBillVoucherAsync(tenant.ShopId, bill.Id, bill.BillNumber, bill.GrandTotal, ct);
             return Result<bool>.Success(true);
         }, ct, useTransaction: true);
@@ -263,7 +260,7 @@ public sealed class PurchasingService(
     {
         return await ExecuteAsync("Purchasing.PayBill", async () =>
         {
-            var bill = await db.Set<Bill>().FirstOrDefaultAsync(b => b.Id == dto.BillId, ct);
+            var bill = await _db.Set<Bill>().FirstOrDefaultAsync(b => b.Id == dto.BillId, ct);
             if (bill is null) return Result<bool>.NotFound(Errors.Purchasing.BillNotFound);
             if (bill.Status == BillStatus.Cancelled) return Result<bool>.Conflict(Errors.Purchasing.BillAlreadyCancelled);
             if (bill.Status == BillStatus.Draft) return Result<bool>.Conflict(Errors.Purchasing.BillNotApproved);
@@ -280,14 +277,14 @@ public sealed class PurchasingService(
                 Notes = dto.Notes,
                 CreatedAtUtc = DateTime.UtcNow,
             };
-            db.Set<BillPayment>().Add(payment);
+            _db.Set<BillPayment>().Add(payment);
 
             bill.PaidAmount += dto.Amount;
             bill.OutstandingAmount -= dto.Amount;
             bill.Status = bill.OutstandingAmount <= 0 ? BillStatus.Paid : BillStatus.PartiallyPaid;
             bill.UpdatedAtUtc = DateTime.UtcNow;
 
-            await db.SaveChangesAsync(ct);
+            await _db.SaveChangesAsync(ct);
             return Result<bool>.Success(true);
         }, ct, useTransaction: true);
     }
@@ -296,13 +293,13 @@ public sealed class PurchasingService(
     {
         return await ExecuteAsync("Purchasing.CancelBill", async () =>
         {
-            var bill = await db.Set<Bill>().FirstOrDefaultAsync(b => b.Id == id, ct);
+            var bill = await _db.Set<Bill>().FirstOrDefaultAsync(b => b.Id == id, ct);
             if (bill is null) return Result<bool>.NotFound(Errors.Purchasing.BillNotFound);
             if (bill.Status == BillStatus.Cancelled) return Result<bool>.Conflict(Errors.Purchasing.BillAlreadyCancelled);
 
             bill.Status = BillStatus.Cancelled;
             bill.UpdatedAtUtc = DateTime.UtcNow;
-            await db.SaveChangesAsync(ct);
+            await _db.SaveChangesAsync(ct);
             return Result<bool>.Success(true);
         }, ct, useTransaction: true);
     }
@@ -313,13 +310,13 @@ public sealed class PurchasingService(
     {
         return await ExecuteAsync("Purchasing.CreatePurchaseReturn", async () =>
         {
-            var supplier = await db.Set<Supplier>().FirstOrDefaultAsync(s => s.Id == dto.SupplierId, ct);
+            var supplier = await _db.Set<Supplier>().FirstOrDefaultAsync(s => s.Id == dto.SupplierId, ct);
             if (supplier is null) return Result<long>.NotFound(Errors.Purchasing.SupplierNotFound);
 
             string? poNumber = null;
             if (dto.PurchaseOrderId.HasValue)
             {
-                var po = await db.Set<PurchaseOrder>().FirstOrDefaultAsync(p => p.Id == dto.PurchaseOrderId.Value, ct);
+                var po = await _db.Set<PurchaseOrder>().FirstOrDefaultAsync(p => p.Id == dto.PurchaseOrderId.Value, ct);
                 if (po is null) return Result<long>.NotFound(Errors.Purchasing.PoNotFound);
                 poNumber = po.PoNumber;
             }
@@ -378,8 +375,8 @@ public sealed class PurchasingService(
             ret.TotalTaxAmount = totalTax;
             ret.GrandTotal = subTotal + totalTax;
 
-            db.Set<PurchaseReturn>().Add(ret);
-            await db.SaveChangesAsync(ct);
+            _db.Set<PurchaseReturn>().Add(ret);
+            await _db.SaveChangesAsync(ct);
             return Result<long>.Success(ret.Id);
         }, ct, useTransaction: true);
     }
@@ -388,13 +385,13 @@ public sealed class PurchasingService(
     {
         return await ExecuteAsync("Purchasing.ApprovePurchaseReturn", async () =>
         {
-            var ret = await db.Set<PurchaseReturn>().FirstOrDefaultAsync(r => r.Id == id, ct);
+            var ret = await _db.Set<PurchaseReturn>().FirstOrDefaultAsync(r => r.Id == id, ct);
             if (ret is null) return Result<bool>.NotFound(Errors.Purchasing.PurchaseReturnNotFound);
             if (ret.Status != PurchaseReturnStatus.Draft) return Result<bool>.Conflict(Errors.Purchasing.PurchaseReturnNotDraft);
 
             ret.Status = PurchaseReturnStatus.Approved;
             ret.UpdatedAtUtc = DateTime.UtcNow;
-            await db.SaveChangesAsync(ct);
+            await _db.SaveChangesAsync(ct);
             return Result<bool>.Success(true);
         }, ct, useTransaction: true);
     }
@@ -403,13 +400,13 @@ public sealed class PurchasingService(
     {
         return await ExecuteAsync("Purchasing.CancelPurchaseReturn", async () =>
         {
-            var ret = await db.Set<PurchaseReturn>().FirstOrDefaultAsync(r => r.Id == id, ct);
+            var ret = await _db.Set<PurchaseReturn>().FirstOrDefaultAsync(r => r.Id == id, ct);
             if (ret is null) return Result<bool>.NotFound(Errors.Purchasing.PurchaseReturnNotFound);
             if (ret.Status == PurchaseReturnStatus.Cancelled) return Result<bool>.Conflict(Errors.Purchasing.PurchaseReturnAlreadyCancelled);
 
             ret.Status = PurchaseReturnStatus.Cancelled;
             ret.UpdatedAtUtc = DateTime.UtcNow;
-            await db.SaveChangesAsync(ct);
+            await _db.SaveChangesAsync(ct);
             return Result<bool>.Success(true);
         }, ct, useTransaction: true);
     }
@@ -418,7 +415,7 @@ public sealed class PurchasingService(
     {
         return await ExecuteAsync("Purchasing.IssueDebitNote", async () =>
         {
-            var ret = await db.Set<PurchaseReturn>().FirstOrDefaultAsync(r => r.Id == dto.PurchaseReturnId, ct);
+            var ret = await _db.Set<PurchaseReturn>().FirstOrDefaultAsync(r => r.Id == dto.PurchaseReturnId, ct);
             if (ret is null) return Result<long>.NotFound(Errors.Purchasing.PurchaseReturnNotFound);
             if (ret.Status != PurchaseReturnStatus.Approved) return Result<long>.Conflict(Errors.Purchasing.PurchaseReturnNotApproved);
             if (ret.DebitNoteId.HasValue) return Result<long>.Conflict(Errors.Purchasing.DebitNoteAlreadyIssued);
@@ -439,12 +436,12 @@ public sealed class PurchasingService(
                 Notes = dto.Notes,
                 CreatedAtUtc = DateTime.UtcNow,
             };
-            db.Set<DebitNote>().Add(dn);
-            await db.SaveChangesAsync(ct);
+            _db.Set<DebitNote>().Add(dn);
+            await _db.SaveChangesAsync(ct);
 
             ret.DebitNoteId = dn.Id;
             ret.UpdatedAtUtc = DateTime.UtcNow;
-            await db.SaveChangesAsync(ct);
+            await _db.SaveChangesAsync(ct);
 
             return Result<long>.Success(dn.Id);
         }, ct, useTransaction: true);

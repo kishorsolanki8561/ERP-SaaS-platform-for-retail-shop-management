@@ -22,7 +22,7 @@ public sealed class AccountingService(
     // ── Account Groups ────────────────────────────────────────────────────────
 
     public async Task<IReadOnlyList<AccountGroupDto>> ListAccountGroupsAsync(CancellationToken ct = default)
-        => await db.Set<AccountGroup>()
+        => await _db.Set<AccountGroup>()
             .Where(g => !g.IsDeleted)
             .OrderBy(g => g.SortOrder).ThenBy(g => g.Name)
             .Select(g => new AccountGroupDto(g.Id, g.Name, g.Code, g.ParentId, g.Nature, g.IsSystem, g.SortOrder))
@@ -33,7 +33,7 @@ public sealed class AccountingService(
     public async Task<PagedResult<AccountListDto>> ListAccountsAsync(
         int page, int pageSize, string? search, CancellationToken ct = default)
     {
-        var query = db.Set<Account>()
+        var query = _db.Set<Account>()
             .Include(a => a.AccountGroup)
             .Where(a => !a.IsDeleted
                 && (search == null || a.Name.Contains(search) || a.Code.Contains(search)));
@@ -52,7 +52,7 @@ public sealed class AccountingService(
     }
 
     public async Task<AccountListDto?> GetAccountAsync(long id, CancellationToken ct = default)
-        => await db.Set<Account>()
+        => await _db.Set<Account>()
             .Include(a => a.AccountGroup)
             .Where(a => a.Id == id && !a.IsDeleted)
             .Select(a => (AccountListDto?)new AccountListDto(
@@ -64,7 +64,7 @@ public sealed class AccountingService(
     public async Task<Result<long>> CreateAccountAsync(CreateAccountDto dto, CancellationToken ct = default)
         => await ExecuteAsync<long>("Accounting.CreateAccount", async () =>
         {
-            if (await db.Set<Account>().AnyAsync(a => a.Code == dto.Code && !a.IsDeleted, ct))
+            if (await _db.Set<Account>().AnyAsync(a => a.Code == dto.Code && !a.IsDeleted, ct))
                 return Result<long>.Conflict(Errors.Accounting.AccountCodeExists);
 
             var entity = new Account
@@ -81,15 +81,15 @@ public sealed class AccountingService(
                 IsActive = true,
                 CreatedAtUtc = DateTime.UtcNow,
             };
-            db.Set<Account>().Add(entity);
-            await db.SaveChangesAsync(ct);
+            _db.Set<Account>().Add(entity);
+            await _db.SaveChangesAsync(ct);
             return Result<long>.Success(entity.Id);
         }, ct, useTransaction: true);
 
     public async Task<Result<bool>> UpdateAccountAsync(long id, UpdateAccountDto dto, CancellationToken ct = default)
         => await ExecuteAsync<bool>("Accounting.UpdateAccount", async () =>
         {
-            var account = await db.Set<Account>().FirstOrDefaultAsync(a => a.Id == id && !a.IsDeleted, ct);
+            var account = await _db.Set<Account>().FirstOrDefaultAsync(a => a.Id == id && !a.IsDeleted, ct);
             if (account is null) return Result<bool>.NotFound(Errors.Accounting.AccountNotFound);
             if (account.IsSystem) return Result<bool>.Conflict(Errors.Accounting.SystemAccountReadOnly);
 
@@ -97,7 +97,7 @@ public sealed class AccountingService(
             account.Description = dto.Description;
             account.IsActive = dto.IsActive;
             account.UpdatedAtUtc = DateTime.UtcNow;
-            await db.SaveChangesAsync(ct);
+            await _db.SaveChangesAsync(ct);
             return Result<bool>.Success(true);
         }, ct, useTransaction: true);
 
@@ -106,7 +106,7 @@ public sealed class AccountingService(
     public async Task<PagedResult<VoucherListDto>> ListVouchersAsync(
         int page, int pageSize, VoucherType? type, CancellationToken ct = default)
     {
-        var query = db.Set<Voucher>()
+        var query = _db.Set<Voucher>()
             .Where(v => !v.IsDeleted && (type == null || v.VoucherType == type));
 
         var total = await query.CountAsync(ct);
@@ -121,7 +121,7 @@ public sealed class AccountingService(
     }
 
     public async Task<VoucherDetailDto?> GetVoucherAsync(long id, CancellationToken ct = default)
-        => await db.Set<Voucher>()
+        => await _db.Set<Voucher>()
             .Include(v => v.Entries).ThenInclude(e => e.Account)
             .Where(v => v.Id == id && !v.IsDeleted)
             .Select(v => (VoucherDetailDto?)new VoucherDetailDto(
@@ -171,15 +171,15 @@ public sealed class AccountingService(
                 });
             }
 
-            db.Set<Voucher>().Add(voucher);
-            await db.SaveChangesAsync(ct);
+            _db.Set<Voucher>().Add(voucher);
+            await _db.SaveChangesAsync(ct);
             return Result<long>.Success(voucher.Id);
         }, ct, useTransaction: true);
 
     public async Task<Result<bool>> PostVoucherAsync(long id, CancellationToken ct = default)
         => await ExecuteAsync<bool>("Accounting.PostVoucher", async () =>
         {
-            var voucher = await db.Set<Voucher>()
+            var voucher = await _db.Set<Voucher>()
                 .FirstOrDefaultAsync(v => v.Id == id && !v.IsDeleted, ct);
             if (voucher is null) return Result<bool>.NotFound(Errors.Accounting.VoucherNotFound);
             if (voucher.Status != VoucherStatus.Draft)
@@ -189,14 +189,14 @@ public sealed class AccountingService(
             voucher.IsPosted = true;
             voucher.PostedAtUtc = DateTime.UtcNow;
             voucher.UpdatedAtUtc = DateTime.UtcNow;
-            await db.SaveChangesAsync(ct);
+            await _db.SaveChangesAsync(ct);
             return Result<bool>.Success(true);
         }, ct, useTransaction: true);
 
     public async Task<Result<long>> ReverseVoucherAsync(long id, string narration, CancellationToken ct = default)
         => await ExecuteAsync<long>("Accounting.ReverseVoucher", async () =>
         {
-            var original = await db.Set<Voucher>()
+            var original = await _db.Set<Voucher>()
                 .Include(v => v.Entries)
                 .FirstOrDefaultAsync(v => v.Id == id && !v.IsDeleted, ct);
             if (original is null) return Result<long>.NotFound(Errors.Accounting.VoucherNotFound);
@@ -236,8 +236,8 @@ public sealed class AccountingService(
             }
 
             original.Status = VoucherStatus.Reversed;
-            db.Set<Voucher>().Add(reversal);
-            await db.SaveChangesAsync(ct);
+            _db.Set<Voucher>().Add(reversal);
+            await _db.SaveChangesAsync(ct);
             return Result<long>.Success(reversal.Id);
         }, ct, useTransaction: true);
 
@@ -246,7 +246,7 @@ public sealed class AccountingService(
     public async Task<PagedResult<ExpenseListDto>> ListExpensesAsync(
         int page, int pageSize, CancellationToken ct = default)
     {
-        var query = db.Set<Expense>().Where(e => !e.IsDeleted);
+        var query = _db.Set<Expense>().Where(e => !e.IsDeleted);
         var total = await query.CountAsync(ct);
         var items = await query
             .OrderByDescending(e => e.ExpenseDate)
@@ -271,15 +271,15 @@ public sealed class AccountingService(
                 RecurrenceInterval = dto.RecurrenceInterval,
                 CreatedAtUtc = DateTime.UtcNow,
             };
-            db.Set<Expense>().Add(expense);
-            await db.SaveChangesAsync(ct);
+            _db.Set<Expense>().Add(expense);
+            await _db.SaveChangesAsync(ct);
             return Result<long>.Success(expense.Id);
         }, ct, useTransaction: true);
 
     // ── Bank Accounts ─────────────────────────────────────────────────────────
 
     public async Task<IReadOnlyList<BankAccountDto>> ListBankAccountsAsync(CancellationToken ct = default)
-        => await db.Set<BankAccount>()
+        => await _db.Set<BankAccount>()
             .Where(b => !b.IsDeleted && b.IsActive)
             .Select(b => new BankAccountDto(b.Id, b.AccountId, b.BankName, b.AccountNumber,
                 b.IfscCode, b.AccountHolderName, b.IsActive))
@@ -288,7 +288,7 @@ public sealed class AccountingService(
     public async Task<Result<long>> CreateBankAccountAsync(CreateBankAccountDto dto, CancellationToken ct = default)
         => await ExecuteAsync<long>("Accounting.CreateBankAccount", async () =>
         {
-            if (await db.Set<BankAccount>().AnyAsync(b => b.AccountNumber == dto.AccountNumber && !b.IsDeleted, ct))
+            if (await _db.Set<BankAccount>().AnyAsync(b => b.AccountNumber == dto.AccountNumber && !b.IsDeleted, ct))
                 return Result<long>.Conflict(Errors.Accounting.BankAccountExists);
 
             var entity = new BankAccount
@@ -302,15 +302,15 @@ public sealed class AccountingService(
                 IsActive = true,
                 CreatedAtUtc = DateTime.UtcNow,
             };
-            db.Set<BankAccount>().Add(entity);
-            await db.SaveChangesAsync(ct);
+            _db.Set<BankAccount>().Add(entity);
+            await _db.SaveChangesAsync(ct);
             return Result<long>.Success(entity.Id);
         }, ct, useTransaction: true);
 
     // ── Financial Year ────────────────────────────────────────────────────────
 
     public async Task<IReadOnlyList<FinancialYearDto>> ListFinancialYearsAsync(CancellationToken ct = default)
-        => await db.Set<FinancialYear>()
+        => await _db.Set<FinancialYear>()
             .Where(f => !f.IsDeleted)
             .OrderByDescending(f => f.StartYear)
             .Select(f => new FinancialYearDto(f.Id, f.StartYear, f.StartDate, f.EndDate, f.IsClosed, f.ClosedAtUtc))
@@ -319,7 +319,7 @@ public sealed class AccountingService(
     public async Task<Result<long>> CreateFinancialYearAsync(CreateFinancialYearDto dto, CancellationToken ct = default)
         => await ExecuteAsync<long>("Accounting.CreateFinancialYear", async () =>
         {
-            if (await db.Set<FinancialYear>().AnyAsync(f => f.StartYear == dto.StartYear && !f.IsDeleted, ct))
+            if (await _db.Set<FinancialYear>().AnyAsync(f => f.StartYear == dto.StartYear && !f.IsDeleted, ct))
                 return Result<long>.Conflict(Errors.Accounting.FinancialYearExists);
 
             var startDate = new DateTime(dto.StartYear, 4, 1);
@@ -331,19 +331,19 @@ public sealed class AccountingService(
                 IsClosed = false,
                 CreatedAtUtc = DateTime.UtcNow,
             };
-            db.Set<FinancialYear>().Add(entity);
-            await db.SaveChangesAsync(ct);
+            _db.Set<FinancialYear>().Add(entity);
+            await _db.SaveChangesAsync(ct);
             return Result<long>.Success(entity.Id);
         }, ct, useTransaction: true);
 
     public async Task<Result<bool>> CloseFinancialYearAsync(long id, CancellationToken ct = default)
         => await ExecuteAsync<bool>("Accounting.CloseFinancialYear", async () =>
         {
-            var fy = await db.Set<FinancialYear>().FirstOrDefaultAsync(f => f.Id == id && !f.IsDeleted, ct);
+            var fy = await _db.Set<FinancialYear>().FirstOrDefaultAsync(f => f.Id == id && !f.IsDeleted, ct);
             if (fy is null) return Result<bool>.NotFound(Errors.Accounting.FinancialYearNotFound);
             if (fy.IsClosed) return Result<bool>.Conflict(Errors.Accounting.FinancialYearAlreadyClosed);
 
-            var hasOpenVouchers = await db.Set<Voucher>()
+            var hasOpenVouchers = await _db.Set<Voucher>()
                 .AnyAsync(v => v.FinancialYearId == id && v.Status == VoucherStatus.Draft && !v.IsDeleted, ct);
             if (hasOpenVouchers)
                 return Result<bool>.Conflict(Errors.Accounting.FinancialYearHasOpenVouchers);
@@ -351,7 +351,7 @@ public sealed class AccountingService(
             fy.IsClosed = true;
             fy.ClosedAtUtc = DateTime.UtcNow;
             fy.UpdatedAtUtc = DateTime.UtcNow;
-            await db.SaveChangesAsync(ct);
+            await _db.SaveChangesAsync(ct);
             return Result<bool>.Success(true);
         }, ct, useTransaction: true);
 

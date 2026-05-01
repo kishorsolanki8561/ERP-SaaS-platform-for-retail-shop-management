@@ -11,7 +11,6 @@ using ErpSaas.Shared.Services;
 using FluentAssertions;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using NSubstitute;
 
 namespace ErpSaas.Tests.Unit.Modules.SalesReturns;
@@ -60,8 +59,7 @@ public class SalesReturnsServiceTests : IDisposable
         _sequence.NextAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>())
             .Returns(_ => Task.FromResult($"SR-{++_seqCounter:000000}"));
 
-        _sut = new SalesReturnsService(_db, _errorLogger, _sequence, stubCtx,
-            Substitute.For<ILogger<SalesReturnsService>>(), _autoVoucher);
+        _sut = new SalesReturnsService(_db, _errorLogger, _sequence, stubCtx, _autoVoucher);
     }
 
     public void Dispose() { _db.Dispose(); _sqliteConnection.Dispose(); }

@@ -176,8 +176,7 @@ public class PettyCashServiceTests : IDisposable
         _sequence.NextAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>())
             .Returns(_ => Task.FromResult($"VC-{++_seqCounter:D6}"));
 
-        _sut = new PettyCashService(_db, _errorLogger, _sequence, stubCtx,
-            Substitute.For<ILogger<PettyCashService>>());
+        _sut = new PettyCashService(_db, _errorLogger, _sequence, stubCtx);
     }
 
     public void Dispose() { _db.Dispose(); _sqliteConnection.Dispose(); }

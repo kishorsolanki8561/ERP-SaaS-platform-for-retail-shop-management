@@ -11,7 +11,6 @@ using ErpSaas.Shared.Services;
 using FluentAssertions;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using NSubstitute;
 
 namespace ErpSaas.Tests.Unit.Modules.Purchasing;
@@ -60,8 +59,7 @@ public class PurchasingServiceTests : IDisposable
         _sequence.NextAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>())
             .Returns(_ => Task.FromResult($"PO-{++_seqCounter:000000}"));
 
-        _sut = new PurchasingService(_db, _errorLogger, _sequence, stubCtx,
-            Substitute.For<ILogger<PurchasingService>>(), _autoVoucher);
+        _sut = new PurchasingService(_db, _errorLogger, _sequence, stubCtx, _autoVoucher);
     }
 
     public void Dispose()

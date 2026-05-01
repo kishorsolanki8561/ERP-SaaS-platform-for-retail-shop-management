@@ -2,7 +2,6 @@ using ErpSaas.Modules.Accounting.Enums;
 using ErpSaas.Modules.Accounting.Services;
 using ErpSaas.Shared.Authorization;
 using ErpSaas.Shared.Controllers;
-using ErpSaas.Shared.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -14,8 +13,7 @@ public sealed class AccountingController(
     IAccountingService accountingService,
     IBankReconciliationService bankReconciliation,
     IChequeService chequeService,
-    IPettyCashService pettyCashService,
-    ITenantContext tenant) : BaseController
+    IPettyCashService pettyCashService) : BaseController
 {
     // ── Account Groups ────────────────────────────────────────────────────────
 

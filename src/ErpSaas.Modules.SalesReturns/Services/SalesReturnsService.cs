@@ -7,8 +7,6 @@ using ErpSaas.Shared.Data;
 using ErpSaas.Shared.Messages;
 using ErpSaas.Shared.Services;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
-
 namespace ErpSaas.Modules.SalesReturns.Services;
 
 public sealed class SalesReturnsService(
@@ -16,7 +14,6 @@ public sealed class SalesReturnsService(
     IErrorLogger errorLogger,
     ISequenceService sequence,
     ITenantContext tenant,
-    ILogger<SalesReturnsService> logger,
     IAutoVoucherService autoVoucher)
     : BaseService<TenantDbContext>(db, errorLogger), ISalesReturnsService
 {
@@ -64,8 +61,8 @@ public sealed class SalesReturnsService(
             }
             sr.TotalRefundAmount = total;
 
-            db.Set<SalesReturn>().Add(sr);
-            await db.SaveChangesAsync(ct);
+            _db.Set<SalesReturn>().Add(sr);
+            await _db.SaveChangesAsync(ct);
             return Result<long>.Success(sr.Id);
         }, ct, useTransaction: true);
     }
@@ -74,13 +71,13 @@ public sealed class SalesReturnsService(
     {
         return await ExecuteAsync("SalesReturns.ApproveSalesReturn", async () =>
         {
-            var sr = await db.Set<SalesReturn>().FirstOrDefaultAsync(x => x.Id == id, ct);
+            var sr = await _db.Set<SalesReturn>().FirstOrDefaultAsync(x => x.Id == id, ct);
             if (sr is null) return Result<bool>.NotFound(Errors.SalesReturns.SalesReturnNotFound);
             if (sr.Status != SalesReturnStatus.Draft) return Result<bool>.Conflict(Errors.SalesReturns.SalesReturnNotDraft);
 
             sr.Status = SalesReturnStatus.Approved;
             sr.UpdatedAtUtc = DateTime.UtcNow;
-            await db.SaveChangesAsync(ct);
+            await _db.SaveChangesAsync(ct);
             await autoVoucher.PostSalesReturnVoucherAsync(tenant.ShopId, sr.Id, sr.ReturnNumber, sr.TotalRefundAmount, ct);
             return Result<bool>.Success(true);
         }, ct, useTransaction: true);
@@ -90,13 +87,13 @@ public sealed class SalesReturnsService(
     {
         return await ExecuteAsync("SalesReturns.CancelSalesReturn", async () =>
         {
-            var sr = await db.Set<SalesReturn>().FirstOrDefaultAsync(x => x.Id == id, ct);
+            var sr = await _db.Set<SalesReturn>().FirstOrDefaultAsync(x => x.Id == id, ct);
             if (sr is null) return Result<bool>.NotFound(Errors.SalesReturns.SalesReturnNotFound);
             if (sr.Status == SalesReturnStatus.Cancelled) return Result<bool>.Conflict(Errors.SalesReturns.SalesReturnCancelled);
 
             sr.Status = SalesReturnStatus.Cancelled;
             sr.UpdatedAtUtc = DateTime.UtcNow;
-            await db.SaveChangesAsync(ct);
+            await _db.SaveChangesAsync(ct);
             return Result<bool>.Success(true);
         }, ct, useTransaction: true);
     }
@@ -122,8 +119,8 @@ public sealed class SalesReturnsService(
                 Notes = dto.Notes,
                 CreatedAtUtc = DateTime.UtcNow,
             };
-            db.Set<CreditNote>().Add(cn);
-            await db.SaveChangesAsync(ct);
+            _db.Set<CreditNote>().Add(cn);
+            await _db.SaveChangesAsync(ct);
             return Result<long>.Success(cn.Id);
         }, ct, useTransaction: true);
     }
@@ -132,7 +129,7 @@ public sealed class SalesReturnsService(
     {
         return await ExecuteAsync("SalesReturns.ApplyCreditNote", async () =>
         {
-            var cn = await db.Set<CreditNote>().FirstOrDefaultAsync(x => x.Id == dto.CreditNoteId, ct);
+            var cn = await _db.Set<CreditNote>().FirstOrDefaultAsync(x => x.Id == dto.CreditNoteId, ct);
             if (cn is null) return Result<bool>.NotFound(Errors.SalesReturns.CreditNoteNotFound);
             if (cn.Status != CreditNoteStatus.Issued) return Result<bool>.Conflict(Errors.SalesReturns.CreditNoteNotIssued);
             if (cn.ExpiryDate.HasValue && cn.ExpiryDate.Value < DateTime.UtcNow) return Result<bool>.Conflict(Errors.SalesReturns.CreditNoteExpired);
@@ -143,7 +140,7 @@ public sealed class SalesReturnsService(
             if (cn.RemainingAmount <= 0) cn.Status = CreditNoteStatus.Applied;
             cn.UpdatedAtUtc = DateTime.UtcNow;
 
-            await db.SaveChangesAsync(ct);
+            await _db.SaveChangesAsync(ct);
             return Result<bool>.Success(true);
         }, ct, useTransaction: true);
     }
@@ -152,12 +149,12 @@ public sealed class SalesReturnsService(
     {
         return await ExecuteAsync("SalesReturns.CancelCreditNote", async () =>
         {
-            var cn = await db.Set<CreditNote>().FirstOrDefaultAsync(x => x.Id == id, ct);
+            var cn = await _db.Set<CreditNote>().FirstOrDefaultAsync(x => x.Id == id, ct);
             if (cn is null) return Result<bool>.NotFound(Errors.SalesReturns.CreditNoteNotFound);
 
             cn.Status = CreditNoteStatus.Cancelled;
             cn.UpdatedAtUtc = DateTime.UtcNow;
-            await db.SaveChangesAsync(ct);
+            await _db.SaveChangesAsync(ct);
             return Result<bool>.Success(true);
         }, ct, useTransaction: true);
     }

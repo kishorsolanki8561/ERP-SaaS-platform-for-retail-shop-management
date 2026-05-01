@@ -9,7 +9,6 @@ using ErpSaas.Shared.Messages;
 using ErpSaas.Shared.Services;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using NSubstitute;
 
 namespace ErpSaas.Tests.Unit.Modules.Pricing;
@@ -177,8 +176,7 @@ public sealed class PricingManagementServiceTests : IDisposable
         _db = new PricingTenantDbContext(opts, ctx, new AuditSaveChangesInterceptor(ctx), new TenantSaveChangesInterceptor(ctx));
         _db.Database.EnsureCreated();
 
-        _sut = new PricingManagementService(_db, _errorLogger, ctx, _engine,
-            Substitute.For<ILogger<PricingManagementService>>());
+        _sut = new PricingManagementService(_db, _errorLogger, ctx, _engine);
     }
 
     public void Dispose()

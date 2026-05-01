@@ -11,6 +11,8 @@ public class BaseService<TDbContext>(
     : IBaseService
     where TDbContext : DbContext
 {
+    protected readonly TDbContext _db = db;
+
     public async Task<Result<T>> ExecuteAsync<T>(
         string operationName,
         Func<Task<Result<T>>> operation,
@@ -21,7 +23,7 @@ public class BaseService<TDbContext>(
         try
         {
             if (useTransaction)
-                tx = await db.Database.BeginTransactionAsync(ct);
+                tx = await _db.Database.BeginTransactionAsync(ct);
 
             var result = await operation();
 

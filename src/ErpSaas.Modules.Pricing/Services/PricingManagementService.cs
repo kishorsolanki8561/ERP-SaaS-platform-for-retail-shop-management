@@ -6,21 +6,18 @@ using ErpSaas.Shared.Data;
 using ErpSaas.Shared.Messages;
 using ErpSaas.Shared.Services;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
-
 namespace ErpSaas.Modules.Pricing.Services;
 
 public sealed class PricingManagementService(
     TenantDbContext db,
     IErrorLogger errorLogger,
     ITenantContext tenant,
-    IPricingEngine engine,
-    ILogger<PricingManagementService> logger)
+    IPricingEngine engine)
     : BaseService<TenantDbContext>(db, errorLogger), IPricingManagementService
 {
     public async Task<IReadOnlyList<DiscountRuleDto>> ListDiscountRulesAsync(CancellationToken ct = default)
     {
-        return await db.Set<DiscountRule>()
+        return await _db.Set<DiscountRule>()
             .Where(r => !r.IsDeleted)
             .Select(r => new DiscountRuleDto(r.Id, r.Name, r.DiscountTypeCode, r.Scope,
                 r.PercentValue, r.FixedValue, r.StartDate, r.EndDate, r.Priority, r.IsActive))
@@ -52,8 +49,8 @@ public sealed class PricingManagementService(
                 IsActive = true,
                 CreatedAtUtc = DateTime.UtcNow,
             };
-            db.Set<DiscountRule>().Add(rule);
-            await db.SaveChangesAsync(ct);
+            _db.Set<DiscountRule>().Add(rule);
+            await _db.SaveChangesAsync(ct);
             return Result<long>.Success(rule.Id);
         }, ct, useTransaction: true);
     }
@@ -62,11 +59,11 @@ public sealed class PricingManagementService(
     {
         return await ExecuteAsync("Pricing.ToggleDiscountRule", async () =>
         {
-            var rule = await db.Set<DiscountRule>().FirstOrDefaultAsync(r => r.Id == id, ct);
+            var rule = await _db.Set<DiscountRule>().FirstOrDefaultAsync(r => r.Id == id, ct);
             if (rule is null) return Result<bool>.NotFound(Errors.Pricing.DiscountRuleNotFound);
             rule.IsActive = isActive;
             rule.UpdatedAtUtc = DateTime.UtcNow;
-            await db.SaveChangesAsync(ct);
+            await _db.SaveChangesAsync(ct);
             return Result<bool>.Success(true);
         }, ct, useTransaction: true);
     }
@@ -86,8 +83,8 @@ public sealed class PricingManagementService(
                 IsActive = true,
                 CreatedAtUtc = DateTime.UtcNow,
             };
-            db.Set<ExtraChargeRule>().Add(charge);
-            await db.SaveChangesAsync(ct);
+            _db.Set<ExtraChargeRule>().Add(charge);
+            await _db.SaveChangesAsync(ct);
             return Result<long>.Success(charge.Id);
         }, ct, useTransaction: true);
     }
@@ -96,11 +93,11 @@ public sealed class PricingManagementService(
     {
         return await ExecuteAsync("Pricing.ToggleExtraCharge", async () =>
         {
-            var charge = await db.Set<ExtraChargeRule>().FirstOrDefaultAsync(c => c.Id == id, ct);
+            var charge = await _db.Set<ExtraChargeRule>().FirstOrDefaultAsync(c => c.Id == id, ct);
             if (charge is null) return Result<bool>.NotFound(Errors.Pricing.ExtraChargeNotFound);
             charge.IsActive = isActive;
             charge.UpdatedAtUtc = DateTime.UtcNow;
-            await db.SaveChangesAsync(ct);
+            await _db.SaveChangesAsync(ct);
             return Result<bool>.Success(true);
         }, ct, useTransaction: true);
     }
@@ -109,7 +106,7 @@ public sealed class PricingManagementService(
     {
         return await ExecuteAsync("Pricing.CreateOffer", async () =>
         {
-            var exists = await db.Set<Offer>().AnyAsync(o => o.Code == dto.Code, ct);
+            var exists = await _db.Set<Offer>().AnyAsync(o => o.Code == dto.Code, ct);
             if (exists) return Result<long>.Conflict(Errors.Pricing.OfferCodeExists);
 
             var offer = new Offer
@@ -124,8 +121,8 @@ public sealed class PricingManagementService(
                 IsActive = true,
                 CreatedAtUtc = DateTime.UtcNow,
             };
-            db.Set<Offer>().Add(offer);
-            await db.SaveChangesAsync(ct);
+            _db.Set<Offer>().Add(offer);
+            await _db.SaveChangesAsync(ct);
             return Result<long>.Success(offer.Id);
         }, ct, useTransaction: true);
     }
@@ -134,11 +131,11 @@ public sealed class PricingManagementService(
     {
         return await ExecuteAsync("Pricing.ToggleOffer", async () =>
         {
-            var offer = await db.Set<Offer>().FirstOrDefaultAsync(o => o.Id == id, ct);
+            var offer = await _db.Set<Offer>().FirstOrDefaultAsync(o => o.Id == id, ct);
             if (offer is null) return Result<bool>.NotFound(Errors.Pricing.OfferNotFound);
             offer.IsActive = isActive;
             offer.UpdatedAtUtc = DateTime.UtcNow;
-            await db.SaveChangesAsync(ct);
+            await _db.SaveChangesAsync(ct);
             return Result<bool>.Success(true);
         }, ct, useTransaction: true);
     }
@@ -146,7 +143,7 @@ public sealed class PricingManagementService(
     public async Task<CartCalculationResult> CalculateAsync(CartInput cart, CancellationToken ct = default)
     {
         var rules = await ListDiscountRulesAsync(ct);
-        var charges = await db.Set<ExtraChargeRule>()
+        var charges = await _db.Set<ExtraChargeRule>()
             .Where(c => c.IsActive && !c.IsDeleted)
             .Select(c => new CreateExtraChargeDto(c.Name, c.Type, c.Value, c.IsTaxable, c.GstRate))
             .ToListAsync(ct);
