@@ -133,6 +133,96 @@ public class InventoryServiceTests
         result.IsSuccess.Should().BeTrue();
     }
 
+    // ── ListProductsAsync ─────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task ListProductsAsync_ReturnsPagedResult()
+    {
+        var items = new List<ProductListDto>
+        {
+            new(1L, "PRD-001", "Widget A", "ELECTRICAL", "PCS", 100m, true),
+            new(2L, "PRD-002", "Widget B", "ELECTRICAL", "PCS", 200m, true),
+        };
+        var paged = new PagedResult<ProductListDto>(items, 2, 1, 20);
+
+        _sut.ListProductsAsync(1, 20, null, Arg.Any<CancellationToken>())
+            .Returns(paged);
+
+        var result = await _sut.ListProductsAsync(1, 20, null);
+
+        result.TotalCount.Should().Be(2);
+        result.Items.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public async Task ListProductsAsync_SearchFiltersCorrectly()
+    {
+        var items = new List<ProductListDto>
+        {
+            new(1L, "PRD-001", "Widget A", "ELECTRICAL", "PCS", 100m, true),
+        };
+        var paged = new PagedResult<ProductListDto>(items, 1, 1, 20);
+
+        _sut.ListProductsAsync(1, 20, "Widget A", Arg.Any<CancellationToken>())
+            .Returns(paged);
+
+        var result = await _sut.ListProductsAsync(1, 20, "Widget A");
+
+        result.TotalCount.Should().Be(1);
+        result.Items[0].Name.Should().Be("Widget A");
+    }
+
+    // ── GetProductAsync ───────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task GetProductAsync_ExistingId_ReturnsDetailDto()
+    {
+        var detail = new ProductDetailDto(
+            1L, "PRD-001", "Widget A", null, "ELECTRICAL", "8536", 18m,
+            "PCS", 100m, 80m, 120m, 5m, true, null);
+
+        _sut.GetProductAsync(1L, Arg.Any<CancellationToken>())
+            .Returns(detail);
+
+        var result = await _sut.GetProductAsync(1L);
+
+        result.Should().NotBeNull();
+        result!.Id.Should().Be(1L);
+        result.ProductCode.Should().Be("PRD-001");
+    }
+
+    [Fact]
+    public async Task GetProductAsync_NonExistingId_ReturnsNull()
+    {
+        _sut.GetProductAsync(999L, Arg.Any<CancellationToken>())
+            .Returns((ProductDetailDto?)null);
+
+        var result = await _sut.GetProductAsync(999L);
+
+        result.Should().BeNull();
+    }
+
+    // ── ListWarehousesAsync ───────────────────────────────────────────────────
+
+    [Fact]
+    public async Task ListWarehousesAsync_ReturnsActiveWarehouses()
+    {
+        IReadOnlyList<WarehouseDto> warehouses = new List<WarehouseDto>
+        {
+            new(1L, "WH-MAIN", "Main Warehouse", true, true),
+            new(2L, "WH-B", "Branch Warehouse", false, true),
+        };
+
+        _sut.ListWarehousesAsync(Arg.Any<CancellationToken>())
+            .Returns(warehouses);
+
+        var result = await _sut.ListWarehousesAsync();
+
+        result.Should().HaveCount(2);
+        result[0].Code.Should().Be("WH-MAIN");
+        result[0].IsDefault.Should().BeTrue();
+    }
+
     // ── GetStockLevelAsync ────────────────────────────────────────────────────
 
     [Fact]

@@ -2,6 +2,7 @@ using ErpSaas.Infrastructure.Data;
 using ErpSaas.Infrastructure.Messaging;
 using ErpSaas.Infrastructure.Seeds;
 using ErpSaas.Infrastructure.Sql;
+using ErpSaas.Modules.Accounting.Jobs;
 using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Builder;
@@ -45,6 +46,16 @@ public static class AppInitializationExtensions
                     "notification-drain",
                     job => job.ExecuteAsync(CancellationToken.None),
                     Cron.Minutely);
+
+                jobManager.AddOrUpdate<StaleChequeJob>(
+                    "stale-cheque-check",
+                    job => job.ExecuteAsync(CancellationToken.None),
+                    Cron.Daily);
+
+                jobManager.AddOrUpdate<DepreciationJob>(
+                    "monthly-depreciation",
+                    job => job.ExecuteAsync(CancellationToken.None),
+                    Cron.Monthly);
             }
         }
         catch (Exception ex)

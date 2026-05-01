@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Dapper" Version="2.1.72" />
+    <PackageReference Include="QuestPDF" Version="2026.2.4" />
+    <PackageReference Include="ClosedXML" Version="0.104.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ErpSaas.Core\ErpSaas.Core.csproj" />
+    <ProjectReference Include="..\ErpSaas.Shared\ErpSaas.Shared.csproj" />
+    <ProjectReference Include="..\ErpSaas.Infrastructure\ErpSaas.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

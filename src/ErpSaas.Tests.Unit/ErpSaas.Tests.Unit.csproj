@@ -43,7 +43,15 @@
     <ProjectReference Include="..\ErpSaas.Modules.Wallet\ErpSaas.Modules.Wallet.csproj" />
     <ProjectReference Include="..\ErpSaas.Modules.Shift\ErpSaas.Modules.Shift.csproj" />
     <ProjectReference Include="..\ErpSaas.Modules.Masters\ErpSaas.Modules.Masters.csproj" />
+    <ProjectReference Include="..\ErpSaas.Modules.Accounting\ErpSaas.Modules.Accounting.csproj" />
+    <ProjectReference Include="..\ErpSaas.Modules.Purchasing\ErpSaas.Modules.Purchasing.csproj" />
+    <ProjectReference Include="..\ErpSaas.Modules.SalesReturns\ErpSaas.Modules.SalesReturns.csproj" />
     <ProjectReference Include="..\ErpSaas.Modules.Identity\ErpSaas.Modules.Identity.csproj" />
+    <ProjectReference Include="..\ErpSaas.Modules.Reports\ErpSaas.Modules.Reports.csproj" />
+    <ProjectReference Include="..\ErpSaas.Modules.Warranty\ErpSaas.Modules.Warranty.csproj" />
+    <ProjectReference Include="..\ErpSaas.Modules.Pricing\ErpSaas.Modules.Pricing.csproj" />
+    <ProjectReference Include="..\ErpSaas.Modules.Transport\ErpSaas.Modules.Transport.csproj" />
+    <ProjectReference Include="..\ErpSaas.Modules.Quotations\ErpSaas.Modules.Quotations.csproj" />
   </ItemGroup>
 
 </Project>

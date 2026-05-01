@@ -97,6 +97,95 @@ public static class Errors
         public static string QuotaConflict(string code) => $"{QuotaExceeded}:{code}";
     }
 
+    public static class Accounting
+    {
+        public const string AccountNotFound             = "ACC_001";
+        public const string AccountCodeExists           = "ACC_002";
+        public const string SystemAccountReadOnly       = "ACC_003";
+        public const string VoucherNotFound             = "ACC_004";
+        public const string VoucherImbalanced           = "ACC_005";
+        public const string VoucherAlreadyPosted        = "ACC_006";
+        public const string VoucherNotPosted            = "ACC_007";
+        public const string FinancialYearExists         = "ACC_008";
+        public const string FinancialYearNotFound       = "ACC_009";
+        public const string FinancialYearAlreadyClosed  = "ACC_010";
+        public const string FinancialYearHasOpenVouchers = "ACC_011";
+        public const string BankAccountExists           = "ACC_012";
+        public const string BankStatementNotFound       = "ACC_013";
+        public const string BankStatementAlreadyComplete = "ACC_014";
+        public const string BankStatementLineNotFound   = "ACC_015";
+        public const string BankStatementLineAlreadyMatched = "ACC_016";
+        public const string ReconciliationRuleNotFound  = "ACC_017";
+    }
+
+    public static class Purchasing
+    {
+        public const string SupplierNotFound          = "PUR_001";
+        public const string SupplierCodeExists        = "PUR_002";
+        public const string PoNotFound                = "PUR_003";
+        public const string PoNotDraft                = "PUR_004";
+        public const string PoAlreadyCancelled        = "PUR_005";
+        public const string BillNotFound              = "PUR_006";
+        public const string BillNotDraft              = "PUR_007";
+        public const string BillNotApproved           = "PUR_008";
+        public const string BillAlreadyCancelled      = "PUR_009";
+        public const string BillOverpayment               = "PUR_010";
+        public const string PurchaseReturnNotFound         = "PUR_011";
+        public const string PurchaseReturnNotDraft         = "PUR_012";
+        public const string PurchaseReturnNotApproved      = "PUR_013";
+        public const string PurchaseReturnAlreadyCancelled = "PUR_014";
+        public const string DebitNoteAlreadyIssued         = "PUR_015";
+    }
+
+    public static class SalesReturns
+    {
+        public const string SalesReturnNotFound   = "SR_001";
+        public const string SalesReturnNotDraft   = "SR_002";
+        public const string SalesReturnCancelled  = "SR_003";
+        public const string CreditNoteNotFound    = "SR_004";
+        public const string CreditNoteNotIssued   = "SR_005";
+        public const string CreditNoteExpired     = "SR_006";
+        public const string CreditNoteInsufficient = "SR_007";
+    }
+
+    public static class Pricing
+    {
+        public const string DiscountRuleNotFound = "PRC_001";
+        public const string ExtraChargeNotFound  = "PRC_002";
+        public const string OfferNotFound        = "PRC_003";
+        public const string OfferCodeExists      = "PRC_004";
+    }
+
+    public static class Warranty
+    {
+        public const string RegistrationNotFound  = "WRN_001";
+        public const string SerialNumberExists    = "WRN_002";
+        public const string WarrantyNotActive     = "WRN_003";
+        public const string WarrantyExpired       = "WRN_004";
+        public const string ClaimNotFound         = "WRN_005";
+        public const string ClaimAlreadyClosed    = "WRN_006";
+    }
+
+    public static class Transport
+    {
+        public const string VehicleNotFound           = "TRN_001";
+        public const string ProviderNotFound          = "TRN_002";
+        public const string DeliveryNotFound          = "TRN_003";
+        public const string DeliveryAlreadyDelivered  = "TRN_004";
+        public const string LicensePlateExists        = "TRN_005";
+    }
+
+    public static class Quotations
+    {
+        public const string QuotationNotFound         = "QTN_001";
+        public const string QuotationNotInDraft       = "QTN_002";
+        public const string QuotationExpired          = "QTN_003";
+        public const string SalesOrderNotFound        = "QTN_004";
+        public const string SalesOrderAlreadyCancelled = "QTN_005";
+        public const string DeliveryChallanNotFound   = "QTN_006";
+        public const string DeliveryChallanAlreadyDispatched = "QTN_007";
+    }
+
     public static class Files
     {
         public const string NotFound            = "FILE_001";

@@ -300,6 +300,30 @@ public class WalletServiceTests : IDisposable
         betaBalance!.CustomerName.Should().Be("Beta LLC");
     }
 
+    // ── ListTransactionsAsync ─────────────────────────────────────────────────
+
+    [Fact]
+    public async Task ListTransactionsAsync_ReturnsPagedTransactionsForCustomer()
+    {
+        await _sut.CreditAsync(MakeCreditDto(amount: 300m));
+        await _sut.CreditAsync(MakeCreditDto(amount: 200m));
+
+        var result = await _sut.ListTransactionsAsync(CustomerId, 1, 10);
+
+        result.TotalCount.Should().Be(2);
+        result.Items.Should().HaveCount(2);
+        result.Items.Should().AllSatisfy(t => t.TransactionType.Should().Be(WalletTransactionType.Credit));
+    }
+
+    [Fact]
+    public async Task ListTransactionsAsync_NoTransactions_ReturnsEmptyPage()
+    {
+        var result = await _sut.ListTransactionsAsync(9999L, 1, 10);
+
+        result.TotalCount.Should().Be(0);
+        result.Items.Should().BeEmpty();
+    }
+
     // ── DebitForInvoiceAsync ──────────────────────────────────────────────────
 
     [Fact]

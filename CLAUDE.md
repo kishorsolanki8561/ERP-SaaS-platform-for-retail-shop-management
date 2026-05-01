@@ -278,29 +278,36 @@ dotnet test --filter Category=Architecture
 
 - [x] **Phase 0 — Foundation** — ✅ DONE (2026-04-24)
 - [x] **Phase 1 — Core Retail Loop** — ✅ DONE (2026-04-28) ← gate-checked with Docker
-- [ ] **Phase 2 — Financial Core** ← current
-- [ ] **Phase 3 — Operations**
+- [x] **Phase 2 — Financial Core** — ✅ DONE (2026-04-28)
+- [ ] **Phase 3 — Operations** ← current
 - [ ] **Phase 4 — HR + Marketplace**
 - [ ] **Phase 5 — SaaS Polish**
 - [ ] **Phase 6 — Multi-Platform Shells**
 - [ ] **Phase 7 — Vertical Packs**
 
-**Current sprint:** Phase 2 — Week 1: Chart of Accounts + Journal Entry skeleton (accounting schema) + Purchase Orders (purchasing schema)
-**Blockers:** Staging deployment + Cloudflare Turnstile CAPTCHA + 151 integration test stubs need real implementations (Billing/Inventory/CRM/Identity/Shift controller + isolation + subscription gate tests)
-**Phase 1 delivered (2026-04-28, gate-checked):**
-- Identity: Branch CRUD + branch-selector UI + BranchStore + X-Branch-Id header; Role management API + Angular page
-- Inventory: Product entity, Warehouse, StockLevel, StockMovement, barcode field
-- CRM: Customer + CustomerGroup entities, CRUD API, Angular page
-- Billing: Invoice state machine (Draft→Finalized→Paid|Cancelled), split-tender PayInvoice, PaymentTerms/DueDate, InvoicePayment, IInvoicePdfGenerator (A4 + 80mm thermal, QuestPDF), IWalletDebit cross-module contract
-- Wallet: WalletBalance + WalletTransaction, credit/debit/debit-for-invoice, IWalletDebit interface, wallet credit SMS
-- Shift: Shift + ShiftCashMovement + ShiftDenominationCount, full CRUD, IShiftLookup, shift-close SMS; decimal precisions fixed (HasPrecision(18,2) on all money fields)
-- Notifications: INVOICE_FINALIZED + WALLET_CREDITED + SHIFT_CLOSED templates seeded
-- Dashboard: /api/dashboard/summary with Paid status filter fix; Angular quick actions wired
-- Hardware: BarcodeListenerService + ThermalPrintService + CashDrawerService + HardwareController (POST /api/hardware/cash-drawer/pop) + PosTerminalComponent
-- UI: Full Tailwind revamp of all feature pages (DataTable typed columns, outer wrappers, p-card removed)
-- Tests: 126 unit + 25 integration + 49 arch all green; 151 integration stubs deferred to Phase 2 cleanup
-- Infra: SQL files CopyToOutputDirectory fixed; MarketplaceEventsDbContext + SyncDbContext added
-**Next action:** Implement 151 skipped integration tests OR scaffold Accounting module — see Phase 2 plan
+**Current sprint:** Phase 3 — Operations: next module is Online Payment Tracking (§6.13)
+**Blockers:** Staging deployment + Cloudflare Turnstile CAPTCHA + integration test stubs need real implementations
+**Phase 3 progress (2026-04-28):**
+- Warranty: WarrantyRegistration + WarrantyClaim; 7 endpoints; 8 unit + 4 arch tests ✅
+- Pricing: DiscountRule + ExtraChargeRule + Offer; IPricingEngine (pure) + IPricingManagementService; 8 endpoints; 19 unit + 4 arch tests ✅
+- Transport: TransportProvider + Vehicle + Delivery + DeliveryLog; 9 endpoints; 10 unit + 4 arch tests ✅
+- Quotations: Quotation + QuotationLine + SalesOrder + SalesOrderLine + DeliveryChallan + DeliveryChallanLine; 12 endpoints; Quotation→SO→DC workflow; 12 unit + 4 arch tests ✅
+- Tests: 255 unit + 86 arch all green (Phase 2 fully gated)
+**Next action:** Phase 3 — Online Payment Tracking module (§6.13) for payment gateway integrations
+**Phase 2 delivered (2026-04-28) — FULLY CLOSED (unit test coverage gated):**
+- Accounting: 7 entities, IAccountingService + IAutoVoucherService, COA seeder, migration, 16 unit + 4 arch tests ✅
+- Bank Reconciliation (§6.4.a): BankStatement + BankStatementLine + ReconciliationRule; IBankReconciliationService; 11 endpoints (AutoMatch, ManualMatch, Ignore, PostAdjustment, Complete, Rules CRUD); 11 unit + 4 arch tests; migration 20260428_Phase2Phase3_Combined ✅
+- Cheque Management (§6.4.b): Cheque entity; IChequeService + ChequeService; 6 transitions (Receive/Deposit/Clear/Bounce/Cancel/StaleDated); StaleChequeJob; 6 unit tests ✅
+- Petty Cash (§6.4.c): PettyCashClosure entity; IPettyCashService + PettyCashService; TopUp/RecordExpense/ClosePeriod with variance voucher; 4 unit tests ✅
+- Fixed Assets & Depreciation (§6.4.d): FixedAsset + DepreciationEntry entities; IFixedAssetService + FixedAssetService; SLN/WDV engine; Register/Retire/Dispose/RunDepreciation; DepreciationJob; 7 unit tests ✅
+- Purchasing: Supplier + PO + POLine + Bill + BillPayment + PurchaseReturn + PurchaseReturnLine + DebitNote; 12 unit + 4 arch tests ✅
+- SalesReturns: SalesReturn + SalesReturnLine + CreditNote; 8 unit + 4 arch tests ✅
+- Reports: Trial Balance, P&L, Balance Sheet, Day Book, Ledger, GSTR-1 B2B, HSN Summary, GSTR-3B, Cash Book, Bank Book, Wallet Statement; 7 unit + 4 arch tests ✅
+- IAutoVoucherService wired in PurchasingService.ApproveBillAsync + SalesReturnsService.ApproveSalesReturnAsync ✅
+- CS0108 RowVersion redeclaration fixed in Bill, PurchaseOrder, PurchaseOrderLine, SalesReturn, CreditNote ✅
+- Module READMEs: Purchasing + SalesReturns + Reports ✅
+- All migrations applied: TenantDB + PlatformDB + LogDB ✅
+- Total unit tests: 255/255 passing ✅
 
 ---
 

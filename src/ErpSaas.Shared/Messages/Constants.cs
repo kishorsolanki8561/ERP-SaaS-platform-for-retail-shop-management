@@ -25,6 +25,10 @@ public static class Constants
         public const string Currency            = "CURRENCY";
         public const string WalletReferenceType = "WALLET_REFERENCE_TYPE";
         public const string ShiftCashReason     = "SHIFT_CASH_REASON";
+        public const string VoucherType         = "VOUCHER_TYPE";
+        public const string GstSlab             = "GST_SLAB";
+        public const string ChequeBounceReason  = "CHEQUE_BOUNCE_REASON";
+        public const string FixedAssetCategory  = "FIXED_ASSET_CATEGORY";
     }
 
     public static class SequenceCodes
@@ -37,7 +41,18 @@ public static class Constants
         public const string CreditNote        = "CREDIT_NOTE";
         public const string PaymentReceipt    = "PAYMENT_RECEIPT";
         public const string Voucher           = "VOUCHER";
+        public const string VoucherJournal   = "VOUCHER_JOURNAL";
+        public const string VoucherPayment   = "VOUCHER_PAYMENT";
+        public const string VoucherReceipt   = "VOUCHER_RECEIPT";
+        public const string VoucherContra    = "VOUCHER_CONTRA";
+        public const string Bill              = "BILL";
+        public const string DebitNote         = "DEBIT_NOTE";
+        public const string PurchaseReturn    = "PURCHASE_RETURN";
+        public const string SalesReturn       = "SALES_RETURN";
         public const string WarrantyClaim     = "WARRANTY_CLAIM";
+        public const string Quotation         = "QUOTATION";
+        public const string Delivery          = "DELIVERY";
+        public const string FixedAsset        = "FIXED_ASSET";
     }
 
     public static class SequencePrefixes
@@ -50,7 +65,18 @@ public static class Constants
         public const string CreditNote        = "CN";
         public const string PaymentReceipt    = "RCP";
         public const string Voucher           = "VCH";
+        public const string VoucherJournal   = "VJ";
+        public const string VoucherPayment   = "VP";
+        public const string VoucherReceipt   = "VR";
+        public const string VoucherContra    = "VC";
+        public const string Bill              = "BILL";
+        public const string DebitNote         = "DN";
+        public const string PurchaseReturn    = "PR";
+        public const string SalesReturn       = "SR";
         public const string WarrantyClaim     = "WC";
+        public const string Quotation         = "QT";
+        public const string Delivery          = "DEL";
+        public const string FixedAsset        = "FA";
     }
 
     public static class Pagination

@@ -134,4 +134,11 @@ public static class InfrastructureServiceExtensions
         services.AddScoped<IDataSeeder, TSeeder>();
         return services;
     }
+
+    public static IServiceCollection AddTenantSeeder<TSeeder>(this IServiceCollection services)
+        where TSeeder : class, ITenantSeeder
+    {
+        services.AddScoped<ITenantSeeder, TSeeder>();
+        return services;
+    }
 }
