@@ -1,7 +1,7 @@
-name: Deploy
+name: "Deploy — Staging / Production"
 
 # ── How to trigger ────────────────────────────────────────────────────────────
-# Manual: GitHub Actions → "Deploy" workflow → Run workflow → pick environment.
+# Manual: GitHub Actions → "Deploy — Staging / Production" → Run workflow → pick environment.
 # Push to main fires CI (ci.yml); once CI is green, manually promote here.
 #
 # Production gate: set "Required reviewers" on the `production` environment
