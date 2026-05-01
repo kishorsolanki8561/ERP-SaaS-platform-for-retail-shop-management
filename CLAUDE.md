@@ -286,7 +286,15 @@ dotnet test --filter Category=Architecture
 - [ ] **Phase 7 — Vertical Packs**
 
 **Current sprint:** Phase 3 — Operations: next module is Online Payment Tracking (§6.13)
-**Blockers:** Staging deployment + Cloudflare Turnstile CAPTCHA + integration test stubs need real implementations
+**Blockers:** Cloudflare Turnstile CAPTCHA + integration test stubs need real implementations
+**Staging server (2026-05-01) — LIVE ✅**
+- VPS: 188.241.62.206 (root SSH); API runs as `erp-staging` systemd service on port 5155
+- SQL Server running natively on same VPS; all 7 databases + erpsaas_user created
+- nginx reverse-proxy configured at `/etc/nginx/conf.d/erp-staging.conf`; Cloudflare handles SSL
+- Domains: erp-api-staging.preptm.com · erp-app-staging.preptm.com · erp-portal-staging.preptm.com
+- GitHub secret `DB_HOST` must be `localhost,1433` — update if showing old IP 204.12.245.106
+- Deploy workflow: `.github/workflows/deploy-staging.yml` (manual trigger, environment=staging)
+- Health check: `https://erp-api-staging.preptm.com/api/health`
 **Phase 3 progress (2026-04-28):**
 - Warranty: WarrantyRegistration + WarrantyClaim; 7 endpoints; 8 unit + 4 arch tests ✅
 - Pricing: DiscountRule + ExtraChargeRule + Offer; IPricingEngine (pure) + IPricingManagementService; 8 endpoints; 19 unit + 4 arch tests ✅
