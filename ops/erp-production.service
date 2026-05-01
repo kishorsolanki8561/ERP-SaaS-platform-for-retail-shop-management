@@ -1,0 +1,20 @@
+[Unit]
+Description=ERP SaaS API — Production
+After=network.target
+
+[Service]
+Type=exec
+User=erp-production
+Group=erp-production
+WorkingDirectory=/opt/erp-production/api
+ExecStart=/usr/bin/dotnet /opt/erp-production/api/ErpSaas.Api.dll
+Restart=on-failure
+RestartSec=10
+
+# Written by the deploy workflow from GitHub Secrets; never hard-code credentials here.
+EnvironmentFile=/opt/erp-production/api/.env.production
+
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

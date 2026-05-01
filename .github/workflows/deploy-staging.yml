@@ -1,22 +1,33 @@
-name: Deploy — Staging
+name: Deploy
+
+# ── How to trigger ────────────────────────────────────────────────────────────
+# Manual: GitHub Actions → "Deploy" workflow → Run workflow → pick environment.
+# Push to main fires CI (ci.yml); once CI is green, manually promote here.
+#
+# Production gate: set "Required reviewers" on the `production` environment
+# in GitHub repo Settings → Environments so every production deploy needs
+# approval before the deploy jobs run.
 
 on:
-  workflow_dispatch:    # manual trigger from GitHub Actions tab
-  push:
-    branches: [main]   # auto-deploy on every push to main
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+        default: staging
 
 env:
   DOTNET_VERSION: '8.0.x'
   NODE_VERSION: '20.x'
-  VPS_USER: administrator
-  VPS_HOST: 204.12.245.106
-  API_DEPLOY_DIR: /opt/erp-staging/api
-  WEB_DEPLOY_DIR: /opt/erp-staging/web
-  PORTAL_DEPLOY_DIR: /opt/erp-staging/portal
-  SERVICE_NAME: erp-staging
+  VPS_USER: root
+  VPS_HOST: 188.241.62.206
 
 jobs:
-  # ────────────────────────────────────────────────────────────────────────────
+  # ── Build API ─────────────────────────────────────────────────────────────────
   build-api:
     name: Build API
     runs-on: ubuntu-latest
@@ -43,7 +54,7 @@ jobs:
           path: ./artifacts/api
           retention-days: 1
 
-  # ────────────────────────────────────────────────────────────────────────────
+  # ── Build Staff App ───────────────────────────────────────────────────────────
   build-staff-app:
     name: Build Staff App
     runs-on: ubuntu-latest
@@ -56,9 +67,9 @@ jobs:
           cache: npm
           cache-dependency-path: src/web/package-lock.json
 
-      - name: Install & build (staging)
+      - name: Install & build
         working-directory: src/web
-        run: npm ci && npm run build -- --configuration staging
+        run: npm ci && npm run build -- --configuration ${{ github.event.inputs.environment }}
 
       - uses: actions/upload-artifact@v4
         with:
@@ -66,7 +77,7 @@ jobs:
           path: src/web/dist/web/browser
           retention-days: 1
 
-  # ────────────────────────────────────────────────────────────────────────────
+  # ── Build Customer Portal ─────────────────────────────────────────────────────
   build-portal:
     name: Build Customer Portal
     runs-on: ubuntu-latest
@@ -79,9 +90,9 @@ jobs:
           cache: npm
           cache-dependency-path: src/web-portal/package-lock.json
 
-      - name: Install & build (staging)
+      - name: Install & build
         working-directory: src/web-portal
-        run: npm ci && npm run build -- --configuration staging
+        run: npm ci && npm run build -- --configuration ${{ github.event.inputs.environment }}
 
       - uses: actions/upload-artifact@v4
         with:
@@ -89,12 +100,12 @@ jobs:
           path: src/web-portal/dist/web-portal/browser
           retention-days: 1
 
-  # ────────────────────────────────────────────────────────────────────────────
+  # ── Deploy API ────────────────────────────────────────────────────────────────
   deploy-api:
-    name: Deploy API → VPS
+    name: Deploy API → ${{ github.event.inputs.environment }}
     needs: build-api
     runs-on: ubuntu-latest
-    environment: staging
+    environment: ${{ github.event.inputs.environment }}
 
     steps:
       - uses: actions/checkout@v4
@@ -104,11 +115,39 @@ jobs:
           name: api-publish
           path: ./api-publish
 
-      - name: Write .env.staging
+      # Resolve all environment-specific values into step outputs.
+      # deploy jobs read these via steps.cfg.outputs.*
+      - name: Resolve environment config
+        id: cfg
         run: |
-          cat > ./api-publish/.env.staging <<'ENVEOF'
-          ASPNETCORE_ENVIRONMENT=Staging
-          ASPNETCORE_URLS=http://0.0.0.0:5155
+          if [ "${{ github.event.inputs.environment }}" = "production" ]; then
+            echo "port=5255"                              >> $GITHUB_OUTPUT
+            echo "deploy_dir=/opt/erp-production/api"    >> $GITHUB_OUTPUT
+            echo "service=erp-production"                >> $GITHUB_OUTPUT
+            echo "env_file=.env.production"              >> $GITHUB_OUTPUT
+            echo "svc_user=erp-production"               >> $GITHUB_OUTPUT
+            echo "aspnet_env=Production"                 >> $GITHUB_OUTPUT
+            echo "cors0=https://erp-app.preptm.com"      >> $GITHUB_OUTPUT
+            echo "cors1=https://erp-portal.preptm.com"   >> $GITHUB_OUTPUT
+            echo "api_domain=erp-api.preptm.com"         >> $GITHUB_OUTPUT
+          else
+            echo "port=5155"                                         >> $GITHUB_OUTPUT
+            echo "deploy_dir=/opt/erp-staging/api"                  >> $GITHUB_OUTPUT
+            echo "service=erp-staging"                               >> $GITHUB_OUTPUT
+            echo "env_file=.env.staging"                             >> $GITHUB_OUTPUT
+            echo "svc_user=erp-staging"                              >> $GITHUB_OUTPUT
+            echo "aspnet_env=Staging"                                >> $GITHUB_OUTPUT
+            echo "cors0=https://erp-app-staging.preptm.com"         >> $GITHUB_OUTPUT
+            echo "cors1=https://erp-portal-staging.preptm.com"      >> $GITHUB_OUTPUT
+            echo "api_domain=erp-api-staging.preptm.com"            >> $GITHUB_OUTPUT
+          fi
+
+      - name: Write environment file
+        run: |
+          ENV_FILE="${{ steps.cfg.outputs.env_file }}"
+          cat > ./api-publish/${ENV_FILE} <<'ENVEOF'
+          ASPNETCORE_ENVIRONMENT=ASPNET_ENV
+          ASPNETCORE_URLS=http://0.0.0.0:API_PORT
           ConnectionStrings__PlatformDb=Server=DBHOST;Database=ErpSaas_PlatformDb;User Id=DBUSER;Password=DBPASS;TrustServerCertificate=True;MultipleActiveResultSets=True
           ConnectionStrings__TenantDb=Server=DBHOST;Database=ErpSaas_TenantDb;User Id=DBUSER;Password=DBPASS;TrustServerCertificate=True;MultipleActiveResultSets=True
           ConnectionStrings__AnalyticsDb=Server=DBHOST;Database=ErpSaas_AnalyticsDb;User Id=DBUSER;Password=DBPASS;TrustServerCertificate=True;MultipleActiveResultSets=True
@@ -119,20 +158,24 @@ jobs:
           PRODUCT_OWNER_EMAIL=POMAIL
           PRODUCT_OWNER_PASSWORD=POPASSWORD
           PRODUCT_OWNER_NAME=PONAME
-          Cors__AllowedOrigins__0=https://erp-app-staging.preptm.com
-          Cors__AllowedOrigins__1=https://erp-portal-staging.preptm.com
+          Cors__AllowedOrigins__0=CORS0
+          Cors__AllowedOrigins__1=CORS1
           ENVEOF
-          # Replace placeholders with actual secret values (avoids heredoc expansion issues)
-          sed -i "s|DBHOST|${{ secrets.DB_HOST }}|g"     ./api-publish/.env.staging
-          sed -i "s|DBUSER|${{ secrets.DB_USER }}|g"     ./api-publish/.env.staging
-          sed -i "s|DBPASS|${{ secrets.DB_PASSWORD }}|g" ./api-publish/.env.staging
-          sed -i "s|JWTSECRET|${{ secrets.JWT_SECRET }}|g" ./api-publish/.env.staging
-          sed -i "s|TURNSTILEKEY|${{ secrets.TURNSTILE_SECRET_KEY }}|g" ./api-publish/.env.staging
-          sed -i "s|POMAIL|${{ secrets.PRODUCT_OWNER_EMAIL }}|g" ./api-publish/.env.staging
-          sed -i "s|POPASSWORD|${{ secrets.PRODUCT_OWNER_PASSWORD }}|g" ./api-publish/.env.staging
-          sed -i "s|PONAME|${{ secrets.PRODUCT_OWNER_NAME }}|g" ./api-publish/.env.staging
-          # Strip leading whitespace from heredoc indentation
-          sed -i 's/^[[:space:]]*//' ./api-publish/.env.staging
+          # Substitute placeholders — order matters (longer strings first to avoid partial matches)
+          sed -i "s|ASPNET_ENV|${{ steps.cfg.outputs.aspnet_env }}|g"   ./api-publish/${ENV_FILE}
+          sed -i "s|API_PORT|${{ steps.cfg.outputs.port }}|g"           ./api-publish/${ENV_FILE}
+          sed -i "s|CORS0|${{ steps.cfg.outputs.cors0 }}|g"             ./api-publish/${ENV_FILE}
+          sed -i "s|CORS1|${{ steps.cfg.outputs.cors1 }}|g"             ./api-publish/${ENV_FILE}
+          sed -i "s|DBHOST|${{ secrets.DB_HOST }}|g"                    ./api-publish/${ENV_FILE}
+          sed -i "s|DBUSER|${{ secrets.DB_USER }}|g"                    ./api-publish/${ENV_FILE}
+          sed -i "s|DBPASS|${{ secrets.DB_PASSWORD }}|g"                ./api-publish/${ENV_FILE}
+          sed -i "s|JWTSECRET|${{ secrets.JWT_SECRET }}|g"              ./api-publish/${ENV_FILE}
+          sed -i "s|TURNSTILEKEY|${{ secrets.TURNSTILE_SECRET_KEY }}|g" ./api-publish/${ENV_FILE}
+          sed -i "s|POMAIL|${{ secrets.PRODUCT_OWNER_EMAIL }}|g"        ./api-publish/${ENV_FILE}
+          sed -i "s|POPASSWORD|${{ secrets.PRODUCT_OWNER_PASSWORD }}|g" ./api-publish/${ENV_FILE}
+          sed -i "s|PONAME|${{ secrets.PRODUCT_OWNER_NAME }}|g"         ./api-publish/${ENV_FILE}
+          # Strip heredoc indentation
+          sed -i 's/^[[:space:]]*//'                                     ./api-publish/${ENV_FILE}
 
       - name: Setup SSH agent
         uses: webfactory/ssh-agent@v0.9.0
@@ -147,77 +190,102 @@ jobs:
 
       - name: Copy API files to VPS
         run: |
+          SERVICE="${{ steps.cfg.outputs.service }}"
           rsync -avz --delete ./api-publish/ \
-            ${{ env.VPS_USER }}@${{ env.VPS_HOST }}:/tmp/erp-staging-api-deploy/
-          # Also ship the systemd unit so it stays in sync with the repo
-          scp ops/erp-staging.service \
-            ${{ env.VPS_USER }}@${{ env.VPS_HOST }}:/tmp/erp-staging.service
+            ${{ env.VPS_USER }}@${{ env.VPS_HOST }}:/tmp/${SERVICE}-api-deploy/
+          # Ship the matching systemd unit so it stays in sync with the repo
+          scp ops/${SERVICE}.service \
+            ${{ env.VPS_USER }}@${{ env.VPS_HOST }}:/tmp/${SERVICE}.service
 
-      - name: Swap & restart API
+      - name: Swap & restart API service
         run: |
-          ssh ${{ env.VPS_USER }}@${{ env.VPS_HOST }} bash << 'REMOTE'
+          SERVICE="${{ steps.cfg.outputs.service }}"
+          DEPLOY_DIR="${{ steps.cfg.outputs.deploy_dir }}"
+          ENV_FILE="${{ steps.cfg.outputs.env_file }}"
+          PORT="${{ steps.cfg.outputs.port }}"
+          SVC_USER="${{ steps.cfg.outputs.svc_user }}"
+
+          # Unquoted REMOTE: local shell expands ${SERVICE}, ${DEPLOY_DIR} etc.
+          # before sending to SSH. Remote subshell expressions are escaped with \.
+          ssh ${{ env.VPS_USER }}@${{ env.VPS_HOST }} bash << REMOTE
           set -euo pipefail
-          sudo systemctl stop erp-staging || true
-          # Kill any stale process still holding port 5155 (can happen when
-          # the previous process exited with code 0 and systemd lost track of it)
-          sudo fuser -k 5155/tcp 2>/dev/null || true
-          sudo rm -rf /opt/erp-staging/api/*
-          sudo cp -r /tmp/erp-staging-api-deploy/. /opt/erp-staging/api/
-          sudo chown -R erp-staging:erp-staging /opt/erp-staging/api
-          sudo chmod 600 /opt/erp-staging/api/.env.staging
-          # Install / update the systemd unit file and reload the daemon
-          sudo cp /tmp/erp-staging.service /etc/systemd/system/erp-staging.service
-          sudo systemctl daemon-reload
-          sudo systemctl enable erp-staging
-          sudo systemctl start erp-staging
+          systemctl stop ${SERVICE} || true
+          # Kill any stale process still holding the port
+          fuser -k ${PORT}/tcp 2>/dev/null || true
+          mkdir -p ${DEPLOY_DIR}
+          rm -rf ${DEPLOY_DIR}/*
+          cp -r /tmp/${SERVICE}-api-deploy/. ${DEPLOY_DIR}/
+          chown -R ${SVC_USER}:${SVC_USER} ${DEPLOY_DIR}
+          chmod 600 ${DEPLOY_DIR}/${ENV_FILE}
+          cp /tmp/${SERVICE}.service /etc/systemd/system/${SERVICE}.service
+          systemctl daemon-reload
+          systemctl enable ${SERVICE}
+          systemctl start ${SERVICE}
           dump_logs() {
-            # sudo -n: non-interactive, fail silently if password required
-            sudo -n journalctl -u erp-staging --no-pager -n 80 2>/dev/null \
-              || journalctl -u erp-staging --no-pager -n 80 2>/dev/null \
-              || echo "(journal unavailable — check VPS sudoers or systemd-journal group)"
+            journalctl -u ${SERVICE} --no-pager -n 80 2>/dev/null \
+              || echo "(journal unavailable — check systemd-journal access)"
           }
           echo "Waiting for service to become active (migrations may take up to 90s)..."
           REACHED_ACTIVE=0
-          for i in $(seq 1 18); do
-            # systemctl is-active is unprivileged — no sudo needed
-            STATUS=$(systemctl is-active erp-staging 2>/dev/null || true)
-            echo "  check $i/18: $STATUS"
-            if [ "$STATUS" = "active" ]; then
+          for i in \$(seq 1 18); do
+            STATUS=\$(systemctl is-active ${SERVICE} 2>/dev/null || true)
+            echo "  check \$i/18: \$STATUS"
+            if [ "\$STATUS" = "active" ]; then
               echo "Service is active."
               REACHED_ACTIVE=1
               break
             fi
-            if [ "$STATUS" = "failed" ]; then
+            if [ "\$STATUS" = "failed" ]; then
               echo "Service failed to start. Last 80 log lines:"
               dump_logs
               exit 1
             fi
             sleep 5
           done
-          if [ "$REACHED_ACTIVE" = "0" ]; then
-            FINAL=$(systemctl is-active erp-staging 2>/dev/null || true)
-            echo "Service did not become active within 90s (status: $FINAL). Last 80 log lines:"
+          if [ "\$REACHED_ACTIVE" = "0" ]; then
+            FINAL=\$(systemctl is-active ${SERVICE} 2>/dev/null || true)
+            echo "Service did not become active within 90s (status: \$FINAL). Last 80 log lines:"
             dump_logs
             exit 1
           fi
-          rm -rf /tmp/erp-staging-api-deploy
+          rm -rf /tmp/${SERVICE}-api-deploy /tmp/${SERVICE}.service
           REMOTE
+
+      # Post-deployment build verification — confirms the deployed binary is
+      # actually serving requests before we declare the deployment successful.
+      - name: Post-deploy health check
+        run: |
+          PORT="${{ steps.cfg.outputs.port }}"
+          echo "Verifying deployment — probing http://${{ env.VPS_HOST }}:${PORT}/health ..."
+          for i in $(seq 1 6); do
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 \
+              "http://${{ env.VPS_HOST }}:${PORT}/health" || echo "000")
+            echo "  attempt $i/6 → HTTP ${HTTP_CODE}"
+            if [ "${HTTP_CODE}" = "200" ]; then
+              echo "Health check passed — deployment verified."
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "Health check failed after 60s. Deployment may be broken."
+          exit 1
 
       - name: Purge Cloudflare cache (API)
         run: |
+          DOMAIN="${{ steps.cfg.outputs.api_domain }}"
           curl -sf -X POST \
             "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/purge_cache" \
             -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
             -H "Content-Type: application/json" \
-            --data '{"files":["https://erp-api-staging.preptm.com/health","https://erp-api-staging.preptm.com/api/services"]}' \
+            --data "{\"files\":[\"https://${DOMAIN}/health\",\"https://${DOMAIN}/api/services\"]}" \
           || echo "Cloudflare purge skipped (secret not configured)"
 
-  # ────────────────────────────────────────────────────────────────────────────
+  # ── Deploy Staff App ──────────────────────────────────────────────────────────
   deploy-staff-app:
-    name: Deploy Staff App → VPS
+    name: Deploy Staff App → ${{ github.event.inputs.environment }}
     needs: build-staff-app
     runs-on: ubuntu-latest
-    environment: staging
+    environment: ${{ github.event.inputs.environment }}
 
     steps:
       - uses: actions/download-artifact@v4
@@ -236,37 +304,38 @@ jobs:
           echo "${{ secrets.VPS_KNOWN_HOSTS }}" >> ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
 
-      - name: Copy staff app to VPS
+      - name: Copy & swap staff app
         run: |
+          ENV="${{ github.event.inputs.environment }}"
           rsync -avz --delete ./web-publish/ \
-            ${{ env.VPS_USER }}@${{ env.VPS_HOST }}:/tmp/erp-staging-web-deploy/
+            ${{ env.VPS_USER }}@${{ env.VPS_HOST }}:/tmp/erp-${ENV}-web-deploy/
 
-      - name: Swap web files
-        run: |
-          ssh ${{ env.VPS_USER }}@${{ env.VPS_HOST }} bash << 'REMOTE'
+          ssh ${{ env.VPS_USER }}@${{ env.VPS_HOST }} bash << REMOTE
           set -euo pipefail
-          sudo mkdir -p /opt/erp-staging/web
-          sudo rm -rf /opt/erp-staging/web/*
-          sudo cp -r /tmp/erp-staging-web-deploy/. /opt/erp-staging/web/
-          sudo chown -R www-data:www-data /opt/erp-staging/web
-          rm -rf /tmp/erp-staging-web-deploy
+          mkdir -p /opt/erp-${ENV}/web
+          rm -rf /opt/erp-${ENV}/web/*
+          cp -r /tmp/erp-${ENV}-web-deploy/. /opt/erp-${ENV}/web/
+          chown -R www-data:www-data /opt/erp-${ENV}/web
+          rm -rf /tmp/erp-${ENV}-web-deploy
           REMOTE
 
       - name: Purge Cloudflare cache (staff app)
         run: |
+          ENV="${{ github.event.inputs.environment }}"
+          APP_HOST=$([ "${ENV}" = "production" ] && echo "erp-app.preptm.com" || echo "erp-app-staging.preptm.com")
           curl -sf -X POST \
             "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/purge_cache" \
             -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
             -H "Content-Type: application/json" \
-            --data '{"files":["https://erp-app-staging.preptm.com/","https://erp-app-staging.preptm.com/index.html"]}' \
+            --data "{\"files\":[\"https://${APP_HOST}/\",\"https://${APP_HOST}/index.html\"]}" \
           || echo "Cloudflare purge skipped (secret not configured)"
 
-  # ────────────────────────────────────────────────────────────────────────────
+  # ── Deploy Customer Portal ────────────────────────────────────────────────────
   deploy-portal:
-    name: Deploy Customer Portal → VPS
+    name: Deploy Customer Portal → ${{ github.event.inputs.environment }}
     needs: build-portal
     runs-on: ubuntu-latest
-    environment: staging
+    environment: ${{ github.event.inputs.environment }}
 
     steps:
       - uses: actions/download-artifact@v4
@@ -285,27 +354,28 @@ jobs:
           echo "${{ secrets.VPS_KNOWN_HOSTS }}" >> ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
 
-      - name: Copy portal to VPS
+      - name: Copy & swap portal
         run: |
+          ENV="${{ github.event.inputs.environment }}"
           rsync -avz --delete ./portal-publish/ \
-            ${{ env.VPS_USER }}@${{ env.VPS_HOST }}:/tmp/erp-staging-portal-deploy/
+            ${{ env.VPS_USER }}@${{ env.VPS_HOST }}:/tmp/erp-${ENV}-portal-deploy/
 
-      - name: Swap portal files
-        run: |
-          ssh ${{ env.VPS_USER }}@${{ env.VPS_HOST }} bash << 'REMOTE'
+          ssh ${{ env.VPS_USER }}@${{ env.VPS_HOST }} bash << REMOTE
           set -euo pipefail
-          sudo mkdir -p /opt/erp-staging/portal
-          sudo rm -rf /opt/erp-staging/portal/*
-          sudo cp -r /tmp/erp-staging-portal-deploy/. /opt/erp-staging/portal/
-          sudo chown -R www-data:www-data /opt/erp-staging/portal
-          rm -rf /tmp/erp-staging-portal-deploy
+          mkdir -p /opt/erp-${ENV}/portal
+          rm -rf /opt/erp-${ENV}/portal/*
+          cp -r /tmp/erp-${ENV}-portal-deploy/. /opt/erp-${ENV}/portal/
+          chown -R www-data:www-data /opt/erp-${ENV}/portal
+          rm -rf /tmp/erp-${ENV}-portal-deploy
           REMOTE
 
       - name: Purge Cloudflare cache (portal)
         run: |
+          ENV="${{ github.event.inputs.environment }}"
+          PORTAL_HOST=$([ "${ENV}" = "production" ] && echo "erp-portal.preptm.com" || echo "erp-portal-staging.preptm.com")
           curl -sf -X POST \
             "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/purge_cache" \
             -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
             -H "Content-Type: application/json" \
-            --data '{"files":["https://erp-portal-staging.preptm.com/","https://erp-portal-staging.preptm.com/index.html"]}' \
+            --data "{\"files\":[\"https://${PORTAL_HOST}/\",\"https://${PORTAL_HOST}/index.html\"]}" \
           || echo "Cloudflare purge skipped (secret not configured)"
