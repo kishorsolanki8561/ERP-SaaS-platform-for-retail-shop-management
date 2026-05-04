@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -154,6 +155,11 @@ public sealed class IntegrationTestFixture : WebApplicationFactory<Program>, IAs
         var port = _container.GetMappedPublicPort(1433);
         const string pass = "Test@1234!StrongPass";
 
+        // Testcontainers 4.x only waits for the TCP port to open, not for SQL Server
+        // to finish its internal startup sequence.  Probe with SELECT 1 on master so
+        // that every MigrateAsync() call below is guaranteed to find a ready server.
+        await WaitForSqlServerReadyAsync(host, port, pass);
+
         string Cs(string db) =>
             $"Server={host},{port};Database={db};User Id=sa;Password={pass};" +
             "TrustServerCertificate=True;MultipleActiveResultSets=True";
@@ -206,6 +212,38 @@ public sealed class IntegrationTestFixture : WebApplicationFactory<Program>, IAs
         await msp.GetRequiredService<NotificationsDbContext>().Database.MigrateAsync();
         await msp.GetRequiredService<MarketplaceEventsDbContext>().Database.MigrateAsync();
         await msp.GetRequiredService<SyncDbContext>().Database.MigrateAsync();
+    }
+
+    /// <summary>
+    /// Polls the SQL Server container with <c>SELECT 1</c> on <c>master</c> until
+    /// the engine accepts connections.  Testcontainers only waits for the TCP port;
+    /// SQL Server continues initializing after the port opens.
+    /// </summary>
+    private static async Task WaitForSqlServerReadyAsync(string host, int port, string password,
+        int maxAttempts = 30, int delayMs = 2_000)
+    {
+        var masterCs = $"Server={host},{port};Database=master;User Id=sa;Password={password};" +
+                       "TrustServerCertificate=True;Connect Timeout=5;";
+
+        for (var attempt = 1; attempt <= maxAttempts; attempt++)
+        {
+            try
+            {
+                await using var conn = new SqlConnection(masterCs);
+                await conn.OpenAsync();
+                await using var cmd = conn.CreateCommand();
+                cmd.CommandText = "SELECT 1";
+                await cmd.ExecuteScalarAsync();
+                return;
+            }
+            catch
+            {
+                if (attempt == maxAttempts)
+                    throw new InvalidOperationException(
+                        $"SQL Server container was not ready after {maxAttempts * delayMs / 1000} seconds.");
+                await Task.Delay(delayMs);
+            }
+        }
     }
 
     async Task IAsyncLifetime.DisposeAsync()
