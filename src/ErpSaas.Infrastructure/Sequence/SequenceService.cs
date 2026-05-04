@@ -1,6 +1,7 @@
 using Dapper;
 using ErpSaas.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace ErpSaas.Infrastructure.Sequence;
 
@@ -18,9 +19,11 @@ public sealed class SequenceService(TenantDbContext db) : ISequenceService
         parameters.Add("@AllocatedNumber", dbType: System.Data.DbType.Int64,
             direction: System.Data.ParameterDirection.Output);
 
+        var currentTransaction = db.Database.CurrentTransaction?.GetDbTransaction();
         await conn.ExecuteAsync(
             "sequence.usp_AllocateSequenceNumber",
             parameters,
+            transaction: currentTransaction,
             commandType: System.Data.CommandType.StoredProcedure);
 
         var number = parameters.Get<long>("@AllocatedNumber");

@@ -1,7 +1,9 @@
 using System.Reflection;
 using System.Text.RegularExpressions;
 using ErpSaas.Infrastructure.Data;
+using ErpSaas.Infrastructure.Dapper;
 using ErpSaas.Infrastructure.Services;
+using ErpSaas.Shared.Services;
 using FluentAssertions;
 using NetArchTest.Rules;
 
@@ -100,6 +102,59 @@ public class DataAccessArchTests
 
         violations.Should().BeEmpty(
             $"business service classes inject forbidden DbContexts directly: {string.Join(", ", violations)}");
+    }
+
+    [Fact]
+    public void ServicesThatUseDapper_MustInjectIAuditLogger()
+    {
+        // Any *Service class that takes an IDapperContext or IDbConnection in its constructor
+        // must also take IAuditLogger — to ensure Dapper writes are audited explicitly.
+        // AuditLogService and PlatformAdminService are read-only Dapper consumers and are exempt.
+        var readOnlyDapperServices = new HashSet<string>
+        {
+            "AuditLogService", "PlatformAdminService", "ReportQueryRepository", "UsageMeterService"
+        };
+
+        var allAssemblies = AppDomain.CurrentDomain.GetAssemblies()
+            .Where(a => a.FullName?.StartsWith("ErpSaas") == true);
+
+        var violations = new List<string>();
+
+        foreach (var asm in allAssemblies)
+        {
+            IEnumerable<Type> types;
+            try { types = asm.GetTypes(); }
+            catch { continue; }
+
+            foreach (var type in types)
+            {
+                if (!type.IsClass || type.IsAbstract) continue;
+                if (!type.Name.EndsWith("Service", StringComparison.Ordinal)) continue;
+                if (readOnlyDapperServices.Contains(type.Name)) continue;
+
+                var ctors = type.GetConstructors();
+                foreach (var ctor in ctors)
+                {
+                    var parameters = ctor.GetParameters();
+                    var usesDapper = parameters.Any(p =>
+                        p.ParameterType == typeof(IDapperContext) ||
+                        p.ParameterType.Name.Contains("IDbConnection"));
+
+                    if (!usesDapper) continue;
+
+                    var hasAuditLogger = parameters.Any(p =>
+                        p.ParameterType == typeof(IAuditLogger));
+
+                    if (!hasAuditLogger)
+                        violations.Add($"{type.FullName} uses Dapper but does not inject IAuditLogger");
+                }
+            }
+        }
+
+        violations.Should().BeEmpty(
+            "all service classes that use Dapper for writes must inject IAuditLogger " +
+            "to ensure mutations are captured in audit logs. " +
+            $"Violations: {string.Join("; ", violations)}");
     }
 
     [Fact]

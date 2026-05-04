@@ -1,25 +1,47 @@
 // ── Inventory — Subscription Gate Tests ──────────────────────────────────────
-// Verifies that feature-gated Inventory endpoints return 402 when the shop's
-// subscription plan does not include the required feature, and 200 when it does.
-// Also verifies menu items are hidden when the feature is disabled.
-// TODO (Phase 1): implement bodies with SubscriptionPlan fixture + WAF.
+// Inventory has no [RequireFeature] gates on core endpoints.
+// Verifies that list endpoints return 200 regardless of the features claim.
 // ─────────────────────────────────────────────────────────────────────────────
+
+using System.Net;
+using System.Net.Http.Json;
+using System.Text.Json;
+using ErpSaas.Tests.Integration.Fixtures;
+using FluentAssertions;
+using Xunit;
 
 namespace ErpSaas.Tests.Integration.Modules.Inventory;
 
+[Collection("Integration")]
 [Trait("Category", "Integration")]
 [Trait("Module", "Inventory")]
-public class InventorySubscriptionGateTests
+public class InventorySubscriptionGateTests(IntegrationTestFixture fixture)
 {
-    [Fact(Skip = "TODO Phase 1 — feature off → 402 on product list")]
-    public Task ListProducts_FeatureDisabled_Returns402() => Task.CompletedTask;
+    [Fact]
+    public async Task InventoryEndpoints_AllPlans_Returns200()
+    {
+        // Arrange: client with all permissions but no feature flags
+        // (simulates a shop whose subscription has no feature gates)
+        var client = fixture.CreateNoFeatureClient(shopId: 1);
 
-    [Fact(Skip = "TODO Phase 1 — feature on → 200 on product list")]
-    public Task ListProducts_FeatureEnabled_Returns200() => Task.CompletedTask;
+        // Act: GET /api/inventory/products — no [RequireFeature] so must always succeed
+        var response = await client.GetAsync("/api/inventory/products");
 
-    [Fact(Skip = "TODO Phase 1 — feature off → menu item hidden")]
-    public Task MenuTree_FeatureDisabled_HidesInventoryMenu() => Task.CompletedTask;
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        body.GetProperty("items").ValueKind.Should().Be(JsonValueKind.Array);
+    }
 
-    [Fact(Skip = "TODO Phase 1 — feature on → menu item visible")]
-    public Task MenuTree_FeatureEnabled_ShowsInventoryMenu() => Task.CompletedTask;
+    [Fact]
+    public async Task InventoryWarehouses_AllPlans_Returns200()
+    {
+        var client = fixture.CreateNoFeatureClient(shopId: 1);
+
+        var response = await client.GetAsync("/api/inventory/warehouses");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        body.ValueKind.Should().Be(JsonValueKind.Array);
+    }
 }

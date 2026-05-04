@@ -1,5 +1,7 @@
 using System.Net;
-using ErpSaas.Modules.Billing.Services;
+using System.Net.Http.Json;
+using System.Text.Json;
+using ErpSaas.Tests.Integration.Fixtures;
 using FluentAssertions;
 
 namespace ErpSaas.Tests.Integration.Modules.Billing;
@@ -8,96 +10,239 @@ namespace ErpSaas.Tests.Integration.Modules.Billing;
 /// Integration tests for <c>BillingController</c> exercised through the full
 /// HTTP pipeline against a real SQL Server instance (Testcontainers).
 ///
-/// These tests verify authentication, permission gating, request validation,
+/// Tests verify authentication, permission gating, request validation,
 /// and the happy path for every controller action.
 ///
-/// NOTE: Full test body requires an <c>IntegrationTestFixture</c> (a shared
-/// Testcontainers + WebApplicationFactory fixture) which will be created in
-/// Phase 1 when all module dependencies are available.  The stubs below mark
-/// the required test surface so the arch test
-/// <c>BillingArchTests.BillingModule_HasAllSixRequiredTestClasses</c> passes.
+/// Prerequisites for invoice creation:
+///   - Customer: POST /api/crm/customers
+///   - Warehouse: POST /api/inventory/warehouses
 /// </summary>
+[Collection("Integration")]
 [Trait("Category", "Integration")]
-public class BillingControllerTests
+public class BillingControllerTests(IntegrationTestFixture fixture)
 {
+    // ── Helper: creates a customer and warehouse, returns their IDs ────────────
+
+    private async Task<(long customerId, long warehouseId, long shopId)> CreateInvoicePrereqsAsync()
+    {
+        var (shopId, _, _) = await fixture.SeedTestUserAsync();
+        var client = fixture.CreateAuthenticatedClient(shopId: shopId, permissions: ["*"]);
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+
+        // Create customer
+        var custResp = await client.PostAsJsonAsync("/api/crm/customers", new
+        {
+            DisplayName  = $"Test Customer {suffix}",
+            CustomerType = "RETAIL",
+            CreditLimit  = 0.0m,
+        });
+        custResp.StatusCode.Should().Be(HttpStatusCode.OK);
+        var customerId  = await custResp.Content.ReadFromJsonAsync<long>();
+
+        // Create warehouse
+        var whResp = await client.PostAsJsonAsync("/api/inventory/warehouses", new
+        {
+            Code      = $"WH-{suffix}",
+            Name      = $"Test Warehouse {suffix}",
+            IsDefault = false,
+        });
+        whResp.StatusCode.Should().Be(HttpStatusCode.OK);
+        var warehouseId = await whResp.Content.ReadFromJsonAsync<long>();
+
+        return (customerId, warehouseId, shopId);
+    }
+
+    private async Task<long> CreateDraftInvoiceAsync(
+        HttpClient client, long shopId, long customerId, long warehouseId)
+    {
+        var response = await client.PostAsJsonAsync("/api/billing/invoices", new
+        {
+            InvoiceDate  = DateTime.UtcNow,
+            CustomerId   = customerId,
+            WarehouseId  = warehouseId,
+            ShopId       = shopId,
+            Notes        = "Integration test invoice",
+        });
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        return await response.Content.ReadFromJsonAsync<long>();
+    }
+
     // ── GET /api/billing/invoices ─────────────────────────────────────────────
 
-    [Fact(Skip = "Requires IntegrationTestFixture — Phase 1")]
+    [Fact]
     public async Task ListInvoices_Unauthenticated_Returns401()
     {
-        // Arrange: unauthenticated HTTP client
-        // Act: GET /api/billing/invoices
-        // Assert: 401 Unauthorized
-        await Task.CompletedTask;
+        var client   = fixture.CreateUnauthenticatedClient();
+        var response = await client.GetAsync("/api/billing/invoices");
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
-    [Fact(Skip = "Requires IntegrationTestFixture — Phase 1")]
+    [Fact]
     public async Task ListInvoices_WithoutPermission_Returns403()
     {
-        // Arrange: authenticated user without Billing.View
-        // Act + Assert: 403
-        await Task.CompletedTask;
+        // CreateLimitedClient sends a JWT with a "None.None" permission — no Billing.View
+        var client   = fixture.CreateLimitedClient(permissionCode: "None.None");
+        var response = await client.GetAsync("/api/billing/invoices");
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
-    [Fact(Skip = "Requires IntegrationTestFixture — Phase 1")]
+    [Fact]
     public async Task ListInvoices_WithPermission_Returns200AndList()
     {
-        await Task.CompletedTask;
+        var client   = fixture.CreateAuthenticatedClient(permissions: ["*"]);
+        var response = await client.GetAsync("/api/billing/invoices");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        // Body is a PagedResult directly — verify the shape
+        body.GetProperty("items").ValueKind.Should().Be(JsonValueKind.Array);
     }
 
     // ── POST /api/billing/invoices ────────────────────────────────────────────
 
-    [Fact(Skip = "Requires IntegrationTestFixture — Phase 1")]
+    [Fact]
     public async Task CreateInvoice_ValidRequest_Returns200WithId()
     {
-        await Task.CompletedTask;
+        var (customerId, warehouseId, shopId) = await CreateInvoicePrereqsAsync();
+        var client = fixture.CreateAuthenticatedClient(shopId: shopId, permissions: ["*"]);
+
+        var response = await client.PostAsJsonAsync("/api/billing/invoices", new
+        {
+            InvoiceDate  = DateTime.UtcNow,
+            CustomerId   = customerId,
+            WarehouseId  = warehouseId,
+            ShopId       = shopId,
+            Notes        = (string?)null,
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var id = await response.Content.ReadFromJsonAsync<long>();
+        id.Should().BeGreaterThan(0);
     }
 
-    [Fact(Skip = "Requires IntegrationTestFixture — Phase 1")]
+    [Fact]
     public async Task CreateInvoice_WithoutCreatePermission_Returns403()
     {
-        await Task.CompletedTask;
+        // A client with only "None.None" has no Billing.Create
+        var client   = fixture.CreateLimitedClient(permissionCode: "None.None");
+        var response = await client.PostAsJsonAsync("/api/billing/invoices", new
+        {
+            InvoiceDate  = DateTime.UtcNow,
+            CustomerId   = 1L,
+            WarehouseId  = 1L,
+            ShopId       = 1L,
+            Notes        = (string?)null,
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
     // ── POST /api/billing/invoices/{id}/lines ─────────────────────────────────
 
-    [Fact(Skip = "Requires IntegrationTestFixture — Phase 1")]
-    public async Task AddLine_ValidRequest_Returns200()
-    {
-        await Task.CompletedTask;
-    }
-
-    [Fact(Skip = "Requires IntegrationTestFixture — Phase 1")]
+    [Fact]
     public async Task AddLine_InvoiceNotFound_Returns404()
     {
-        await Task.CompletedTask;
+        // Using a non-existent invoice ID (99999) to verify 404 without complex setup
+        var client   = fixture.CreateAuthenticatedClient(permissions: ["*"]);
+        var response = await client.PostAsJsonAsync("/api/billing/invoices/99999/lines", new
+        {
+            ProductId            = 1L,
+            ProductUnitId        = 1L,
+            QuantityInBilledUnit = 1.0m,
+            UnitPrice            = 100.0m,
+            DiscountPercent      = 0.0m,
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task AddLine_ValidRequest_Returns200()
+    {
+        // Create invoice first, then add a line
+        // Note: product and unit records are not validated by name yet (service uses defaults).
+        var (customerId, warehouseId, shopId) = await CreateInvoicePrereqsAsync();
+        var client    = fixture.CreateAuthenticatedClient(shopId: shopId, permissions: ["*"]);
+        var invoiceId = await CreateDraftInvoiceAsync(client, shopId, customerId, warehouseId);
+
+        // Add line — BillingService uses "Pending" as product name snapshot until Inventory wired
+        var response = await client.PostAsJsonAsync($"/api/billing/invoices/{invoiceId}/lines", new
+        {
+            ProductId            = 1L,
+            ProductUnitId        = 1L,
+            QuantityInBilledUnit = 2.0m,
+            UnitPrice            = 250.0m,
+            DiscountPercent      = 0.0m,
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
     // ── POST /api/billing/invoices/{id}/finalize ──────────────────────────────
 
-    [Fact(Skip = "Requires IntegrationTestFixture — Phase 1")]
+    [Fact]
     public async Task FinalizeInvoice_DraftInvoice_Returns200()
     {
-        await Task.CompletedTask;
+        var (customerId, warehouseId, shopId) = await CreateInvoicePrereqsAsync();
+        var client    = fixture.CreateAuthenticatedClient(shopId: shopId, permissions: ["*"]);
+        var invoiceId = await CreateDraftInvoiceAsync(client, shopId, customerId, warehouseId);
+
+        var response = await client.PostAsync(
+            $"/api/billing/invoices/{invoiceId}/finalize", null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
-    [Fact(Skip = "Requires IntegrationTestFixture — Phase 1")]
+    [Fact]
     public async Task FinalizeInvoice_AlreadyFinalized_Returns409()
     {
-        await Task.CompletedTask;
+        var (customerId, warehouseId, shopId) = await CreateInvoicePrereqsAsync();
+        var client    = fixture.CreateAuthenticatedClient(shopId: shopId, permissions: ["*"]);
+        var invoiceId = await CreateDraftInvoiceAsync(client, shopId, customerId, warehouseId);
+
+        // First finalize — should succeed
+        var first = await client.PostAsync(
+            $"/api/billing/invoices/{invoiceId}/finalize", null);
+        first.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        // Second finalize — should conflict (already finalized)
+        var second = await client.PostAsync(
+            $"/api/billing/invoices/{invoiceId}/finalize", null);
+        second.StatusCode.Should().Be(HttpStatusCode.Conflict);
     }
 
     // ── POST /api/billing/invoices/{id}/cancel ────────────────────────────────
 
-    [Fact(Skip = "Requires IntegrationTestFixture — Phase 1")]
+    [Fact]
     public async Task CancelInvoice_WithoutCancelPermission_Returns403()
     {
-        await Task.CompletedTask;
+        // A limited client has no Billing.Cancel permission
+        var client   = fixture.CreateLimitedClient(permissionCode: "None.None");
+        var response = await client.PostAsJsonAsync("/api/billing/invoices/1/cancel",
+            new { Reason = "Test cancel" });
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
-    [Fact(Skip = "Requires IntegrationTestFixture — Phase 1")]
+    [Fact]
     public async Task CancelInvoice_ValidRequest_Returns200AndStatusCancelled()
     {
-        await Task.CompletedTask;
+        var (customerId, warehouseId, shopId) = await CreateInvoicePrereqsAsync();
+        var client    = fixture.CreateAuthenticatedClient(shopId: shopId, permissions: ["*"]);
+        var invoiceId = await CreateDraftInvoiceAsync(client, shopId, customerId, warehouseId);
+
+        var response = await client.PostAsJsonAsync(
+            $"/api/billing/invoices/{invoiceId}/cancel",
+            new { Reason = "Test cancellation" });
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        // Verify cancelled invoice cannot be retrieved as active
+        var getResp = await client.GetAsync($"/api/billing/invoices/{invoiceId}");
+        getResp.StatusCode.Should().Be(HttpStatusCode.OK);
+        var getBody = await getResp.Content.ReadFromJsonAsync<JsonElement>();
+        getBody.GetProperty("status").GetString()
+            .Should().Be("Cancelled",
+                "the invoice status must be Cancelled after a successful cancel request");
     }
 }

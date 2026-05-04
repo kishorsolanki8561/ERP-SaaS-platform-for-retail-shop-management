@@ -1,8 +1,10 @@
 using ErpSaas.Infrastructure.Data.Entities.Identity;
+using ErpSaas.Infrastructure.Data.Entities.Marketing;
 using ErpSaas.Infrastructure.Data.Entities.Masters;
 using ErpSaas.Infrastructure.Data.Entities.Menu;
 using ErpSaas.Infrastructure.Data.Entities.Files;
 using ErpSaas.Infrastructure.Data.Entities.Portal;
+using ErpSaas.Infrastructure.Data.Entities.Replication;
 using ErpSaas.Infrastructure.Data.Entities.Subscription;
 using ErpSaas.Infrastructure.Data.Interceptors;
 using Microsoft.EntityFrameworkCore;
@@ -34,6 +36,9 @@ public class PlatformDbContext(
     public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
     public DbSet<UserRole> UserRoles => Set<UserRole>();
 
+    // Shop feature overrides
+    public DbSet<ShopFeatureOverride> ShopFeatureOverrides => Set<ShopFeatureOverride>();
+
     // Subscription
     public DbSet<SubscriptionPlan> SubscriptionPlans => Set<SubscriptionPlan>();
     public DbSet<SubscriptionPlanFeature> SubscriptionPlanFeatures => Set<SubscriptionPlanFeature>();
@@ -50,6 +55,17 @@ public class PlatformDbContext(
     public DbSet<CustomerLink> CustomerLinks => Set<CustomerLink>();
     public DbSet<CustomerLoginSession> CustomerLoginSessions => Set<CustomerLoginSession>();
 
+    // Marketing & Leads
+    public DbSet<Lead> Leads => Set<Lead>();
+    public DbSet<MarketingContent> MarketingContents => Set<MarketingContent>();
+    public DbSet<BlogPost> BlogPosts => Set<BlogPost>();
+
+    // On-prem replication
+    public DbSet<OnPremDeployment> OnPremDeployments => Set<OnPremDeployment>();
+    public DbSet<ReplicationLog> ReplicationLogs => Set<ReplicationLog>();
+    public DbSet<ConflictArchive> ConflictArchives => Set<ConflictArchive>();
+    public DbSet<ChangeTrackingLog> ChangeTrackingLogs => Set<ChangeTrackingLog>();
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         => optionsBuilder.AddInterceptors(auditInterceptor);
 
@@ -61,6 +77,8 @@ public class PlatformDbContext(
         ConfigureMenu(modelBuilder);
         ConfigurePortal(modelBuilder);
         ConfigureFiles(modelBuilder);
+        ConfigureMarketing(modelBuilder);
+        ConfigureReplication(modelBuilder);
     }
 
     private static void ConfigureMasters(ModelBuilder b)
@@ -251,6 +269,15 @@ public class PlatformDbContext(
             e.HasOne(x => x.User).WithMany(u => u.UserRoles).HasForeignKey(x => x.UserId);
             e.HasOne(x => x.Role).WithMany(r => r.UserRoles).HasForeignKey(x => x.RoleId);
         });
+
+        b.Entity<ShopFeatureOverride>(e =>
+        {
+            e.ToTable("ShopFeatureOverride", schema: "identity");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.FeatureCode).HasMaxLength(100).IsRequired();
+            e.HasIndex(x => new { x.ShopId, x.FeatureCode }).IsUnique();
+            e.HasOne(x => x.Shop).WithMany().HasForeignKey(x => x.ShopId);
+        });
     }
 
     private static void ConfigureSubscription(ModelBuilder b)
@@ -323,6 +350,54 @@ public class PlatformDbContext(
         });
     }
 
+    private static void ConfigureMarketing(ModelBuilder b)
+    {
+        b.Entity<Lead>(e =>
+        {
+            e.ToTable("Lead", schema: "marketing");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            e.Property(x => x.Email).HasMaxLength(256).IsRequired();
+            e.Property(x => x.Phone).HasMaxLength(20).IsRequired();
+            e.Property(x => x.BusinessName).HasMaxLength(200);
+            e.Property(x => x.CityCode).HasMaxLength(50).IsRequired();
+            e.Property(x => x.StateCode).HasMaxLength(10).IsRequired();
+            e.Property(x => x.VerticalCode).HasMaxLength(50).IsRequired();
+            e.Property(x => x.Message).HasMaxLength(2000);
+            e.Property(x => x.Notes).HasMaxLength(2000);
+            e.Property(x => x.UtmSource).HasMaxLength(200);
+            e.Property(x => x.UtmCampaign).HasMaxLength(200);
+            e.Property(x => x.Source).HasConversion<string>().HasMaxLength(20).IsRequired();
+            e.Property(x => x.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
+            e.HasIndex(x => x.Status);
+            e.HasIndex(x => x.AssignedUserId);
+        });
+
+        b.Entity<MarketingContent>(e =>
+        {
+            e.ToTable("MarketingContent", schema: "marketing");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Key).HasMaxLength(200).IsRequired();
+            e.Property(x => x.Locale).HasMaxLength(10).IsRequired();
+            e.HasIndex(x => new { x.Key, x.Locale }).IsUnique();
+            e.Property(x => x.Title).HasMaxLength(400);
+            e.Property(x => x.Body).IsRequired();
+        });
+
+        b.Entity<BlogPost>(e =>
+        {
+            e.ToTable("BlogPost", schema: "marketing");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Slug).HasMaxLength(200).IsRequired();
+            e.HasIndex(x => x.Slug).IsUnique();
+            e.Property(x => x.Title).HasMaxLength(400).IsRequired();
+            e.Property(x => x.Body).IsRequired();
+            e.Property(x => x.AuthorName).HasMaxLength(200).IsRequired();
+            e.Property(x => x.Tags).HasMaxLength(500);
+            e.HasIndex(x => x.IsPublished);
+        });
+    }
+
     private static void ConfigurePortal(ModelBuilder b)
     {
         b.Entity<PlatformCustomer>(e =>
@@ -354,6 +429,59 @@ public class PlatformDbContext(
             e.Property(x => x.Purpose).HasMaxLength(50).IsRequired();
             e.HasOne(x => x.PlatformCustomer).WithMany(c => c.LoginSessions)
                 .HasForeignKey(x => x.PlatformCustomerId);
+        });
+    }
+
+    private static void ConfigureReplication(ModelBuilder b)
+    {
+        b.Entity<OnPremDeployment>(e =>
+        {
+            e.ToTable("OnPremDeployment", schema: "replication");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.DeploymentId).HasMaxLength(100).IsRequired();
+            e.HasIndex(x => new { x.ShopId, x.DeploymentId }).IsUnique();
+            e.Property(x => x.ShopLocalEndpoint).HasMaxLength(500).IsRequired();
+            e.Property(x => x.PublicKey).HasMaxLength(2000).IsRequired();
+            e.Property(x => x.SoftwareVersion).HasMaxLength(50).IsRequired();
+            e.Property(x => x.Mode).HasConversion<string>().HasMaxLength(20).IsRequired();
+            e.Property(x => x.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
+            e.HasIndex(x => x.ShopId);
+        });
+
+        b.Entity<ReplicationLog>(e =>
+        {
+            e.ToTable("ReplicationLog", schema: "replication");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.DeploymentId).HasMaxLength(100).IsRequired();
+            e.Property(x => x.Direction).HasConversion<string>().HasMaxLength(20).IsRequired();
+            e.Property(x => x.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
+            e.Property(x => x.ErrorSummary).HasMaxLength(2000);
+            e.HasIndex(x => new { x.ShopId, x.DeploymentId });
+            e.HasIndex(x => x.StartedAtUtc);
+        });
+
+        b.Entity<ConflictArchive>(e =>
+        {
+            e.ToTable("ConflictArchive", schema: "replication");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.DeploymentId).HasMaxLength(100).IsRequired();
+            e.Property(x => x.EntityName).HasMaxLength(200).IsRequired();
+            e.Property(x => x.Strategy).HasConversion<string>().HasMaxLength(30).IsRequired();
+            e.Property(x => x.Outcome).HasConversion<string>().HasMaxLength(30).IsRequired();
+            e.Property(x => x.ResolutionNote).HasMaxLength(2000);
+            e.HasIndex(x => new { x.ShopId, x.Outcome });
+            e.HasIndex(x => x.DeploymentId);
+        });
+
+        b.Entity<ChangeTrackingLog>(e =>
+        {
+            e.ToTable("ChangeTrackingLog", schema: "replication");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.EntityName).HasMaxLength(200).IsRequired();
+            e.Property(x => x.Operation).HasMaxLength(20).IsRequired();
+            e.Property(x => x.OriginDeploymentId).HasMaxLength(100);
+            e.HasIndex(x => new { x.ShopId, x.EntityName, x.EntityId });
+            e.HasIndex(x => x.VersionNumber);
         });
     }
 }

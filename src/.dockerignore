@@ -1,0 +1,31 @@
+# Build output — never copy into the Docker image
+**/bin/
+**/obj/
+**/out/
+
+# IDE / OS noise
+.vs/
+**/*.user
+**/*.suo
+_ReSharper*/
+**/.DS_Store
+**/Thumbs.db
+
+# Test results
+**/TestResults/
+**/coverage/
+**/*.trx
+
+# Secrets — should never enter a build context
+**/appsettings.Local.json
+**/appsettings.Production.json
+**/appsettings.Staging.json
+**/.env
+**/.env.*
+**/.secrets.local
+
+# Frontend (not needed by the API build)
+**/node_modules/
+**/dist/
+**/dist-server/
+**/.angular/

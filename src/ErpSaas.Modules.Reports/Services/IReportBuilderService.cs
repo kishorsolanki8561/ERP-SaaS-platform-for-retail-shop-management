@@ -54,6 +54,29 @@ public record WalletStatementEntry(
     DateTime Date, string TransactionType, string Particulars,
     decimal Credit, decimal Debit, decimal RunningBalance);
 
+public record PaymentSummaryRow(
+    DateTime Date, string GatewayCode, string? Method,
+    int TotalCount, int SuccessCount, int FailedCount,
+    decimal TotalAmount, decimal SuccessAmount,
+    decimal SuccessRatePct);
+
+public record FailedPaymentRow(
+    DateTime InitiatedAtUtc, string GatewayCode, string OurReferenceNumber,
+    decimal Amount, string? FailureCode, string? FailureMessage,
+    string Purpose);
+
+public record SettlementGapRow(
+    string GatewayCode, string GatewayTxnId, string OurReferenceNumber,
+    decimal Amount, decimal GatewayFee, decimal NetSettled,
+    DateTime CompletedAtUtc, DateTime? SettledAtUtc,
+    double? GapDays);
+
+public record ReconciliationExceptionRow(
+    DateTime DetectedAtUtc, string GatewayCode, string? GatewayTxnId,
+    string ExceptionType, string Status,
+    decimal? OurAmount, decimal? GatewayAmount,
+    double AgeDays, string? ResolutionNotes);
+
 public record ReportFile(string FileName, string ContentType, byte[] Data);
 
 // ── Interface ─────────────────────────────────────────────────────────────────
@@ -76,6 +99,12 @@ public interface IReportBuilderService
     Task<IReadOnlyList<CashBookEntry>> GetCashBookAsync(DateRangeParams p, CancellationToken ct = default);
     Task<IReadOnlyList<BankBookEntry>> GetBankBookAsync(long bankAccountId, DateRangeParams p, CancellationToken ct = default);
     Task<IReadOnlyList<WalletStatementEntry>> GetWalletStatementAsync(long customerId, DateRangeParams p, CancellationToken ct = default);
+
+    // Payment reports
+    Task<IReadOnlyList<PaymentSummaryRow>> GetPaymentSummaryAsync(DateRangeParams p, CancellationToken ct = default);
+    Task<IReadOnlyList<FailedPaymentRow>> GetFailedPaymentsAsync(DateRangeParams p, CancellationToken ct = default);
+    Task<IReadOnlyList<SettlementGapRow>> GetSettlementGapAsync(DateRangeParams p, CancellationToken ct = default);
+    Task<IReadOnlyList<ReconciliationExceptionRow>> GetReconciliationExceptionsAsync(DateRangeParams p, CancellationToken ct = default);
 
     // Export
     Task<Result<ReportFile>> ExportAsync(string reportCode, DateRangeParams p, ReportFormat format, long? accountId = null, CancellationToken ct = default);

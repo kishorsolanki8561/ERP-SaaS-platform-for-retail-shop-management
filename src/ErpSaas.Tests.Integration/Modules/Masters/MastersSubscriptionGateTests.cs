@@ -1,45 +1,44 @@
+using System.Net;
+using ErpSaas.Tests.Integration.Fixtures;
 using FluentAssertions;
 
 namespace ErpSaas.Tests.Integration.Modules.Masters;
 
-/// <summary>
-/// Verifies subscription-gating behaviour for Masters features.
-///
-/// Master data (countries, states, currencies, HSN codes) is read-only for all
-/// plans and should always return 200.  Write operations on master data are
-/// platform-admin only and bypass subscription gating.
-///
-/// Full implementation requires <c>IntegrationTestFixture</c> + subscription
-/// plan seeding — deferred to Phase 1.
-/// </summary>
+[Collection("Integration")]
 [Trait("Category", "Integration")]
-public class MastersSubscriptionGateTests
+public class MastersSubscriptionGateTests(IntegrationTestFixture fixture)
 {
-    [Fact(Skip = "Requires IntegrationTestFixture + plan seeding — Phase 1")]
+    // Master data endpoints have no [RequireFeature] — available to all plans.
+
+    [Fact]
     public async Task ListCountries_AllPlans_Returns200()
     {
-        // Master data reads are not gated by subscription.
-        // Arrange: shop on Starter plan
-        // Act: GET /api/masters/countries
-        // Assert: 200
-        await Task.CompletedTask;
+        var client = fixture.CreateNoFeatureClient();
+        var response = await client.GetAsync("/api/masters/countries");
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
-    [Fact(Skip = "Requires IntegrationTestFixture + plan seeding — Phase 1")]
+    [Fact]
     public async Task SearchHsnSac_AllPlans_Returns200()
     {
-        // Arrange: shop on any plan
-        // Act: GET /api/masters/hsn?q=8516
-        // Assert: 200
-        await Task.CompletedTask;
+        var client = fixture.CreateNoFeatureClient();
+        var response = await client.GetAsync("/api/masters/hsn-sac?q=85");
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
-    [Fact(Skip = "Requires IntegrationTestFixture + plan seeding — Phase 1")]
+    [Fact]
     public async Task ListCurrencies_AllPlans_Returns200()
     {
-        // Arrange: shop on Starter plan
-        // Act: GET /api/masters/currencies
-        // Assert: 200
-        await Task.CompletedTask;
+        var client = fixture.CreateNoFeatureClient();
+        var response = await client.GetAsync("/api/masters/currencies");
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task GetDdl_NoFeatureClaim_Returns200()
+    {
+        var client = fixture.CreateNoFeatureClient();
+        var response = await client.GetAsync("/api/ddl/PAYMENT_MODE");
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 }

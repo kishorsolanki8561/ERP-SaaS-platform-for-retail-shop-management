@@ -29,6 +29,11 @@ public static class Constants
         public const string GstSlab             = "GST_SLAB";
         public const string ChequeBounceReason  = "CHEQUE_BOUNCE_REASON";
         public const string FixedAssetCategory  = "FIXED_ASSET_CATEGORY";
+        public const string PaymentGateway       = "PAYMENT_GATEWAY";
+        public const string AttendanceStatus         = "ATTENDANCE_STATUS";
+        public const string SalaryComponent          = "SALARY_COMPONENT";
+        public const string Marketplace              = "MARKETPLACE";
+        public const string MarketplaceOrderStatus   = "MARKETPLACE_ORDER_STATUS";
     }
 
     public static class SequenceCodes
@@ -53,6 +58,11 @@ public static class Constants
         public const string Quotation         = "QUOTATION";
         public const string Delivery          = "DELIVERY";
         public const string FixedAsset        = "FIXED_ASSET";
+        public const string PaymentTransaction = "PAYMENT_TRANSACTION";
+        public const string WalletTopUp        = "WALLET_TOP_UP";
+        public const string Employee           = "EMPLOYEE";
+        public const string OnlineOrder        = "ONLINE_ORDER";
+        public const string CustomerInquiry    = "CUSTOMER_INQUIRY";
     }
 
     public static class SequencePrefixes
@@ -77,6 +87,10 @@ public static class Constants
         public const string Quotation         = "QT";
         public const string Delivery          = "DEL";
         public const string FixedAsset        = "FA";
+        public const string PaymentTransaction = "PT";
+        public const string Employee           = "EMP";
+        public const string OnlineOrder        = "ORD";
+        public const string CustomerInquiry    = "INQ";
     }
 
     public static class Pagination

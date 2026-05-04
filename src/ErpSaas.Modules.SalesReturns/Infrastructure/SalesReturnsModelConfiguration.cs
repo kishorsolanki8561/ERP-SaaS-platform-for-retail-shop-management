@@ -20,6 +20,8 @@ public static class SalesReturnsModelConfiguration
             e.Property(x => x.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
             e.Property(x => x.RefundMethod).HasConversion<string>().HasMaxLength(20).IsRequired();
             e.Property(x => x.TotalRefundAmount).HasPrecision(18, 2);
+            e.Property(x => x.RefundedToWallet).HasPrecision(18, 2);
+            e.Property(x => x.RefundedToCash).HasPrecision(18, 2);
             e.Property(x => x.Reason).HasMaxLength(2000);
             e.Property(x => x.RowVersion).IsConcurrencyToken();
             e.HasIndex(x => new { x.ShopId, x.InvoiceId });

@@ -18,6 +18,7 @@ export interface AuthUser {
 export interface LoginRequest {
   identifier: string;
   password: string;
+  captchaToken?: string;
 }
 
 export interface LoginResponse {
@@ -39,10 +40,21 @@ export class AuthService {
   readonly isLoggedIn = computed(() => this._user() !== null);
 
   async login(request: LoginRequest): Promise<void> {
+    const { captchaToken, ...body } = request;
     const resp = await firstValueFrom(
-      this.http.post<LoginResponse>(ApiEndpoints.auth.login, request)
+      this.http.post<LoginResponse>(ApiEndpoints.auth.login, body, {
+        headers: captchaToken ? { 'cf-turnstile-response': captchaToken } : {},
+      })
     );
     this.storeSession(resp);
+  }
+
+  async forgotPassword(email: string, captchaToken: string): Promise<void> {
+    await firstValueFrom(
+      this.http.post(ApiEndpoints.auth.forgotPassword, { email }, {
+        headers: { 'cf-turnstile-response': captchaToken },
+      })
+    );
   }
 
   async refresh(): Promise<boolean> {

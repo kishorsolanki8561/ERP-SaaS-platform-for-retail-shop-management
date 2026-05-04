@@ -1,4 +1,5 @@
 using ErpSaas.Api.Middleware;
+using ErpSaas.Modules.Sync.Hubs;
 using Hangfire;
 using Microsoft.AspNetCore.Builder;
 using Serilog;
@@ -23,6 +24,7 @@ public static class ErpPipelineExtensions
         app.UseAuthorization();
         app.MapControllers();
         app.MapHangfireDashboard("/hangfire");
+        app.MapHub<SyncStatusHub>(SyncStatusHub.HubPath);
 
         return app;
     }

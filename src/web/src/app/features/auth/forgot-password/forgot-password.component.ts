@@ -1,21 +1,21 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { InputTextModule } from 'primeng/inputtext';
 import { ButtonModule } from 'primeng/button';
-import { HttpClient } from '@angular/common/http';
-import { firstValueFrom } from 'rxjs';
 import { AppLabels, AppMessages } from '../../../shared/messages/app-messages';
-import { ApiEndpoints } from '../../../shared/messages/app-api';
 import { AppRoutes } from '../../../shared/messages/app-routes';
+import { AuthService } from '../../../core/auth/auth.service';
+import { TurnstileComponent } from '../../../shared/components/turnstile/turnstile.component';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-forgot-password',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block' },
-  imports: [CommonModule, FormsModule, RouterLink, InputTextModule, ButtonModule],
+  imports: [CommonModule, FormsModule, RouterLink, InputTextModule, ButtonModule, TurnstileComponent],
   template: `
     @if (!sent()) {
       <!-- Header -->
@@ -53,10 +53,17 @@ import { AppRoutes } from '../../../shared/messages/app-routes';
             required />
         </div>
 
+        <div class="flex justify-center mt-1">
+          <app-turnstile
+            [siteKey]="turnstileSiteKey"
+            (resolved)="captchaToken.set($event)" />
+        </div>
+
         <p-button
           type="submit"
           [label]="labels.auth.sendResetButton"
           [loading]="loading()"
+          [disabled]="!captchaToken()"
           styleClass="w-full mt-2"
           size="large" />
       </form>
@@ -81,26 +88,31 @@ import { AppRoutes } from '../../../shared/messages/app-routes';
   `
 })
 export class ForgotPasswordComponent {
-  private readonly http = inject(HttpClient);
+  private readonly auth      = inject(AuthService);
+  private readonly turnstile = viewChild(TurnstileComponent);
 
-  protected readonly labels   = AppLabels;
-  protected readonly messages = AppMessages;
-  protected readonly routes   = AppRoutes;
+  protected readonly labels           = AppLabels;
+  protected readonly messages         = AppMessages;
+  protected readonly routes           = AppRoutes;
+  protected readonly turnstileSiteKey = environment.turnstileSiteKey;
 
-  protected email   = '';
-  protected loading = signal(false);
-  protected error   = signal<string | null>(null);
-  protected sent    = signal(false);
+  protected email        = '';
+  protected loading      = signal(false);
+  protected error        = signal<string | null>(null);
+  protected sent         = signal(false);
+  protected captchaToken = signal('');
 
   protected async submit(): Promise<void> {
-    if (!this.email) return;
+    if (!this.email || !this.captchaToken()) return;
     this.loading.set(true);
     this.error.set(null);
     try {
-      await firstValueFrom(this.http.post(ApiEndpoints.auth.forgotPassword, { email: this.email }));
+      await this.auth.forgotPassword(this.email, this.captchaToken());
       this.sent.set(true);
     } catch {
       this.error.set(AppMessages.common.error);
+      this.captchaToken.set('');
+      this.turnstile()?.reset();
     } finally {
       this.loading.set(false);
     }

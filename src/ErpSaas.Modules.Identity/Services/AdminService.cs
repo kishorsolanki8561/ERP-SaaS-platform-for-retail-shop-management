@@ -98,7 +98,9 @@ public sealed class AdminService(
         => await ExecuteAsync<bool>("Admin.DeactivateUser", async () =>
         {
             var user = await db.Users
-                .FirstOrDefaultAsync(u => u.Id == userId && !u.IsDeleted, ct);
+                .Where(u => u.Id == userId && !u.IsDeleted)
+                .Where(u => u.UserShops.Any(us => us.ShopId == tenant.ShopId))
+                .FirstOrDefaultAsync(ct);
             if (user is null) return Result<bool>.NotFound(Errors.Admin.UserNotFound);
             user.IsActive = false;
             await db.SaveChangesAsync(ct);

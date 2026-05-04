@@ -1,51 +1,62 @@
+using System.Net;
+using System.Net.Http.Json;
+using System.Text.Json;
+using ErpSaas.Tests.Integration.Fixtures;
 using FluentAssertions;
 
 namespace ErpSaas.Tests.Integration.Modules.Wallet;
 
 /// <summary>
 /// Verifies that wallet balances and transactions created in Shop A are never
-/// visible to Shop B, and that mutations from Shop B cannot affect Shop A's
-/// wallet data.
-///
-/// Full implementation requires <c>IntegrationTestFixture</c> with two
-/// pre-onboarded shops — deferred to Phase 1.
+/// visible to Shop B, and that mutations from Shop B cannot affect Shop A's data.
 /// </summary>
+[Collection("Integration")]
 [Trait("Category", "Integration")]
-public class WalletTenantIsolationTests
+[Trait("Category", "TenantIsolation")]
+public sealed class WalletTenantIsolationTests(IntegrationTestFixture fixture)
 {
-    [Fact(Skip = "Requires IntegrationTestFixture with two shops — Phase 1")]
-    public async Task ListBalances_ShopA_DoesNotReturnShopBBalances()
+    [Fact]
+    public async Task GetBalance_ShopBCannotReadShopACustomerBalance_ReturnsNullOrEmpty()
     {
-        // Arrange: credit customer in ShopA, authenticate as ShopB
-        // Act: GET /api/wallet/balances
-        // Assert: result does not contain ShopA balance
-        await Task.CompletedTask;
-    }
+        // ── Arrange: create a customer and credit their wallet as Shop A ──────
+        var shopAClient = fixture.CreateAuthenticatedClient(shopId: 1);
+        var suffix      = Guid.NewGuid().ToString("N")[..8];
 
-    [Fact(Skip = "Requires IntegrationTestFixture with two shops — Phase 1")]
-    public async Task GetBalance_ShopBCannotReadShopABalance_Returns404()
-    {
-        // Arrange: credit customer in ShopA, get customerId
-        // Act: GET /api/wallet/balances/{customerId} authenticated as ShopB
-        // Assert: 404 (not 403 — must not leak existence)
-        await Task.CompletedTask;
-    }
+        var createCustomerResp = await shopAClient.PostAsJsonAsync("/api/crm/customers", new
+        {
+            DisplayName  = $"ShopA Wallet Customer {suffix}",
+            CustomerType = "RETAIL",
+            Email        = $"shopa-wallet-{suffix}@test.local",
+            Phone        = (string?)null,
+            GstNumber    = (string?)null,
+            CreditLimit  = 0m,
+            GroupId      = (long?)null
+        });
+        createCustomerResp.IsSuccessStatusCode.Should().BeTrue("setup: Shop A customer must be created");
 
-    [Fact(Skip = "Requires IntegrationTestFixture with two shops — Phase 1")]
-    public async Task DebitAsync_ShopBCannotDebitShopACustomer_ReturnsConflict()
-    {
-        // Arrange: credit customer in ShopA, attempt debit as ShopB
-        // Act: POST /api/wallet/debit with ShopA customerId as ShopB
-        // Assert: 409 (no balance found for ShopB customer)
-        await Task.CompletedTask;
-    }
+        // BaseController.Ok<T>(Result<T>) returns OkObjectResult(result.Value) — raw long.
+        var custJson   = await createCustomerResp.Content.ReadFromJsonAsync<JsonElement>();
+        var customerId = custJson.GetInt64();
 
-    [Fact(Skip = "Requires IntegrationTestFixture with two shops — Phase 1")]
-    public async Task ListTransactions_ShopBCannotReadShopATransactions()
-    {
-        // Arrange: credit then debit in ShopA
-        // Act: GET /api/wallet/balances/{customerId}/transactions as ShopB
-        // Assert: empty list or 404
-        await Task.CompletedTask;
+        var creditResp = await shopAClient.PostAsJsonAsync("/api/wallet/credit", new
+        {
+            CustomerId    = customerId,
+            CustomerName  = $"ShopA Wallet Customer {suffix}",
+            Amount        = 1000m,
+            ReferenceType = "Manual",
+            ReferenceId   = (long?)null,
+            Notes         = "Tenant isolation seed"
+        });
+        creditResp.IsSuccessStatusCode.Should().BeTrue("setup: wallet credit must succeed");
+
+        // ── Act: Shop B tries to read Shop A's customer balance ───────────────
+        var shopBClient  = fixture.CreateAuthenticatedClient(shopId: 2);
+        var balanceResp  = await shopBClient.GetAsync($"/api/wallet/balance/{customerId}");
+
+        // ── Assert: 404 — Shop B must not find Shop A's wallet balance ────────
+        // The global query filter (ShopId = tenant.ShopId) means WalletBalance
+        // for customerId belonging to Shop A will not be found by Shop B.
+        balanceResp.StatusCode.Should().Be(HttpStatusCode.NotFound,
+            "the global query filter on ShopId must prevent Shop B from reading Shop A's balance");
     }
 }

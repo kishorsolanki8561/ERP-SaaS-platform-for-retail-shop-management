@@ -6,7 +6,8 @@
 **/appsettings.Production.json
 **/appsettings.Staging.json
 # Prevent real connection strings from being committed to appsettings.json
-# (use dotnet user-secrets for local overrides)
+# (use dotnet user-secrets, or appsettings.Local.json — both gitignored)
+**/appsettings.Local.json
 
 # ── .NET build output ─────────────────────────────────────────────────────────
 **/bin/

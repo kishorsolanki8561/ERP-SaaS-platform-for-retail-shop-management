@@ -16,22 +16,22 @@ public sealed class QuotationsController(IQuotationsService quotationsService) :
         => Ok(await quotationsService.ListQuotationsAsync(ct));
 
     [HttpPost]
-    [RequirePermission("Quotation.Manage")]
+    [RequirePermission("Quotation.Create")]
     public async Task<IActionResult> CreateQuotation([FromBody] CreateQuotationDto dto, CancellationToken ct = default)
         => Ok(await quotationsService.CreateQuotationAsync(dto, ct));
 
     [HttpPatch("{id:long}/send")]
-    [RequirePermission("Quotation.Manage")]
+    [RequirePermission("Quotation.Send")]
     public async Task<IActionResult> SendQuotation(long id, CancellationToken ct = default)
         => Ok(await quotationsService.SendQuotationAsync(id, ct));
 
     [HttpPost("{id:long}/convert")]
-    [RequirePermission("Quotation.Manage")]
+    [RequirePermission("Quotation.Convert")]
     public async Task<IActionResult> ConvertToSalesOrder(long id, CancellationToken ct = default)
         => Ok(await quotationsService.ConvertQuotationToSalesOrderAsync(id, ct));
 
     [HttpPatch("{id:long}/reject")]
-    [RequirePermission("Quotation.Manage")]
+    [RequirePermission("Quotation.Delete")]
     public async Task<IActionResult> RejectQuotation(long id, CancellationToken ct = default)
         => Ok(await quotationsService.RejectQuotationAsync(id, ct));
 
@@ -41,12 +41,12 @@ public sealed class QuotationsController(IQuotationsService quotationsService) :
         => Ok(await quotationsService.ListSalesOrdersAsync(ct));
 
     [HttpPost("sales-orders")]
-    [RequirePermission("Quotation.Manage")]
+    [RequirePermission("Quotation.Create")]
     public async Task<IActionResult> CreateSalesOrder([FromBody] CreateSalesOrderDto dto, CancellationToken ct = default)
         => Ok(await quotationsService.CreateSalesOrderAsync(dto, ct));
 
     [HttpPatch("sales-orders/{id:long}/cancel")]
-    [RequirePermission("Quotation.Manage")]
+    [RequirePermission("Quotation.Delete")]
     public async Task<IActionResult> CancelSalesOrder(long id, CancellationToken ct = default)
         => Ok(await quotationsService.CancelSalesOrderAsync(id, ct));
 
@@ -56,17 +56,17 @@ public sealed class QuotationsController(IQuotationsService quotationsService) :
         => Ok(await quotationsService.ListDeliveryChallansAsync(ct));
 
     [HttpPost("delivery-challans")]
-    [RequirePermission("Quotation.Manage")]
+    [RequirePermission("Quotation.Create")]
     public async Task<IActionResult> CreateDeliveryChallan([FromBody] CreateDeliveryChallanDto dto, CancellationToken ct = default)
         => Ok(await quotationsService.CreateDeliveryChallanAsync(dto, ct));
 
     [HttpPatch("delivery-challans/{id:long}/dispatch")]
-    [RequirePermission("Quotation.Manage")]
+    [RequirePermission("Quotation.Send")]
     public async Task<IActionResult> DispatchDeliveryChallan(long id, CancellationToken ct = default)
         => Ok(await quotationsService.DispatchDeliveryChallanAsync(id, ct));
 
     [HttpPatch("delivery-challans/{id:long}/delivered")]
-    [RequirePermission("Quotation.Manage")]
+    [RequirePermission("Quotation.Accept")]
     public async Task<IActionResult> MarkDelivered(long id, CancellationToken ct = default)
         => Ok(await quotationsService.MarkDeliveryChallanDeliveredAsync(id, ct));
 }

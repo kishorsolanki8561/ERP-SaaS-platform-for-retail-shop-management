@@ -8,12 +8,26 @@ public record AuditEvent(
     string? NewValues,
     long? UserId,
     long? ShopId,
-    string? CorrelationId = null);
+    string? CorrelationId = null,
+    string? ParentEntityName = null,
+    string? ParentEntityId = null);
 
-[AttributeUsage(AttributeTargets.Method | AttributeTargets.Class)]
+[AttributeUsage(AttributeTargets.Class)]
 public sealed class AuditableAttribute(string eventType) : Attribute
 {
     public string EventType { get; } = eventType;
+    public string? ParentEntityType { get; init; }
+    public string? ParentIdProperty { get; init; }
+}
+
+/// <summary>
+/// Marks an entity property as visible in audit log diffs.
+/// Only properties with this attribute appear in the before/after change display.
+/// </summary>
+[AttributeUsage(AttributeTargets.Property)]
+public sealed class AuditFieldAttribute(string displayName) : Attribute
+{
+    public string DisplayName { get; } = displayName;
 }
 
 public interface IAuditLogger

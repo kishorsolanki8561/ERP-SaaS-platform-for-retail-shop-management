@@ -1,8 +1,11 @@
 using ErpSaas.Infrastructure.Data;
 using ErpSaas.Infrastructure.Messaging;
+using ErpSaas.Infrastructure.Metering;
 using ErpSaas.Infrastructure.Seeds;
 using ErpSaas.Infrastructure.Sql;
 using ErpSaas.Modules.Accounting.Jobs;
+using ErpSaas.Modules.Marketplace.Jobs;
+using ErpSaas.Modules.Payment.Jobs;
 using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Builder;
@@ -56,6 +59,31 @@ public static class AppInitializationExtensions
                     "monthly-depreciation",
                     job => job.ExecuteAsync(CancellationToken.None),
                     Cron.Monthly);
+
+                jobManager.AddOrUpdate<DailyReconciliationJob>(
+                    DailyReconciliationJob.JobId,
+                    job => job.ExecuteAsync(CancellationToken.None),
+                    Cron.Daily(hour: 2));
+
+                jobManager.AddOrUpdate<MarketplaceOrderPollingJob>(
+                    MarketplaceOrderPollingJob.JobId,
+                    job => job.ExecuteAsync(CancellationToken.None),
+                    "*/5 * * * *");
+
+                jobManager.AddOrUpdate<MarketplaceInventorySyncJob>(
+                    MarketplaceInventorySyncJob.JobId,
+                    job => job.ExecuteAsync(CancellationToken.None),
+                    Cron.Daily(hour: 3));
+
+                jobManager.AddOrUpdate<MarketplacePriceSyncJob>(
+                    MarketplacePriceSyncJob.JobId,
+                    job => job.ExecuteAsync(CancellationToken.None),
+                    Cron.Daily(hour: 4));
+
+                jobManager.AddOrUpdate<UsageRolloverJob>(
+                    "usage-monthly-rollover",
+                    job => job.ExecuteAsync(CancellationToken.None),
+                    "5 0 1 * *"); // 00:05 UTC on the 1st of every month
             }
         }
         catch (Exception ex)

@@ -22,12 +22,17 @@ public class IdentityArchTests
         // AdminService) are expected to extend BaseService<PlatformDbContext>.
         // Helper / infrastructure services (TokenService, MenuService,
         // PermissionService) are exempt because they do not own DB writes.
+        // Read-only services (no EF writes) are exempt from BaseService requirement
+        var readOnlyServices = new HashSet<string>
+        {
+            "TokenService", "MenuService", "PermissionService",
+            "ShopInfoProvider", "AuditLogService", "PlatformAdminService"
+        };
+
         var dbServiceTypes = IdentityAssembly.GetTypes()
             .Where(t => t.IsClass && !t.IsAbstract && t.Name.EndsWith("Service")
                 && t.Namespace?.Contains("Modules.Identity") == true
-                && !t.Name.StartsWith("Token")
-                && !t.Name.StartsWith("Menu")
-                && !t.Name.StartsWith("Permission"))
+                && !readOnlyServices.Contains(t.Name))
             .ToList();
 
         dbServiceTypes.Should().NotBeEmpty(

@@ -1,4 +1,6 @@
+using ErpSaas.Api.Seeds;
 using ErpSaas.Infrastructure.Authorization;
+using ErpSaas.Infrastructure.Extensions;
 using ErpSaas.Modules.Accounting.Extensions;
 using ErpSaas.Modules.Billing.Extensions;
 using ErpSaas.Modules.Purchasing.Extensions;
@@ -8,6 +10,13 @@ using ErpSaas.Modules.Warranty.Extensions;
 using ErpSaas.Modules.Pricing.Extensions;
 using ErpSaas.Modules.Transport.Extensions;
 using ErpSaas.Modules.Quotations.Extensions;
+using ErpSaas.Modules.Payment.Extensions;
+using ErpSaas.Modules.Hardware.Extensions;
+using ErpSaas.Modules.Hr.Extensions;
+using ErpSaas.Modules.ApiAccess.Extensions;
+using ErpSaas.Modules.Sync.Extensions;
+using ErpSaas.Modules.CustomerPortal.Extensions;
+using ErpSaas.Modules.Marketplace.Extensions;
 using ErpSaas.Modules.Crm.Extensions;
 using ErpSaas.Modules.Identity.Extensions;
 using ErpSaas.Modules.Inventory.Extensions;
@@ -40,6 +49,11 @@ public static class ApiServiceExtensions
                       .AllowCredentials()));
 
         services.AddControllers(opts => opts.Filters.AddService<CaptchaValidationFilter>())
+            .AddJsonOptions(opts =>
+            {
+                opts.JsonSerializerOptions.Converters.Add(
+                    new System.Text.Json.Serialization.JsonStringEnumConverter());
+            })
             .AddApplicationPart(typeof(Modules.Masters.Controllers.DdlController).Assembly)
             .AddApplicationPart(typeof(Modules.Identity.Controllers.AuthController).Assembly)
             .AddApplicationPart(typeof(Modules.Crm.Controllers.CrmController).Assembly)
@@ -54,7 +68,14 @@ public static class ApiServiceExtensions
             .AddApplicationPart(typeof(Modules.Warranty.Controllers.WarrantyController).Assembly)
             .AddApplicationPart(typeof(Modules.Pricing.Controllers.PricingController).Assembly)
             .AddApplicationPart(typeof(Modules.Transport.Controllers.TransportController).Assembly)
-            .AddApplicationPart(typeof(Modules.Quotations.Controllers.QuotationsController).Assembly);
+            .AddApplicationPart(typeof(Modules.Quotations.Controllers.QuotationsController).Assembly)
+            .AddApplicationPart(typeof(Modules.Payment.Controllers.PaymentGatewayController).Assembly)
+            .AddApplicationPart(typeof(Modules.Hardware.Controllers.DeviceProfilesController).Assembly)
+            .AddApplicationPart(typeof(Modules.Hr.Controllers.HrController).Assembly)
+            .AddApplicationPart(typeof(Modules.Marketplace.Controllers.MarketplaceController).Assembly)
+            .AddApplicationPart(typeof(Modules.CustomerPortal.Controllers.PortalAuthController).Assembly)
+            .AddApplicationPart(typeof(Modules.ApiAccess.Controllers.ShopApiKeysController).Assembly)
+            .AddApplicationPart(typeof(Modules.Sync.Controllers.DevicesController).Assembly);
 
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen(c =>
@@ -75,6 +96,18 @@ public static class ApiServiceExtensions
         services.AddPricingModule();
         services.AddTransportModule();
         services.AddQuotationsModule();
+        services.AddPaymentModule();
+        services.AddHardwareModule();
+        services.AddHrModule();
+        services.AddMarketplaceModule();
+        services.AddCustomerPortalModule();
+        services.AddApiAccessModule();
+        services.AddSyncModule();
+
+        // Demo data seeder — only active when Features:SeedDemoData = true
+        services.AddDataSeeder<DemoDataSeeder>();
+
+        services.AddSignalR();
 
         // Use (serviceProvider, cfg) overload so the connection string is resolved
         // at runtime (after all IConfiguration sources — including test overrides — are merged)

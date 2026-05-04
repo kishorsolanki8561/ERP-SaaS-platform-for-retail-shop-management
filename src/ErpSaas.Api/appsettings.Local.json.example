@@ -1,0 +1,13 @@
+{
+  "_comment": "Copy this file to appsettings.Local.json (gitignored) and fill in your overrides.",
+
+  "ConnectionStrings": {
+    "PlatformDb":         "Server=localhost,1433;Database=ErpSaas_PlatformDb;User Id=sa;Password=YourStrong@Passw0rd;TrustServerCertificate=true;",
+    "TenantDb":           "Server=localhost,1433;Database=ErpSaas_TenantDb;User Id=sa;Password=YourStrong@Passw0rd;TrustServerCertificate=true;",
+    "AnalyticsDb":        "Server=localhost,1433;Database=ErpSaas_AnalyticsDb;User Id=sa;Password=YourStrong@Passw0rd;TrustServerCertificate=true;",
+    "LogDb":              "Server=localhost,1433;Database=ErpSaas_LogDb;User Id=sa;Password=YourStrong@Passw0rd;TrustServerCertificate=true;",
+    "NotificationsDb":    "Server=localhost,1433;Database=ErpSaas_NotificationsDb;User Id=sa;Password=YourStrong@Passw0rd;TrustServerCertificate=true;",
+    "MarketplaceEventsDb":"Server=localhost,1433;Database=ErpSaas_MarketplaceEventsDb;User Id=sa;Password=YourStrong@Passw0rd;TrustServerCertificate=true;",
+    "SyncDb":             "Server=localhost,1433;Database=ErpSaas_SyncDb;User Id=sa;Password=YourStrong@Passw0rd;TrustServerCertificate=true;"
+  }
+}

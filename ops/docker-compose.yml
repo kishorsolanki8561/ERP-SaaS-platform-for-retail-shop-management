@@ -1,4 +1,71 @@
 services:
+
+  # ── API (hot-reload dev container) ──────────────────────────────────────────
+  api:
+    build:
+      context: ../src
+      dockerfile: ErpSaas.Api/Dockerfile
+      target: dev          # uses the SDK-based hot-reload stage
+    container_name: erp-api
+    ports:
+      - "${API_PORT:-5155}:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+
+      # Override all connection strings so the container uses the 'sqlserver'
+      # service name instead of 'localhost' (which would resolve to itself).
+      ConnectionStrings__PlatformDb:          "Server=sqlserver,1433;Database=ErpSaas_PlatformDb;User Id=sa;Password=${SQLSERVER_SA_PASSWORD:-YourStrong@Passw0rd};TrustServerCertificate=true;"
+      ConnectionStrings__TenantDb:            "Server=sqlserver,1433;Database=ErpSaas_TenantDb;User Id=sa;Password=${SQLSERVER_SA_PASSWORD:-YourStrong@Passw0rd};TrustServerCertificate=true;"
+      ConnectionStrings__AnalyticsDb:         "Server=sqlserver,1433;Database=ErpSaas_AnalyticsDb;User Id=sa;Password=${SQLSERVER_SA_PASSWORD:-YourStrong@Passw0rd};TrustServerCertificate=true;"
+      ConnectionStrings__LogDb:               "Server=sqlserver,1433;Database=ErpSaas_LogDb;User Id=sa;Password=${SQLSERVER_SA_PASSWORD:-YourStrong@Passw0rd};TrustServerCertificate=true;"
+      ConnectionStrings__NotificationsDb:     "Server=sqlserver,1433;Database=ErpSaas_NotificationsDb;User Id=sa;Password=${SQLSERVER_SA_PASSWORD:-YourStrong@Passw0rd};TrustServerCertificate=true;"
+      ConnectionStrings__MarketplaceEventsDb: "Server=sqlserver,1433;Database=ErpSaas_MarketplaceEventsDb;User Id=sa;Password=${SQLSERVER_SA_PASSWORD:-YourStrong@Passw0rd};TrustServerCertificate=true;"
+      ConnectionStrings__SyncDb:              "Server=sqlserver,1433;Database=ErpSaas_SyncDb;User Id=sa;Password=${SQLSERVER_SA_PASSWORD:-YourStrong@Passw0rd};TrustServerCertificate=true;"
+
+      # Seq is accessible inside Docker at http://seq:80
+      Serilog__WriteTo__1__Args__serverUrl: "http://seq:80"
+
+      # Platform-owner seed account (picked up by DatabaseSeeder on first boot)
+      PRODUCT_OWNER_EMAIL:    "${PRODUCT_OWNER_EMAIL:-admin@shopearth.local}"
+      PRODUCT_OWNER_PASSWORD: "${PRODUCT_OWNER_PASSWORD:-Admin@123!}"
+      PRODUCT_OWNER_NAME:     "${PRODUCT_OWNER_NAME:-Platform Admin}"
+    volumes:
+      # Bind-mount source for hot reload — changes on the host are watched.
+      - ../src:/src
+      # Persist NuGet packages across container restarts to avoid re-downloading.
+      - nuget-cache:/root/.nuget
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      seq:
+        condition: service_started
+    restart: unless-stopped
+
+  # ── SQL Server 2022 ──────────────────────────────────────────────────────────
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: erp-sqlserver
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "${SQLSERVER_SA_PASSWORD:-YourStrong@Passw0rd}"
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    healthcheck:
+      test: >
+        /opt/mssql-tools18/bin/sqlcmd
+        -S localhost -U sa -P "$$MSSQL_SA_PASSWORD"
+        -Q "SELECT 1" -No
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  # ── Redis ────────────────────────────────────────────────────────────────────
   redis:
     image: redis:7-alpine
     container_name: erp-redis
@@ -11,14 +78,18 @@ services:
       interval: 10s
       timeout: 3s
       retries: 5
+    restart: unless-stopped
 
+  # ── MailHog (SMTP trap + web UI) ─────────────────────────────────────────────
   mailhog:
     image: mailhog/mailhog:latest
     container_name: erp-mailhog
     ports:
       - "1025:1025"   # SMTP
-      - "8025:8025"   # Web UI
+      - "8025:8025"   # Web UI  →  http://localhost:8025
+    restart: unless-stopped
 
+  # ── Azurite (Azure Storage emulator) ─────────────────────────────────────────
   azurite:
     image: mcr.microsoft.com/azure-storage/azurite:latest
     container_name: erp-azurite
@@ -28,18 +99,23 @@ services:
       - "10002:10002"   # Table
     volumes:
       - azurite-data:/data
+    restart: unless-stopped
 
+  # ── Seq (structured log UI) ───────────────────────────────────────────────────
   seq:
     image: datalust/seq:latest
     container_name: erp-seq
     ports:
-      - "5341:80"
+      - "5341:80"       # Web UI  →  http://localhost:5341
     environment:
       ACCEPT_EULA: "Y"
     volumes:
       - seq-data:/data
+    restart: unless-stopped
 
 volumes:
+  sqlserver-data:
   redis-data:
   azurite-data:
   seq-data:
+  nuget-cache:        # persists NuGet packages across api container restarts

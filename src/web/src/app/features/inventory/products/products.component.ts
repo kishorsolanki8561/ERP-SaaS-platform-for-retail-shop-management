@@ -1,6 +1,6 @@
 import {
   ChangeDetectionStrategy, Component,
-  inject, signal
+  inject, signal, ViewChild
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -13,6 +13,7 @@ import { ButtonModule } from 'primeng/button';
 import { MessageService } from 'primeng/api';
 import { PageHeaderComponent, PageAction } from '../../../shared/components/page-header/page-header.component';
 import { DataTableComponent, TableColumn, RowAction } from '../../../shared/components/data-table/data-table.component';
+import { AuditLogComponent } from '../../../shared/components/audit-log/audit-log.component';
 import { FormFieldComponent } from '../../../shared/components/form-field/form-field.component';
 import { DdlDropdownComponent } from '../../../shared/components/ddl-dropdown/ddl-dropdown.component';
 import { AppLabels } from '../../../shared/messages/app-messages';
@@ -40,7 +41,7 @@ interface ProductForm {
   imports: [
     CommonModule, FormsModule,
     DialogModule, InputTextModule, InputNumberModule, ButtonModule,
-    PageHeaderComponent, DataTableComponent, FormFieldComponent, DdlDropdownComponent,
+    PageHeaderComponent, DataTableComponent, FormFieldComponent, DdlDropdownComponent, AuditLogComponent,
   ],
   template: `
     <div class="p-6 space-y-6 max-w-7xl mx-auto">
@@ -127,11 +128,16 @@ interface ProductForm {
                   (onClick)="saveProduct()" />
       </ng-template>
     </p-dialog>
+
+    <app-audit-log #auditPanel entityType="Product" [entityId]="auditEntityId()" />
   `
 })
 export class ProductsComponent {
   private readonly http = inject(HttpClient);
   private readonly toast = inject(MessageService);
+
+  @ViewChild('auditPanel') auditPanel!: AuditLogComponent;
+  protected readonly auditEntityId = signal<string | number | null>(null);
 
   protected readonly labels = AppLabels;
   protected readonly ddlKeys = AppConstants.ddlKeys;
@@ -153,8 +159,9 @@ export class ProductsComponent {
   ];
 
   protected readonly rowActions: RowAction[] = [
-    { label: AppLabels.shared.edit,       icon: 'pi pi-pencil', severity: 'secondary', permission: Permissions.inventory.manage },
-    { label: AppLabels.shared.deactivate, icon: 'pi pi-ban',    severity: 'danger',    permission: Permissions.inventory.manage },
+    { label: AppLabels.shared.edit,       icon: 'pi pi-pencil',  severity: 'secondary', permission: Permissions.inventory.manage },
+    { label: AppLabels.shared.deactivate, icon: 'pi pi-ban',     severity: 'danger',    permission: Permissions.inventory.manage },
+    { label: 'Audit Log',                 icon: 'pi pi-history', severity: 'secondary', permission: Permissions.auditLog.view },
   ];
 
   protected readonly headerActions: PageAction[] = [
@@ -188,6 +195,9 @@ export class ProductsComponent {
       this.dialogVisible = true;
     } else if (event.action === this.labels.shared.deactivate) {
       this.deactivate(id);
+    } else if (event.action === 'Audit Log') {
+      this.auditEntityId.set(id);
+      this.auditPanel.open();
     }
   }
 

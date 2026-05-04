@@ -1,4 +1,6 @@
 #pragma warning disable CS9107
+using Dapper;
+using ErpSaas.Infrastructure.Dapper;
 using ErpSaas.Infrastructure.Data;
 using ErpSaas.Infrastructure.Data.Entities.Metering;
 using ErpSaas.Infrastructure.Data.Entities.Subscription;
@@ -13,6 +15,7 @@ public sealed class UsageMeterService(
     TenantDbContext db,
     PlatformDbContext platform,
     ITenantContext tenantContext,
+    IDapperContext dapper,
     IErrorLogger errorLogger)
     : BaseService<TenantDbContext>(db, errorLogger), IUsageMeterService
 {
@@ -141,6 +144,93 @@ public sealed class UsageMeterService(
             .ToListAsync(ct);
 
         return meters;
+    }
+
+    public async Task<IReadOnlyList<UsageMeterDto>> GetHistoryAsync(
+        string? meterCode, int months = 6, CancellationToken ct = default)
+    {
+        var cutoff = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1, 0, 0, 0, DateTimeKind.Utc)
+            .AddMonths(-months);
+
+        var query = db.Set<UsageMeter>()
+            .Where(m => !m.IsDeleted && m.PeriodStartUtc >= cutoff);
+
+        if (!string.IsNullOrWhiteSpace(meterCode))
+            query = query.Where(m => m.MeterCode == meterCode);
+
+        return await query
+            .OrderBy(m => m.MeterCode).ThenBy(m => m.PeriodStartUtc)
+            .Select(m => new UsageMeterDto(
+                m.MeterCode, m.Used, m.Quota,
+                m.HardCapEnforced, m.PeriodStartUtc, m.PeriodEndUtc))
+            .ToListAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<UsageForecastDto>> GetForecastAsync(CancellationToken ct = default)
+    {
+        var now = DateTime.UtcNow;
+        var monthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+        var daysElapsed = (now - monthStart).TotalDays;
+        var daysInMonth = DateTime.DaysInMonth(now.Year, now.Month);
+
+        var monthlyCodes = MeterCodes.AllMonthly;
+        var meters = await db.Set<UsageMeter>()
+            .Where(m => !m.IsDeleted
+                && monthlyCodes.Contains(m.MeterCode)
+                && m.PeriodStartUtc == monthStart)
+            .ToListAsync(ct);
+
+        var forecasts = meters.Select(m =>
+        {
+            var dailyRate = daysElapsed > 0 ? m.Used / daysElapsed : 0;
+            var projected = (long)Math.Ceiling(dailyRate * daysInMonth);
+            return new UsageForecastDto(
+                m.MeterCode, m.Used, m.Quota, projected,
+                m.Quota > 0 && projected > m.Quota);
+        }).ToList();
+
+        return forecasts;
+    }
+
+    public async Task<(IReadOnlyList<UsageEventDto> Items, int TotalCount)> GetEventsAsync(
+        string? meterCode,
+        DateTime? from,
+        DateTime? to,
+        int page,
+        int pageSize,
+        CancellationToken ct = default)
+    {
+        var shopId = tenantContext.ShopId;
+        var offset = (page - 1) * pageSize;
+
+        var whereClause = "WHERE ShopId = @ShopId AND IsDeleted = 0";
+        if (!string.IsNullOrWhiteSpace(meterCode)) whereClause += " AND MeterCode = @MeterCode";
+        if (from.HasValue)  whereClause += " AND OccurredAtUtc >= @From";
+        if (to.HasValue)    whereClause += " AND OccurredAtUtc <= @To";
+
+        var countSql = $"SELECT COUNT(1) FROM [metering].[UsageEvent] {whereClause}";
+        var dataSql  = $"""
+            SELECT Id, MeterCode, OccurredAtUtc, Delta, SourceEntityType, SourceEntityId, CreatedAtUtc
+            FROM [metering].[UsageEvent]
+            {whereClause}
+            ORDER BY OccurredAtUtc DESC
+            OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY
+            """;
+
+        var p = new DynamicParameters();
+        p.Add("ShopId",   shopId);
+        p.Add("MeterCode", meterCode);
+        p.Add("From",     from);
+        p.Add("To",       to);
+        p.Add("Offset",   offset);
+        p.Add("PageSize", pageSize);
+
+        var totalCount = await dapper.Connection.ExecuteScalarAsync<int>(
+            countSql, p, dapper.CurrentTransaction);
+        var rows = await dapper.Connection.QueryAsync<UsageEventDto>(
+            dataSql, p, dapper.CurrentTransaction);
+
+        return (rows.ToList(), totalCount);
     }
 
     private static (DateTime start, DateTime end) GetPeriod(string meterCode)

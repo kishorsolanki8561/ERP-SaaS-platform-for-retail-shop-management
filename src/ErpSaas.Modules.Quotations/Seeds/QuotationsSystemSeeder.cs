@@ -2,6 +2,7 @@ using ErpSaas.Infrastructure.Data;
 using ErpSaas.Infrastructure.Data.Entities.Identity;
 using ErpSaas.Infrastructure.Data.Entities.Menu;
 using ErpSaas.Infrastructure.Data.Entities.Sequence;
+using ErpSaas.Infrastructure.Data.Entities.Subscription;
 using ErpSaas.Shared.Messages;
 using ErpSaas.Shared.Seeds;
 using Microsoft.EntityFrameworkCore;
@@ -21,6 +22,7 @@ public sealed class QuotationsSystemSeeder(
         await SeedPermissionsAsync(ct);
         await SeedMenuAsync(ct);
         await SeedSequencesAsync(ct);
+        await SeedFeaturesAsync(ct);
     }
 
     private async Task SeedPermissionsAsync(CancellationToken ct)
@@ -31,7 +33,12 @@ public sealed class QuotationsSystemSeeder(
             var perms = new[]
             {
                 ("Quotation.View",   "View quotations, sales orders and delivery challans"),
-                ("Quotation.Manage", "Create and manage quotations, sales orders and delivery challans"),
+                ("Quotation.Create", "Create quotations, sales orders and delivery challans"),
+                ("Quotation.Send",   "Send quotations to customers and dispatch delivery challans"),
+                ("Quotation.Revise", "Revise an existing quotation"),
+                ("Quotation.Accept", "Accept a quotation on behalf of the customer"),
+                ("Quotation.Convert","Convert a quotation to a sales order"),
+                ("Quotation.Delete", "Reject or cancel quotations, sales orders and delivery challans"),
             };
             foreach (var (code, label) in perms)
             {
@@ -139,6 +146,41 @@ public sealed class QuotationsSystemSeeder(
         {
             await tx.RollbackAsync(ct);
             logger.LogError(ex, "QuotationsSystemSeeder.SeedSequencesAsync failed");
+            throw;
+        }
+    }
+
+    private async Task SeedFeaturesAsync(CancellationToken ct)
+    {
+        await using var tx = await platformDb.Database.BeginTransactionAsync(ct);
+        try
+        {
+            const string featureCode = "wholesale.quotations";
+            if (!await platformDb.SubscriptionPlanFeatures.AnyAsync(f => f.FeatureCode == featureCode, ct))
+            {
+                var plans = await platformDb.SubscriptionPlans
+                    .Where(p => p.Code == Constants.Plans.Growth || p.Code == Constants.Plans.Enterprise)
+                    .ToListAsync(ct);
+
+                foreach (var plan in plans)
+                {
+                    platformDb.SubscriptionPlanFeatures.Add(new SubscriptionPlanFeature
+                    {
+                        PlanId = plan.Id,
+                        FeatureCode = featureCode,
+                        CreatedAtUtc = DateTime.UtcNow,
+                    });
+                }
+                logger.LogInformation("Seeding feature flag: {Code}", featureCode);
+            }
+
+            await platformDb.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
+        }
+        catch (Exception ex)
+        {
+            await tx.RollbackAsync(ct);
+            logger.LogError(ex, "QuotationsSystemSeeder.SeedFeaturesAsync failed");
             throw;
         }
     }

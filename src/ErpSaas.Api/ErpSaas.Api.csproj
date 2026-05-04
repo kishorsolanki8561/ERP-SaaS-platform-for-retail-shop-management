@@ -38,6 +38,17 @@
     <ProjectReference Include="..\ErpSaas.Modules.Pricing\ErpSaas.Modules.Pricing.csproj" />
     <ProjectReference Include="..\ErpSaas.Modules.Transport\ErpSaas.Modules.Transport.csproj" />
     <ProjectReference Include="..\ErpSaas.Modules.Quotations\ErpSaas.Modules.Quotations.csproj" />
+    <ProjectReference Include="..\ErpSaas.Modules.Payment\ErpSaas.Modules.Payment.csproj" />
+    <ProjectReference Include="..\ErpSaas.Modules.Hardware\ErpSaas.Modules.Hardware.csproj" />
+    <ProjectReference Include="..\ErpSaas.Modules.Hr\ErpSaas.Modules.Hr.csproj" />
+    <ProjectReference Include="..\ErpSaas.Modules.Marketplace\ErpSaas.Modules.Marketplace.csproj" />
+    <ProjectReference Include="..\ErpSaas.Modules.CustomerPortal\ErpSaas.Modules.CustomerPortal.csproj" />
+    <ProjectReference Include="..\ErpSaas.Modules.ApiAccess\ErpSaas.Modules.ApiAccess.csproj" />
+    <ProjectReference Include="..\ErpSaas.Modules.Sync\ErpSaas.Modules.Sync.csproj" />
   </ItemGroup>
+
+  <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+    <Exec Command="docker compose -f &quot;$(MSBuildProjectDirectory)\..\..\ops\docker-compose.yml&quot; up -d" ContinueOnError="WarnAndContinue" />
+  </Target>
 
 </Project>

@@ -23,6 +23,9 @@ public class TenantDbContext(
     public DbSet<SequenceDefinition> SequenceDefinitions => Set<SequenceDefinition>();
     public DbSet<MenuItemTenantOverride> MenuItemTenantOverrides => Set<MenuItemTenantOverride>();
 
+    // Exposed for global query filter expression — EF Core rebinds DbContext constants per execution
+    public ITenantContext TenantContextAccessor => tenantContext;
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         => optionsBuilder.AddInterceptors(auditInterceptor, tenantInterceptor);
 
@@ -75,20 +78,29 @@ public class TenantDbContext(
         foreach (var configurator in modelConfigurators)
             configurator.Configure(modelBuilder);
 
-        ApplyGlobalTenantFilters(modelBuilder, tenantContext);
+        ApplyGlobalTenantFilters(modelBuilder);
     }
 
-    private static void ApplyGlobalTenantFilters(ModelBuilder modelBuilder, ITenantContext ctx)
+    private void ApplyGlobalTenantFilters(ModelBuilder modelBuilder)
     {
+        // Use Expression.Constant(this) — EF Core's ParameterExtractingExpressionVisitor
+        // recognises DbContext constants and rebinds them to the current executing context
+        // instance at query time, so TenantContextAccessor.ShopId is always read from the
+        // correct per-scope ITenantContext rather than the one captured during model build.
+        var accessorProp = typeof(TenantDbContext).GetProperty(nameof(TenantContextAccessor))!;
+        var shopIdProp   = typeof(ITenantContext).GetProperty(nameof(ITenantContext.ShopId))!;
+
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {
             if (!typeof(TenantEntity).IsAssignableFrom(entityType.ClrType))
                 continue;
 
-            var parameter = Expression.Parameter(entityType.ClrType, "e");
-            var shopIdProp = Expression.Property(parameter, nameof(TenantEntity.ShopId));
-            var ctxShopId = Expression.Property(Expression.Constant(ctx), nameof(ITenantContext.ShopId));
-            var lambda = Expression.Lambda(Expression.Equal(shopIdProp, ctxShopId), parameter);
+            var parameter     = Expression.Parameter(entityType.ClrType, "e");
+            var entityShopId  = Expression.Property(parameter, nameof(TenantEntity.ShopId));
+            var dbCtxConst    = Expression.Constant(this, typeof(TenantDbContext));
+            var ctxAccessor   = Expression.Property(dbCtxConst, accessorProp);
+            var ctxShopId     = Expression.Property(ctxAccessor, shopIdProp);
+            var lambda        = Expression.Lambda(Expression.Equal(entityShopId, ctxShopId), parameter);
             modelBuilder.Entity(entityType.ClrType).HasQueryFilter(lambda);
         }
     }

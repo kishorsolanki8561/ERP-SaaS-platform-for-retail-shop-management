@@ -99,7 +99,7 @@ public sealed class AuthService(
 
             await db.SaveChangesAsync(ct);
             return Result<object>.Success((object)new LoginResponse(pair.AccessToken, pair.RefreshToken, pair.AccessExpiresAtUtc));
-        }, ct, useTransaction: true);
+        }, ct, useTransaction: false);
     }
 
     public async Task<Result<LoginResponse>> RefreshAsync(string refreshToken, CancellationToken ct = default)

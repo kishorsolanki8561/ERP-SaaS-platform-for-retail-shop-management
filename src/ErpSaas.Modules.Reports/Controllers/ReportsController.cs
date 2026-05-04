@@ -78,6 +78,30 @@ public sealed class ReportsController(IReportBuilderService reportBuilder) : Bas
         long customerId, [FromQuery] DateTime from, [FromQuery] DateTime to, CancellationToken ct = default)
         => Ok(await reportBuilder.GetWalletStatementAsync(customerId, new(from, to), ct));
 
+    [HttpGet("payments/summary")]
+    [RequirePermission("Reports.ViewPayment")]
+    public async Task<IActionResult> PaymentSummary(
+        [FromQuery] DateTime from, [FromQuery] DateTime to, CancellationToken ct = default)
+        => Ok(await reportBuilder.GetPaymentSummaryAsync(new(from, to), ct));
+
+    [HttpGet("payments/failed")]
+    [RequirePermission("Reports.ViewPayment")]
+    public async Task<IActionResult> FailedPayments(
+        [FromQuery] DateTime from, [FromQuery] DateTime to, CancellationToken ct = default)
+        => Ok(await reportBuilder.GetFailedPaymentsAsync(new(from, to), ct));
+
+    [HttpGet("payments/settlement")]
+    [RequirePermission("Reports.ViewPayment")]
+    public async Task<IActionResult> SettlementGap(
+        [FromQuery] DateTime from, [FromQuery] DateTime to, CancellationToken ct = default)
+        => Ok(await reportBuilder.GetSettlementGapAsync(new(from, to), ct));
+
+    [HttpGet("payments/reconciliation-exceptions")]
+    [RequirePermission("Reports.ViewPayment")]
+    public async Task<IActionResult> ReconciliationExceptions(
+        [FromQuery] DateTime from, [FromQuery] DateTime to, CancellationToken ct = default)
+        => Ok(await reportBuilder.GetReconciliationExceptionsAsync(new(from, to), ct));
+
     [HttpGet("export/{reportCode}")]
     [RequirePermission("Reports.Export")]
     public async Task<IActionResult> Export(

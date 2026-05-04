@@ -3,41 +3,48 @@ using ErpSaas.Shared.Services;
 
 namespace ErpSaas.Modules.Inventory.Entities;
 
-/// <summary>Product master for the shop. ProductCode is unique per shop.</summary>
 [Auditable("Inventory.ProductChanged")]
 public class Product : TenantEntity
 {
-    /// <summary>System-generated unique code per shop (e.g. PRD00001).</summary>
+    [AuditField("Product Code")]
     public string ProductCode { get; set; } = "";
 
+    [AuditField("Name")]
     public string Name { get; set; } = "";
+
+    [AuditField("Description")]
     public string? Description { get; set; }
 
-    /// <summary>DDL catalog key: PRODUCT_CATEGORY (Electrical, Electronics, etc.).</summary>
+    [AuditField("Category")]
     public string CategoryCode { get; set; } = "";
 
-    /// <summary>8-digit HSN code or 6-digit SAC code for GST compliance.</summary>
+    [AuditField("HSN/SAC Code")]
     public string? HsnSacCode { get; set; }
 
-    /// <summary>GST rate in percent (0, 5, 12, 18, 28).</summary>
+    [AuditField("GST Rate")]
     public decimal GstRate { get; set; } = 0m;
 
-    /// <summary>Base unit code, e.g. "PCS". Must match the ProductUnit with IsBaseUnit = true.</summary>
+    [AuditField("Base Unit")]
     public string BaseUnitCode { get; set; } = "";
 
+    [AuditField("Sale Price")]
     public decimal SalePrice { get; set; }
+
+    [AuditField("Purchase Price")]
     public decimal PurchasePrice { get; set; }
+
+    [AuditField("MRP")]
     public decimal? MrpPrice { get; set; }
 
-    /// <summary>Threshold for low-stock alerts (in base units).</summary>
+    [AuditField("Min Stock Level")]
     public decimal MinStockLevel { get; set; } = 0m;
 
+    [AuditField("Active")]
     public bool IsActive { get; set; } = true;
 
-    /// <summary>EAN-13 or EAN-8 barcode for POS scanning.</summary>
+    [AuditField("Barcode")]
     public string? BarcodeEan { get; set; }
 
-    // Navigations
     public ICollection<ProductUnit> Units { get; set; } = [];
     public ICollection<StockMovement> StockMovements { get; set; } = [];
 }

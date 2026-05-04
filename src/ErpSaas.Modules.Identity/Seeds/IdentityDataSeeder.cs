@@ -46,6 +46,7 @@ public sealed class IdentityDataSeeder(
         ("Wallet.View",       "Wallet",    "View customer wallet balances and transactions"),
         ("Wallet.Credit",     "Wallet",    "Credit a customer wallet"),
         ("Wallet.Debit",      "Wallet",    "Debit from a customer wallet"),
+        ("Wallet.TopUp",      "Wallet",    "Initiate and manage online wallet top-ups"),
         // POS / Shift — codes must match ShiftController [RequirePermission(...)]
         ("Shift.View",         "POS",      "View shifts"),
         ("Shift.Open",         "POS",      "Open a shift"),
@@ -53,17 +54,97 @@ public sealed class IdentityDataSeeder(
         ("Shift.ForceClose",   "POS",      "Force-close a shift"),
         ("Shift.CashMovement", "POS",      "Record cash in / out"),
         // Hardware — codes must match HardwareController [RequirePermission(...)]
-        ("Hardware.CashDrawer", "POS",     "Pop the cash drawer"),
+        ("Hardware.CashDrawer",      "POS",      "Pop the cash drawer"),
+        // Hardware device & template management
+        ("Device.Configure",         "Hardware", "Register and configure hardware devices"),
+        ("Template.Label.Manage",    "Hardware", "Manage label templates and print labels"),
+        ("Template.Receipt.Manage",  "Hardware", "Manage receipt templates and print receipts"),
+        // HR — codes must match HrController [RequirePermission(...)]
+        ("HR.View",       "HR",   "View employees, attendance, leave and payroll"),
+        ("HR.Manage",     "HR",   "Manage employees, leave types and approve requests"),
+        ("HR.Attendance", "HR",   "Record own attendance and submit leave requests"),
+        ("HR.Payroll",    "HR",   "Generate, approve and pay payroll"),
+        // Accounting — codes must match AccountingController [RequirePermission(...)]
+        ("Accounting.View",                "Accounting", "View accounts, vouchers, and ledger"),
+        ("Accounting.ManageAccounts",      "Accounting", "Create and manage chart of accounts"),
+        ("Accounting.CreateVoucher",       "Accounting", "Create journal vouchers"),
+        ("Accounting.PostVoucher",         "Accounting", "Post and reverse journal vouchers"),
+        ("Accounting.BankReconciliation",  "Accounting", "Perform bank reconciliation"),
+        ("Accounting.ManageCheques",       "Accounting", "Record and manage cheques"),
+        ("Accounting.ManageExpenses",      "Accounting", "Record petty cash and expenses"),
+        ("Accounting.FixedAssets",         "Accounting", "Manage fixed assets and depreciation"),
+        ("Accounting.CloseFinancialYear",  "Accounting", "Close the financial year"),
+        // Purchasing — codes must match PurchasingController [RequirePermission(...)]
+        ("Purchasing.View",                "Purchasing", "View suppliers, POs, and bills"),
+        ("Purchasing.ManageSuppliers",     "Purchasing", "Create and manage suppliers"),
+        ("Purchasing.CreatePurchaseOrder", "Purchasing", "Create and approve purchase orders"),
+        ("Purchasing.ReceiveGoods",        "Purchasing", "Receive goods against a PO"),
+        ("Purchasing.ManageBills",         "Purchasing", "Record and pay supplier bills"),
+        ("Purchasing.ManagePurchaseReturns","Purchasing","Create and approve purchase returns"),
+        // SalesReturns — codes must match SalesReturnsController [RequirePermission(...)]
+        ("SalesReturns.Create",            "SalesReturns", "Create sales return requests"),
+        ("SalesReturns.Approve",           "SalesReturns", "Approve and process sales returns"),
+        // Reports — codes must match ReportsController [RequirePermission(...)]
+        ("Reports.ViewSales",              "Reports", "View sales reports"),
+        ("Reports.ViewAccounting",         "Reports", "View accounting and ledger reports"),
+        ("Reports.ViewGst",                "Reports", "View GST reports"),
+        ("Reports.Export",                 "Reports", "Export reports to PDF / Excel"),
+        // Warranty — codes must match WarrantyController [RequirePermission(...)]
+        ("Warranty.View",                  "Warranty", "View warranty registrations and claims"),
+        ("Warranty.Manage",                "Warranty", "Register and manage warranties"),
+        ("Warranty.ManageClaims",          "Warranty", "Create and resolve warranty claims"),
+        // Pricing — codes must match PricingController [RequirePermission(...)]
+        ("Pricing.View",                   "Pricing", "View discount rules, offers, and extra charges"),
+        ("Pricing.Manage",                 "Pricing", "Create and manage pricing rules and offers"),
+        // Transport — codes must match TransportController [RequirePermission(...)]
+        ("Transport.View",                 "Transport", "View transport providers, vehicles and deliveries"),
+        ("Transport.Manage",               "Transport", "Create and manage transport providers, vehicles and deliveries"),
+        // Quotations — codes must match QuotationsController [RequirePermission(...)]
+        ("Quotation.View",                 "Quotations", "View quotations, sales orders and delivery challans"),
+        ("Quotation.Create",               "Quotations", "Create quotations, sales orders and delivery challans"),
+        ("Quotation.Send",                 "Quotations", "Send quotations to customers and dispatch delivery challans"),
+        ("Quotation.Revise",               "Quotations", "Revise an existing quotation"),
+        ("Quotation.Accept",               "Quotations", "Accept a quotation on behalf of the customer"),
+        ("Quotation.Convert",              "Quotations", "Convert a quotation to a sales order"),
+        ("Quotation.Delete",               "Quotations", "Reject or cancel quotations, sales orders and delivery challans"),
+        // Payment — codes must match PaymentController [RequirePermission(...)]
+        ("Payment.View",                   "Payment", "View payment gateway accounts and transactions"),
+        ("Payment.Configure",              "Payment", "Configure payment gateway accounts"),
+        ("Payment.Initiate",               "Payment", "Initiate payment gateway transactions"),
+        ("Payment.Manage",                 "Payment", "Manage payment transactions"),
+        ("Payment.Refund",                 "Payment", "Process payment refunds"),
+        ("Payment.Reconcile",              "Payment", "Run and review payment reconciliation"),
         // Files — codes must match FilesController [RequirePermission(...)]
         ("Files.Upload",       "Files",    "Upload files"),
         ("Files.View",         "Files",    "View and download files"),
         ("Files.Delete",       "Files",    "Delete uploaded files"),
+        // Marketplace — codes must match MarketplaceController [RequirePermission(...)]
+        ("Marketplace.View",         "Marketplace", "View marketplace accounts, orders and product mappings"),
+        ("Marketplace.Manage",       "Marketplace", "Add and configure marketplace accounts and product links"),
+        ("Marketplace.Sync",         "Marketplace", "Trigger inventory, price and order sync jobs"),
+        ("Marketplace.ConvertOrder", "Marketplace", "Convert marketplace orders to invoices"),
+        // Subscription — codes must match SubscriptionController [RequirePermission(...)]
+        ("Subscription.View",        "Subscription", "View current subscription plan and available plans"),
+        ("Subscription.Manage",      "Subscription", "Change subscription plan or cancel subscription"),
+        // Customer Portal — codes must match OnlineOrdersController + inquiry management [RequirePermission(...)]
+        ("OnlineOrder.View",   "CustomerPortal", "View online orders from the customer portal"),
+        ("OnlineOrder.Manage", "CustomerPortal", "Accept, reject, dispatch and cancel online orders"),
+        ("Inquiry.View",       "CustomerPortal", "View customer inquiries from the portal"),
+        ("Inquiry.Manage",     "CustomerPortal", "Reply to, assign, and close customer inquiries"),
+        ("Portal.Config",      "CustomerPortal", "Configure customer portal settings per shop"),
+        // Audit Log — codes must match AuditLogController [RequirePermission(...)]
+        ("Admin.AuditLog.View", "Admin", "View audit logs for any record"),
+        // Platform Admin — codes must match PlatformAdminController [RequirePermission(...)]
+        ("Platform.Shops.View",   "Platform", "View all shops and their data (platform owner only)"),
+        ("Platform.Shops.Manage", "Platform", "Manage shop subscriptions and settings (platform owner only)"),
     ];
 
     // Shop Admin gets everything except platform-only permissions.
     private static readonly HashSet<string> PlatformOnlyPermissions =
     [
         "MasterData.Manage",
+        "Platform.Shops.View",
+        "Platform.Shops.Manage",
     ];
 
     public async Task SeedAsync(CancellationToken ct = default)

@@ -56,10 +56,21 @@ public static class IdentityServiceExtensions
         services.AddScoped<IMenuService, MenuService>();
         services.AddScoped<IAdminService, AdminService>();
         services.AddScoped<IShopInfoProvider, ShopInfoProvider>();
+        services.AddScoped<ISubscriptionService, SubscriptionService>();
+        services.AddScoped<IAuditLogService, AuditLogService>();
+        services.AddScoped<IPlatformAdminService, PlatformAdminService>();
+
+        // Identity services (continued)
+        services.AddScoped<ILeadService, LeadService>();
+        services.AddScoped<IMarketingContentService, MarketingContentService>();
+        services.AddScoped<IOnPremDeploymentService, OnPremDeploymentService>();
 
         // Seeders
         services.AddDataSeeder<IdentityDataSeeder>();
         services.AddDataSeeder<MenuDataSeeder>();
+        services.AddDataSeeder<UsageSystemSeeder>();
+        services.AddDataSeeder<LeadSystemSeeder>();
+        services.AddDataSeeder<OnPremSystemSeeder>();
 
         // Service catalog entry
         services.AddSingleton(new ServiceDescriptorEntry("Identity", "JWT auth, RBAC, shop/user management", "1.0"));

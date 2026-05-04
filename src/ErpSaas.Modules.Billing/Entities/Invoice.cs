@@ -7,55 +7,57 @@ namespace ErpSaas.Modules.Billing.Entities;
 [Auditable("Invoice")]
 public class Invoice : TenantEntity
 {
-    /// <summary>From ISequenceService — unique per shop.</summary>
+    [AuditField("Invoice Number")]
     public string InvoiceNumber { get; set; } = "";
 
+    [AuditField("Invoice Date")]
     public DateTime InvoiceDate { get; set; }
 
     public long CustomerId { get; set; }
 
-    /// <summary>Snapshot of customer name at time of invoicing.</summary>
+    [AuditField("Customer Name")]
     public string CustomerNameSnapshot { get; set; } = "";
 
     public string? CustomerGstSnapshot { get; set; }
 
-    /// <summary>Snapshot of customer phone at time of invoicing — used for SMS on finalize.</summary>
     public string? CustomerPhoneSnapshot { get; set; }
 
     public string? BillingAddressSnapshot { get; set; }
 
+    [AuditField("Status")]
     public InvoiceStatus Status { get; set; } = InvoiceStatus.Draft;
 
+    [AuditField("Sub Total")]
     public decimal SubTotal { get; set; }
 
+    [AuditField("Total Discount")]
     public decimal TotalDiscount { get; set; } = 0m;
 
+    [AuditField("Total Tax")]
     public decimal TotalTaxAmount { get; set; }
 
     public decimal RoundOff { get; set; } = 0m;
 
+    [AuditField("Grand Total")]
     public decimal GrandTotal { get; set; }
 
+    [AuditField("Notes")]
     public string? Notes { get; set; }
 
-    /// <summary>Wholesale credit terms label (e.g. "NET30"). Null for retail cash invoices.</summary>
+    [AuditField("Payment Terms")]
     public string? PaymentTerms { get; set; }
 
-    /// <summary>Due date for payment — computed from PaymentTerms at finalization.</summary>
+    [AuditField("Due Date")]
     public DateTime? DueDate { get; set; }
 
-    /// <summary>Sum of all InvoicePayment rows recorded against this invoice.</summary>
+    [AuditField("Paid Amount")]
     public decimal PaidAmount { get; set; }
 
-    /// <summary>GrandTotal minus PaidAmount. Negative values indicate overpayment.</summary>
+    [AuditField("Outstanding Amount")]
     public decimal OutstandingAmount { get; set; }
 
     public long WarehouseId { get; set; }
-
-    /// <summary>Null for wholesale invoices created outside POS; required for retail POS invoices.</summary>
     public long? ShiftId { get; set; }
-
-    /// <summary>Branch where the invoice was issued.</summary>
     public long? BranchId { get; set; }
 
     public ICollection<InvoiceLine> Lines { get; set; } = [];

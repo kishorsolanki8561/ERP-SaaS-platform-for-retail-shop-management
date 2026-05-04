@@ -7,6 +7,7 @@ using ErpSaas.Shared.Data;
 using ErpSaas.Shared.Messages;
 using ErpSaas.Shared.Services;
 using Microsoft.EntityFrameworkCore;
+
 namespace ErpSaas.Modules.SalesReturns.Services;
 
 public sealed class SalesReturnsService(
@@ -14,7 +15,8 @@ public sealed class SalesReturnsService(
     IErrorLogger errorLogger,
     ISequenceService sequence,
     ITenantContext tenant,
-    IAutoVoucherService autoVoucher)
+    IAutoVoucherService autoVoucher,
+    IWalletRefundOrchestrator? refundOrchestrator = null)
     : BaseService<TenantDbContext>(db, errorLogger), ISalesReturnsService
 {
     public async Task<Result<long>> CreateSalesReturnAsync(CreateSalesReturnDto dto, CancellationToken ct = default)
@@ -77,6 +79,25 @@ public sealed class SalesReturnsService(
 
             sr.Status = SalesReturnStatus.Approved;
             sr.UpdatedAtUtc = DateTime.UtcNow;
+
+            // Route refund: wallet credit for WalletCredit method, cash recorded otherwise.
+            var toWallet = sr.RefundMethod == RefundMethod.WalletCredit ? sr.TotalRefundAmount : 0m;
+            var toCash = sr.RefundMethod == RefundMethod.Cash ? sr.TotalRefundAmount : 0m;
+
+            if (refundOrchestrator is not null && (toWallet > 0 || toCash > 0))
+            {
+                var refundResult = await refundOrchestrator.ProcessRefundAsync(
+                    sr.Id, sr.CustomerId, sr.CustomerNameSnapshot,
+                    customerPhone: null,
+                    sr.ReturnNumber, toWallet, toCash, ct);
+
+                if (!refundResult.IsSuccess)
+                    return Result<bool>.Failure(refundResult.Errors.FirstOrDefault() ?? "WALLET_ERR");
+            }
+
+            sr.RefundedToWallet = toWallet > 0 ? toWallet : null;
+            sr.RefundedToCash = toCash > 0 ? toCash : null;
+
             await _db.SaveChangesAsync(ct);
             await autoVoucher.PostSalesReturnVoucherAsync(tenant.ShopId, sr.Id, sr.ReturnNumber, sr.TotalRefundAmount, ct);
             return Result<bool>.Success(true);

@@ -39,6 +39,7 @@ public sealed class AuthController(IAuthService authService) : BaseController
 
     [HttpPost("accept-invite")]
     [AllowAnonymous]
+    [RequireCaptcha]
     public async Task<IActionResult> AcceptInvite([FromBody] AcceptInviteRequest request, CancellationToken ct)
         => Ok(await authService.AcceptInviteAsync(request, ct));
 }

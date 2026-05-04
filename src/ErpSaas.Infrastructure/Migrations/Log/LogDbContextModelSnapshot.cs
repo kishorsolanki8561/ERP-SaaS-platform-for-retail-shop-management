@@ -57,6 +57,14 @@ namespace ErpSaas.Infrastructure.Migrations.Log
                     b.Property<string>("OldValues")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("ParentEntityId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ParentEntityName")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
                     b.Property<long?>("ShopId")
                         .HasColumnType("bigint");
 
@@ -64,6 +72,12 @@ namespace ErpSaas.Infrastructure.Migrations.Log
                         .HasColumnType("bigint");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("OccurredAtUtc");
+
+                    b.HasIndex("EntityName", "EntityId");
+
+                    b.HasIndex("ParentEntityName", "ParentEntityId");
 
                     b.ToTable("AuditLog", "log");
                 });

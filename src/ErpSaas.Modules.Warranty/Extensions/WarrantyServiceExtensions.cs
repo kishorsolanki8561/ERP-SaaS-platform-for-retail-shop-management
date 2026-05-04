@@ -3,6 +3,7 @@ using ErpSaas.Infrastructure.Extensions;
 using ErpSaas.Modules.Warranty.Infrastructure;
 using ErpSaas.Modules.Warranty.Seeds;
 using ErpSaas.Modules.Warranty.Services;
+using ErpSaas.Shared.Catalog;
 using ErpSaas.Shared.Seeds;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,8 +16,8 @@ public static class WarrantyServiceExtensions
     {
         services.AddScoped<IWarrantyService, WarrantyService>();
         services.AddScoped<IDataSeeder, WarrantySystemSeeder>();
-
         services.AddSingleton<IEntityModelConfigurator, WarrantyConfigurator>();
+        services.AddSingleton(new ServiceDescriptorEntry("Warranty", "Product warranty registration and claims", "1.0"));
         return services;
     }
 }

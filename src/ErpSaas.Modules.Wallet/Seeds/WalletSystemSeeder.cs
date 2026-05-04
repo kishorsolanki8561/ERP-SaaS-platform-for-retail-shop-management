@@ -3,6 +3,7 @@ using ErpSaas.Infrastructure.Data.Entities.Identity;
 using ErpSaas.Infrastructure.Data.Entities.Masters;
 using ErpSaas.Infrastructure.Data.Entities.Menu;
 using ErpSaas.Infrastructure.Data.Entities.Sequence;
+using ErpSaas.Infrastructure.Data.Entities.Subscription;
 using ErpSaas.Shared.Messages;
 using ErpSaas.Shared.Seeds;
 using Microsoft.EntityFrameworkCore;
@@ -26,6 +27,7 @@ public sealed class WalletSystemSeeder(
         await SeedMenuAsync(ct);
         await SeedDdlAsync(ct);
         await SeedSequenceDefinitionAsync(ct);
+        await SeedFeaturesAsync(ct);
     }
 
     // ── Menu items ────────────────────────────────────────────────────────────
@@ -59,6 +61,7 @@ public sealed class WalletSystemSeeder(
             {
                 ("wallet.balances",    "Customer Balances", "pi pi-chart-bar",   "/wallet/balances",    10, "Wallet.View"),
                 ("wallet.transactions","Transactions",      "pi pi-list",         "/wallet/transactions",20, "Wallet.View"),
+                ("wallet.topups",      "Top-ups",           "pi pi-plus-circle",  "/wallet/top-ups",     30, "Wallet.TopUp"),
             };
 
             foreach (var (code, label, icon, route, sort, perm) in pages)
@@ -122,6 +125,7 @@ public sealed class WalletSystemSeeder(
                 ("INVOICE", "Invoice",    10),
                 ("MANUAL",  "Manual",     20),
                 ("REFUND",  "Refund",     30),
+                ("TOP_UP",  "Top-up",     40),
             };
 
             foreach (var (code, label, sort) in items)
@@ -144,6 +148,43 @@ public sealed class WalletSystemSeeder(
         {
             await tx.RollbackAsync(ct);
             logger.LogError(ex, "WalletSystemSeeder.SeedDdlAsync failed — rolled back");
+            throw;
+        }
+    }
+
+    // ── Feature flags ─────────────────────────────────────────────────────────
+
+    private async Task SeedFeaturesAsync(CancellationToken ct)
+    {
+        await using var tx = await platformDb.Database.BeginTransactionAsync(ct);
+        try
+        {
+            const string featureCode = "customer_wallet";
+            if (!await platformDb.SubscriptionPlanFeatures.AnyAsync(f => f.FeatureCode == featureCode, ct))
+            {
+                var plans = await platformDb.SubscriptionPlans
+                    .Where(p => p.Code == Constants.Plans.Growth || p.Code == Constants.Plans.Enterprise)
+                    .ToListAsync(ct);
+
+                foreach (var plan in plans)
+                {
+                    platformDb.SubscriptionPlanFeatures.Add(new SubscriptionPlanFeature
+                    {
+                        PlanId = plan.Id,
+                        FeatureCode = featureCode,
+                        CreatedAtUtc = DateTime.UtcNow,
+                    });
+                }
+                logger.LogInformation("Seeding feature flag: {Code}", featureCode);
+            }
+
+            await platformDb.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
+        }
+        catch (Exception ex)
+        {
+            await tx.RollbackAsync(ct);
+            logger.LogError(ex, "WalletSystemSeeder.SeedFeaturesAsync failed — rolled back");
             throw;
         }
     }

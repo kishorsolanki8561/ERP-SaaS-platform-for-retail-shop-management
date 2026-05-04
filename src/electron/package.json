@@ -1,0 +1,52 @@
+{
+  "name": "erp-saas-desktop",
+  "version": "1.0.0",
+  "description": "ERP SaaS desktop shell (Electron + Angular)",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win --x64",
+    "build:linux": "electron-builder --linux --x64",
+    "pack": "electron-builder --dir"
+  },
+  "dependencies": {
+    "better-sqlite3": "^9.4.3",
+    "electron-store": "^8.1.0",
+    "electron-updater": "^6.3.0"
+  },
+  "devDependencies": {
+    "electron": "^30.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.erpsaas.desktop",
+    "productName": "ERP SaaS",
+    "directories": {
+      "output": "../../dist/electron"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "../../dist/web/**/*"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "../../src/web/src/assets/icons/icon.ico"
+    },
+    "linux": {
+      "target": "AppImage"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "shopearth",
+        "repo": "erp-saas-desktop"
+      }
+    ]
+  }
+}

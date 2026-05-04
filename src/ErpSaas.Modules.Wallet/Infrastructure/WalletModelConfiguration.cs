@@ -37,5 +37,20 @@ public static class WalletModelConfiguration
             e.Property(x => x.Notes).HasMaxLength(1000);
             e.Property(x => x.RowVersion).IsConcurrencyToken();
         });
+
+        b.Entity<WalletTopUp>(e =>
+        {
+            e.ToTable("WalletTopUp", schema: "wallet");
+            e.HasKey(x => x.Id);
+            e.HasIndex(x => new { x.ShopId, x.CustomerId });
+            e.Property(x => x.CustomerNameSnapshot).HasMaxLength(300).IsRequired();
+            e.Property(x => x.Amount).HasPrecision(18, 2);
+            e.Property(x => x.PaymentModeCode).HasMaxLength(50).IsRequired();
+            e.Property(x => x.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
+            e.Property(x => x.ReceiptNumber).HasMaxLength(50);
+            e.Property(x => x.Notes).HasMaxLength(2000);
+            e.Property(x => x.FailureReason).HasMaxLength(1000);
+            e.Property(x => x.RowVersion).IsConcurrencyToken();
+        });
     }
 }

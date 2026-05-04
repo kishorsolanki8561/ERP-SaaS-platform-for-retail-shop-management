@@ -30,7 +30,12 @@ public class LogDbContext(DbContextOptions<LogDbContext> options) : DbContext(op
             b.Property(e => e.EventType).HasMaxLength(200).IsRequired();
             b.Property(e => e.EntityName).HasMaxLength(200).IsRequired();
             b.Property(e => e.EntityId).HasMaxLength(100);
+            b.Property(e => e.ParentEntityName).HasMaxLength(200);
+            b.Property(e => e.ParentEntityId).HasMaxLength(100);
             b.Property(e => e.CorrelationId).HasMaxLength(50);
+            b.HasIndex(e => new { e.EntityName, e.EntityId });
+            b.HasIndex(e => new { e.ParentEntityName, e.ParentEntityId });
+            b.HasIndex(e => e.OccurredAtUtc);
         });
 
         modelBuilder.Entity<ThirdPartyApiLog>(b =>

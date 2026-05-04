@@ -13,6 +13,8 @@ public sealed class AuditLogger(LogDbContext db) : IAuditLogger
             EventType = ev.EventType,
             EntityName = ev.EntityName,
             EntityId = ev.EntityId,
+            ParentEntityName = ev.ParentEntityName,
+            ParentEntityId = ev.ParentEntityId,
             OldValues = ev.OldValues,
             NewValues = ev.NewValues,
             UserId = ev.UserId,

@@ -2,6 +2,7 @@ using ErpSaas.Infrastructure.Extensions;
 using ErpSaas.Modules.Transport.Infrastructure;
 using ErpSaas.Modules.Transport.Seeds;
 using ErpSaas.Modules.Transport.Services;
+using ErpSaas.Shared.Catalog;
 using ErpSaas.Shared.Seeds;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,6 +16,7 @@ public static class TransportServiceExtensions
         services.AddScoped<ITransportService, TransportService>();
         services.AddScoped<IDataSeeder, TransportSystemSeeder>();
         services.AddSingleton<IEntityModelConfigurator, TransportModelConfigurator>();
+        services.AddSingleton(new ServiceDescriptorEntry("Transport", "Transport providers, vehicles, and delivery tracking", "1.0"));
         return services;
     }
 }

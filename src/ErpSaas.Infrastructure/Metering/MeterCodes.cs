@@ -10,6 +10,8 @@ public static class MeterCodes
     public const string StorageMb   = "storage_mb";
 
     // Monthly meters reset each billing period; persistent meters accumulate indefinitely.
+    public static readonly IReadOnlyList<string> AllMonthly = [Invoices, SmsPerMonth, EmailPerMonth];
+
     public static bool IsMonthly(string code) =>
         code is Invoices or SmsPerMonth or EmailPerMonth;
 }

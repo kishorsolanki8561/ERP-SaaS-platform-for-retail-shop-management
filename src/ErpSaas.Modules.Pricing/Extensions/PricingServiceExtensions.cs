@@ -2,6 +2,7 @@ using ErpSaas.Infrastructure.Extensions;
 using ErpSaas.Modules.Pricing.Infrastructure;
 using ErpSaas.Modules.Pricing.Seeds;
 using ErpSaas.Modules.Pricing.Services;
+using ErpSaas.Shared.Catalog;
 using ErpSaas.Shared.Seeds;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,6 +17,7 @@ public static class PricingServiceExtensions
         services.AddScoped<IPricingManagementService, PricingManagementService>();
         services.AddScoped<IDataSeeder, PricingSystemSeeder>();
         services.AddSingleton<IEntityModelConfigurator, PricingModelConfigurator>();
+        services.AddSingleton(new ServiceDescriptorEntry("Pricing", "Discount rules, extra charges, and promotional offers engine", "1.0"));
         return services;
     }
 }

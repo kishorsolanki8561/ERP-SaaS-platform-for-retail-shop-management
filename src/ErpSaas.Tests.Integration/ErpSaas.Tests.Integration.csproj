@@ -44,6 +44,8 @@
     <ProjectReference Include="..\ErpSaas.Modules.Pricing\ErpSaas.Modules.Pricing.csproj" />
     <ProjectReference Include="..\ErpSaas.Modules.Transport\ErpSaas.Modules.Transport.csproj" />
     <ProjectReference Include="..\ErpSaas.Modules.Quotations\ErpSaas.Modules.Quotations.csproj" />
+    <ProjectReference Include="..\ErpSaas.Modules.Hr\ErpSaas.Modules.Hr.csproj" />
+    <ProjectReference Include="..\ErpSaas.Modules.ApiAccess\ErpSaas.Modules.ApiAccess.csproj" />
   </ItemGroup>
 
   <ItemGroup>

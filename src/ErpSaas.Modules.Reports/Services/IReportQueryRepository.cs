@@ -13,4 +13,8 @@ public interface IReportQueryRepository
     Task<IReadOnlyList<CashBookEntry>> QueryCashBookAsync(long shopId, DateRangeParams p, CancellationToken ct = default);
     Task<IReadOnlyList<BankBookEntry>> QueryBankBookAsync(long shopId, long bankAccountId, DateRangeParams p, CancellationToken ct = default);
     Task<IReadOnlyList<WalletStatementEntry>> QueryWalletStatementAsync(long shopId, long customerId, DateRangeParams p, CancellationToken ct = default);
+    Task<IReadOnlyList<PaymentSummaryRow>> QueryPaymentSummaryAsync(long shopId, DateRangeParams p, CancellationToken ct = default);
+    Task<IReadOnlyList<FailedPaymentRow>> QueryFailedPaymentsAsync(long shopId, DateRangeParams p, CancellationToken ct = default);
+    Task<IReadOnlyList<SettlementGapRow>> QuerySettlementGapAsync(long shopId, DateRangeParams p, CancellationToken ct = default);
+    Task<IReadOnlyList<ReconciliationExceptionRow>> QueryReconciliationExceptionsAsync(long shopId, DateRangeParams p, CancellationToken ct = default);
 }

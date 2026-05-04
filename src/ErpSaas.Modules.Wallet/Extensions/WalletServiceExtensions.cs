@@ -3,6 +3,7 @@ using ErpSaas.Modules.Wallet.Infrastructure;
 using ErpSaas.Modules.Wallet.Seeds;
 using ErpSaas.Modules.Wallet.Services;
 using ErpSaas.Shared.Catalog;
+using ErpSaas.Shared.Seeds;
 using ErpSaas.Shared.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,6 +16,8 @@ public static class WalletServiceExtensions
     {
         services.AddScoped<IWalletService, WalletService>();
         services.AddScoped<IWalletDebit>(sp => (IWalletDebit)sp.GetRequiredService<IWalletService>());
+        services.AddScoped<IWalletTopUpService, WalletTopUpService>();
+        services.AddScoped<IWalletRefundOrchestrator, WalletRefundOrchestrator>();
         services.AddDataSeeder<WalletSystemSeeder>();
         services.AddSingleton(new ServiceDescriptorEntry(
             "Wallet",

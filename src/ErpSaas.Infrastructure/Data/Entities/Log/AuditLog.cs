@@ -6,6 +6,8 @@ public class AuditLog
     public string EventType { get; set; } = "";
     public string EntityName { get; set; } = "";
     public string? EntityId { get; set; }
+    public string? ParentEntityName { get; set; }
+    public string? ParentEntityId { get; set; }
     public string? OldValues { get; set; }
     public string? NewValues { get; set; }
     public long? UserId { get; set; }

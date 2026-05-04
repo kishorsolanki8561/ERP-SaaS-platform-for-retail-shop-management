@@ -7,19 +7,23 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
   template: `
     <div class="flex flex-col gap-1.5">
       @if (label()) {
-        <label class="text-sm font-medium text-slate-700 dark:text-slate-300">
+        <label class="text-[13px] font-semibold text-slate-700 dark:text-slate-300 leading-none">
           {{ label() }}
-          @if (required()) { <span class="text-red-500 ml-0.5">*</span> }
+          @if (required()) {
+            <span class="text-red-500 ml-0.5 font-medium">*</span>
+          }
         </label>
       }
+
       <ng-content />
+
       @if (error()) {
-        <p class="text-xs text-red-500 flex items-center gap-1">
-          <i class="pi pi-exclamation-circle text-[10px]"></i>
+        <p class="flex items-center gap-1.5 text-xs text-red-500 font-medium mt-0.5">
+          <i class="pi pi-exclamation-circle text-[11px] shrink-0"></i>
           {{ error() }}
         </p>
       } @else if (hint()) {
-        <p class="text-xs text-slate-400 dark:text-slate-500">{{ hint() }}</p>
+        <p class="text-xs text-slate-400 dark:text-slate-500 leading-relaxed">{{ hint() }}</p>
       }
     </div>
   `

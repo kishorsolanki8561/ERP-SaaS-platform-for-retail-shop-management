@@ -115,6 +115,10 @@ public static class InfrastructureServiceExtensions
         // ── Metering ───────────────────────────────────────────────────────────
         services.AddSingleton<IEntityModelConfigurator, MeteringModelConfigurator>();
         services.AddScoped<IUsageMeterService, UsageMeterService>();
+        services.AddScoped<UsageRolloverJob>();
+
+        // ── QR code generation ─────────────────────────────────────────────────
+        services.AddSingleton<IQrCodeGenerator, QrCodeGeneratorService>();
 
         // ── Seeders ────────────────────────────────────────────────────────────
         services.AddScoped<DatabaseSeeder>();

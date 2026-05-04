@@ -17,15 +17,23 @@ export interface PageAction {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [ButtonModule],
   template: `
-    <div class="flex items-start justify-between mb-6 gap-4">
+    <div class="flex items-center justify-between mb-6 gap-4 min-h-[2.5rem]">
+
+      <!-- Title + subtitle -->
       <div class="min-w-0">
-        <h1 class="text-xl font-bold text-slate-900 dark:text-white leading-tight">{{ title() }}</h1>
+        <h1 class="text-xl font-bold text-slate-900 dark:text-white leading-tight tracking-tight">
+          {{ title() }}
+        </h1>
         @if (subtitle()) {
-          <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{{ subtitle() }}</p>
+          <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">
+            {{ subtitle() }}
+          </p>
         }
       </div>
+
+      <!-- Actions -->
       @if (actions().length) {
-        <div class="flex items-center gap-2 shrink-0">
+        <div class="flex items-center gap-2 shrink-0 flex-wrap justify-end">
           @for (action of actions(); track action.label) {
             <p-button
               [label]="action.label"
@@ -41,8 +49,8 @@ export interface PageAction {
   `
 })
 export class PageHeaderComponent {
-  readonly title      = input.required<string>();
-  readonly subtitle   = input<string>();
-  readonly actions    = input<PageAction[]>([]);
+  readonly title       = input.required<string>();
+  readonly subtitle    = input<string>();
+  readonly actions     = input<PageAction[]>([]);
   readonly actionClick = output<string>();
 }

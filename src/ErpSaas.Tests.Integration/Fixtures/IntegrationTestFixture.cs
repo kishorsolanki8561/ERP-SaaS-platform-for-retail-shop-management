@@ -2,6 +2,8 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using ErpSaas.Infrastructure.Data;
+using ErpSaas.Infrastructure.Data.Entities.Identity;
+using ErpSaas.Shared.Seeds;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -230,17 +232,67 @@ public sealed class IntegrationTestFixture : WebApplicationFactory<Program>, IAs
 
     // ── Public helpers used by test classes ───────────────────────────────────
 
-    /// <summary>Returns an HttpClient authenticated as the given shop admin.</summary>
+    /// <summary>
+    /// Returns an HTTP client authenticated as the given shop.
+    /// Pass permissions=["*"] (default) to bypass all permission checks via is_platform_admin.
+    /// Pass features to populate the "feats" claim checked by FeatureAuthorizationHandler.
+    /// </summary>
     public HttpClient CreateAuthenticatedClient(
         long shopId = 1,
-        string[] permissions = null!,
-        string role = "Admin")
+        string[]? permissions = null,
+        string role = "Admin",
+        string[]? features = null)
     {
-        var token = GenerateJwt(shopId, permissions ?? ["*"], role);
+        var token = GenerateJwt(shopId, permissions ?? ["*"], role, features ?? []);
         var client = CreateClient();
         client.DefaultRequestHeaders.Authorization =
             new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-        client.DefaultRequestHeaders.Add("X-Shop-Id", shopId.ToString());
+        return client;
+    }
+
+    /// <summary>
+    /// Returns an HTTP client authenticated with a limited set of permissions and no feature flags.
+    /// Use this for permission-gate failure tests.
+    /// </summary>
+    public HttpClient CreateLimitedClient(long shopId = 1, string permissionCode = "None.None")
+        => CreateAuthenticatedClient(shopId, [permissionCode], features: []);
+
+    /// <summary>
+    /// Returns an HTTP client authenticated with all permissions but the given feature flags
+    /// explicitly absent. Use this for subscription-gate failure tests.
+    /// The JWT uses the <c>perms</c> claim (not <c>is_platform_admin</c>) so that
+    /// <see cref="FeatureAuthorizationHandler"/> is NOT bypassed and feature-gate 403 tests work.
+    /// </summary>
+    public HttpClient CreateNoFeatureClient(long shopId = 1)
+    {
+        // Generate token with all common permissions via perms claim but NO features.
+        // This lets the FeatureAuthorizationHandler run (it won't be bypassed by is_platform_admin).
+        var allPerms = new[]
+        {
+            "Dashboard.View", "Billing.View", "Billing.Create", "Billing.Edit", "Billing.Cancel",
+            "Inventory.View", "Inventory.Manage", "Crm.View", "Crm.Create", "Crm.Edit",
+            "Wallet.View", "Wallet.Credit", "Wallet.Debit", "Wallet.TopUp",
+            "Shift.View", "Shift.Open", "Shift.Close",
+            "Accounting.View", "Accounting.CreateVoucher", "Accounting.PostVoucher",
+            "Purchasing.View", "Purchasing.ManageSuppliers", "Purchasing.CreatePurchaseOrder",
+            "SalesReturns.Create", "SalesReturns.Approve",
+            "Reports.ViewSales", "Reports.ViewAccounting", "Reports.ViewGst", "Reports.Export",
+            "Warranty.View", "Warranty.Manage",
+            "Pricing.View", "Pricing.Manage",
+            "Transport.View", "Transport.Manage",
+            "Quotation.View", "Quotation.Create",
+            "Payment.View", "Payment.Configure", "Payment.Initiate",
+            "HR.View", "HR.Manage",
+            "Marketplace.View", "Marketplace.Manage",
+            "Files.View", "Files.Upload",
+            "ShopProfile.View", "ShopProfile.Edit",
+            "Users.View", "Users.Manage",
+            "Hardware.CashDrawer", "Device.Configure",
+        };
+        var token = GenerateJwtWithPermsClaim(shopId, allPerms, []);
+        var client = CreateClient();
+        client.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
         return client;
     }
 
@@ -269,19 +321,127 @@ public sealed class IntegrationTestFixture : WebApplicationFactory<Program>, IAs
         return conn;
     }
 
+    // ── Seed helpers for tests that need real DB entities ─────────────────────
+
+    /// <summary>
+    /// Seeds a Shop + User in PlatformDbContext so that the real AuthController.LoginAsync
+    /// can authenticate them. Returns (shopId, email, password).
+    /// </summary>
+    public async Task<(long shopId, string email, string password)> SeedTestUserAsync(
+        string? email = null,
+        string? password = null)
+    {
+        var uniqueSuffix = Guid.NewGuid().ToString("N")[..8];
+        email    ??= $"test-{uniqueSuffix}@integration.test";
+        password ??= "TestPass@123";
+
+        await using var scope = CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PlatformDbContext>();
+
+        var shop = new Shop
+        {
+            ShopCode   = $"SHOP-{uniqueSuffix}",
+            LegalName  = $"Integration Test Shop {uniqueSuffix}",
+            IsActive   = true,
+            CurrencyCode = "INR",
+            TimeZone   = "Asia/Kolkata",
+            CreatedAtUtc = DateTime.UtcNow,
+        };
+        db.Shops.Add(shop);
+        await db.SaveChangesAsync();
+
+        var user = new User
+        {
+            Email        = email,
+            DisplayName  = $"Test User {uniqueSuffix}",
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(password, workFactor: 4),
+            IsActive     = true,
+            CreatedAtUtc = DateTime.UtcNow,
+        };
+        db.Users.Add(user);
+        await db.SaveChangesAsync();
+
+        db.UserShops.Add(new UserShop
+        {
+            UserId       = user.Id,
+            ShopId       = shop.Id,
+            IsActive     = true,
+            CreatedAtUtc = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        return (shop.Id, email, password);
+    }
+
+    // ── Tenant seed helper ────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Seeds per-tenant data (COA, default catalog, etc.) for the given shopId.
+    /// Must be called before accounting tests that use GetFirstAccountGroupIdAsync().
+    /// </summary>
+    public async Task SeedTenantDataAsync(long shopId)
+    {
+        await using var scope = Services.CreateAsyncScope();
+        var seeders = scope.ServiceProvider.GetServices<ITenantSeeder>()
+            .OrderBy(s => s.Order);
+        foreach (var seeder in seeders)
+            await seeder.SeedAsync(shopId);
+    }
+
     // ── JWT helpers ───────────────────────────────────────────────────────────
 
-    private static string GenerateJwt(long shopId, string[] permissions, string role)
+    /// <summary>
+    /// Generates a JWT that always uses the <c>perms</c> claim (never <c>is_platform_admin</c>).
+    /// This ensures FeatureAuthorizationHandler is not bypassed, allowing feature-gate tests to
+    /// assert 403 when a feature is absent.
+    /// </summary>
+    private static string GenerateJwtWithPermsClaim(long shopId, string[] permissions, string[] features)
     {
         var claims = new List<Claim>
         {
-            new(JwtRegisteredClaimNames.Sub, $"user-{shopId}"),
-            new("shopId", shopId.ToString()),
+            new(JwtRegisteredClaimNames.Sub, shopId.ToString()),
+            new("shop_id", shopId.ToString()),
+            new("role", "Admin"),
+            new("perms", string.Join(',', permissions)),
+        };
+        if (features.Length > 0)
+            claims.Add(new Claim("feats", string.Join(',', features)));
+
+        var key   = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(TestJwtSecret));
+        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+        var token = new JwtSecurityToken(
+            issuer: TestIssuer, audience: TestAudience,
+            claims: claims, expires: DateTime.UtcNow.AddHours(1),
+            signingCredentials: creds);
+        return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    private static string GenerateJwt(long shopId, string[] permissions, string role, string[] features)
+    {
+        // TenantContextMiddleware reads "shop_id" for ShopId and numeric "sub" for CurrentUserId.
+        // PermissionAuthorizationHandler reads "perms" as a comma-separated list.
+        // FeatureAuthorizationHandler reads "feats" as a comma-separated list.
+        // is_platform_admin = "true" bypasses both permission and feature checks.
+        var isAdmin = permissions.Length == 1 && permissions[0] == "*";
+
+        var claims = new List<Claim>
+        {
+            new(JwtRegisteredClaimNames.Sub, shopId.ToString()),
+            new("shop_id", shopId.ToString()),
             new("role", role),
         };
 
-        foreach (var p in permissions)
-            claims.Add(new Claim("permission", p));
+        if (isAdmin)
+        {
+            claims.Add(new Claim("is_platform_admin", "true"));
+        }
+        else
+        {
+            claims.Add(new Claim("perms", string.Join(',', permissions)));
+        }
+
+        if (features.Length > 0)
+            claims.Add(new Claim("feats", string.Join(',', features)));
 
         var key   = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(TestJwtSecret));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);

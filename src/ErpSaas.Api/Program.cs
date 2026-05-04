@@ -12,6 +12,10 @@ try
 {
     var builder = WebApplication.CreateBuilder(args);
 
+    // appsettings.Local.json is gitignored — use it for per-developer overrides
+    // (e.g. temporarily pointing at a different DB without touching tracked files)
+    builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: false);
+
     builder.Host.UseSerilog((ctx, services, cfg) =>
         cfg.ReadFrom.Configuration(ctx.Configuration)
            .ReadFrom.Services(services)

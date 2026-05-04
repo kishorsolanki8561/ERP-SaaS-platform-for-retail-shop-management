@@ -1,47 +1,71 @@
+using System.Net.Http.Json;
+using System.Text.Json;
+using ErpSaas.Infrastructure.Data;
+using ErpSaas.Tests.Integration.Fixtures;
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace ErpSaas.Tests.Integration.Modules.Wallet;
 
 /// <summary>
 /// Verifies that every wallet mutation produces a correct <c>AuditLog</c> row.
-///
-/// Relies on <c>AuditSaveChangesInterceptor</c> + the <c>[Auditable]</c>
-/// attributes on <c>WalletBalance</c> and <c>WalletTransaction</c>.
-/// Full implementation against a real SQL Server DB is deferred to Phase 1.
 /// </summary>
+[Collection("Integration")]
 [Trait("Category", "Integration")]
-public class WalletAuditTrailTests
+[Trait("Category", "AuditTrail")]
+public sealed class WalletAuditTrailTests(IntegrationTestFixture fixture)
 {
-    [Fact(Skip = "Requires IntegrationTestFixture with LogDb — Phase 1")]
-    public async Task CreditAsync_ProducesAuditLogRowForBalance()
+    [Fact]
+    public async Task WalletCredit_ProducesAuditLogRow()
     {
-        // Arrange + Act: credit a customer
-        // Assert: AuditLog has a row with EntityName = "WalletBalance",
-        //         EventType = "Insert" or "Update", and correct Balance values
-        await Task.CompletedTask;
-    }
+        // ── Arrange ───────────────────────────────────────────────────────────
+        var client = fixture.CreateAuthenticatedClient();
+        var suffix = Guid.NewGuid().ToString("N")[..8];
 
-    [Fact(Skip = "Requires IntegrationTestFixture with LogDb — Phase 1")]
-    public async Task CreditAsync_ProducesAuditLogRowForTransaction()
-    {
-        // Assert: AuditLog row for WalletTransaction insert with
-        //         TransactionType = "Credit"
-        await Task.CompletedTask;
-    }
+        var createCustomerResp = await client.PostAsJsonAsync("/api/crm/customers", new
+        {
+            DisplayName  = $"Audit Wallet Customer {suffix}",
+            CustomerType = "RETAIL",
+            Email        = $"audit-wallet-{suffix}@test.local",
+            Phone        = (string?)null,
+            GstNumber    = (string?)null,
+            CreditLimit  = 0m,
+            GroupId      = (long?)null
+        });
+        createCustomerResp.IsSuccessStatusCode.Should().BeTrue("setup: customer creation must succeed");
 
-    [Fact(Skip = "Requires IntegrationTestFixture with LogDb — Phase 1")]
-    public async Task DebitAsync_ProducesAuditLogRowForBalance()
-    {
-        // Arrange: credit then debit
-        // Assert: AuditLog row captures BalanceBefore → BalanceAfter reduction
-        await Task.CompletedTask;
-    }
+        // BaseController.Ok<T>(Result<T>) returns OkObjectResult(result.Value) — raw long.
+        var custJson   = await createCustomerResp.Content.ReadFromJsonAsync<JsonElement>();
+        var customerId = custJson.GetInt64();
 
-    [Fact(Skip = "Requires IntegrationTestFixture with LogDb — Phase 1")]
-    public async Task DebitAsync_ProducesAuditLogRowForTransaction()
-    {
-        // Assert: AuditLog row for WalletTransaction insert with
-        //         TransactionType = "Debit"
-        await Task.CompletedTask;
+        var beforeUtc = DateTime.UtcNow.AddSeconds(-1);
+
+        // ── Act: credit the wallet ────────────────────────────────────────────
+        var creditResp = await client.PostAsJsonAsync("/api/wallet/credit", new
+        {
+            CustomerId    = customerId,
+            CustomerName  = $"Audit Wallet Customer {suffix}",
+            Amount        = 300m,
+            ReferenceType = "Manual",
+            ReferenceId   = (long?)null,
+            Notes         = "Audit trail integration test"
+        });
+        creditResp.IsSuccessStatusCode.Should().BeTrue("wallet credit must succeed");
+
+        // ── Assert: AuditLog row was written ──────────────────────────────────
+        await using var scope = fixture.CreateScope();
+        var logDb = scope.ServiceProvider.GetRequiredService<LogDbContext>();
+
+        // The AuditSaveChangesInterceptor writes rows for WalletBalance and/or
+        // WalletTransaction whenever those entities are created or updated.
+        var auditRows = await logDb.AuditLogs
+            .Where(a =>
+                (a.EntityName == "WalletBalance" || a.EntityName == "WalletTransaction")
+                && a.OccurredAtUtc >= beforeUtc)
+            .ToListAsync();
+
+        auditRows.Should().NotBeEmpty(
+            "AuditSaveChangesInterceptor must write at least one AuditLog row for a wallet credit");
     }
 }

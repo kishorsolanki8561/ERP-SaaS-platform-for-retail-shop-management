@@ -1,7 +1,9 @@
 using ErpSaas.Shared.Data;
+using ErpSaas.Shared.Services;
 
 namespace ErpSaas.Infrastructure.Data.Entities.Masters;
 
+[Auditable("Masters.City")]
 public class City : BaseEntity
 {
     public long StateId { get; set; }

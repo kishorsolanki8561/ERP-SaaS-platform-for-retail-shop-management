@@ -81,6 +81,9 @@ public static class Errors
         public const string CustomerNotFound    = "WALLET_001";
         public const string InsufficientBalance = "WALLET_002";
         public const string InvalidAmount       = "WALLET_003";
+        public const string TopUpNotFound       = "WALLET_004";
+        public const string TopUpNotPending     = "WALLET_005";
+        public const string RefundSplitMismatch = "WALLET_006";
     }
 
     public static class Shift
@@ -186,6 +189,17 @@ public static class Errors
         public const string DeliveryChallanAlreadyDispatched = "QTN_007";
     }
 
+    public static class Payment
+    {
+        public const string GatewayAccountNotFound    = "PAY_001";
+        public const string TransactionNotFound       = "PAY_002";
+        public const string TransactionAlreadyFinal   = "PAY_003";
+        public const string RefundRequiresSuccess     = "PAY_004";
+        public const string RefundExceedsAmount       = "PAY_005";
+        public const string ExceptionNotFound         = "PAY_006";
+        public const string ExceptionAlreadyResolved  = "PAY_007";
+    }
+
     public static class Files
     {
         public const string NotFound            = "FILE_001";
@@ -195,5 +209,105 @@ public static class Errors
 
         public static string ExtensionConflict(string ext) => $"{ExtensionNotAllowed}:{ext}";
         public static string SizeConflict(long max) => $"{FileTooLarge}:{max}";
+    }
+
+    public static class Hardware
+    {
+        public const string DeviceNotFound            = "HW_001";
+        public const string DeviceAlreadyRegistered   = "HW_002";
+        public const string LabelTemplateNotFound     = "HW_003";
+        public const string ReceiptTemplateNotFound   = "HW_004";
+    }
+
+    public static class Hr
+    {
+        public const string EmployeeNotFound          = "HR_001";
+        public const string EmployeeCodeExists        = "HR_002";
+        public const string AttendanceAlreadyExists   = "HR_003";
+        public const string AttendanceNotFound        = "HR_004";
+        public const string LeaveTypeNotFound         = "HR_005";
+        public const string LeaveTypeCodeExists       = "HR_006";
+        public const string LeaveRequestNotFound      = "HR_007";
+        public const string LeaveRequestNotPending    = "HR_008";
+        public const string InsufficientLeaveBalance  = "HR_009";
+        public const string PayrollNotFound           = "HR_010";
+        public const string PayrollAlreadyExists      = "HR_011";
+        public const string PayrollNotDraft           = "HR_012";
+        public const string PayrollNotApproved        = "HR_013";
+    }
+
+    public static class Marketplace
+    {
+        public const string AccountNotFound        = "MKT_001";
+        public const string OrderNotFound          = "MKT_002";
+        public const string OrderAlreadyIngested   = "MKT_003";
+        public const string OrderAlreadyConverted  = "MKT_004";
+        public const string OrderCancelled         = "MKT_005";
+        public const string MappingAlreadyExists   = "MKT_006";
+    }
+
+    public static class CustomerPortal
+    {
+        public const string OrderNotFound         = "PORTAL_010";
+        public const string OrderNotPending       = "PORTAL_011";
+        public const string InquiryNotFound       = "PORTAL_020";
+        public const string InquiryAlreadyClosed  = "PORTAL_021";
+        public const string CustomerNotFound      = "PORTAL_030";
+    }
+
+    public static class Subscription
+    {
+        public const string PlanNotFound          = "SUB_001";
+        public const string NoActiveSubscription  = "SUB_002";
+        public const string AlreadyOnPlan         = "SUB_003";
+        public const string CannotCancelFree      = "SUB_004";
+        public const string InvalidBillingCycle   = "SUB_005";
+    }
+
+    public static class Lead
+    {
+        public const string NotFound                       = "LEAD_001";
+        public const string UserNotFound                   = "LEAD_002";
+        public const string InvalidStatus                  = "LEAD_003";
+        public const string AlreadyConverted               = "LEAD_004";
+        public const string CannotMarkConvertedWithoutShop = "LEAD_005";
+        public const string SlugExists                     = "LEAD_006";
+        public const string ContentNotFound                = "LEAD_007";
+        public const string BlogPostNotFound               = "LEAD_008";
+        public const string BlogPostAlreadyPublished       = "LEAD_009";
+    }
+
+    public static class PlatformAdmin
+    {
+        public const string PlanNotFound     = "PADMIN_001";
+        public const string PlanCodeExists   = "PADMIN_002";
+        public const string ShopNotFound     = "PADMIN_003";
+        public const string ShopAlreadySuspended  = "PADMIN_004";
+        public const string ShopAlreadyActive     = "PADMIN_005";
+    }
+
+    public static class ApiAccess
+    {
+        public const string KeyNotFound              = "APIACCESS_001";
+        public const string KeyAlreadyRevoked        = "APIACCESS_002";
+        public const string EndpointNotFound         = "APIACCESS_003";
+        public const string InvalidWebhookUrl        = "APIACCESS_004";
+        public const string DeliveryNotFound         = "APIACCESS_005";
+        public const string DeliveryAlreadySucceeded = "APIACCESS_006";
+    }
+
+    public static class Sync
+    {
+        public const string DeviceNotFound            = "SYNC_001";
+        public const string InvalidDeviceType         = "SYNC_002";
+        public const string AllocationNotFound        = "SYNC_003";
+        public const string AllocationAlreadyReleased = "SYNC_004";
+    }
+
+    public static class OnPrem
+    {
+        public const string NotFound         = "ONPREM_001";
+        public const string ConflictNotFound = "ONPREM_002";
+        public const string AlreadyResolved  = "ONPREM_003";
     }
 }

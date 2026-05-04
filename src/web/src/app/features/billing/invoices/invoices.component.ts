@@ -1,6 +1,6 @@
 import {
   ChangeDetectionStrategy, Component,
-  inject, signal
+  inject, signal, ViewChild
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -14,6 +14,7 @@ import { ButtonModule } from 'primeng/button';
 import { MessageService } from 'primeng/api';
 import { PageHeaderComponent, PageAction } from '../../../shared/components/page-header/page-header.component';
 import { DataTableComponent, TableColumn, RowAction } from '../../../shared/components/data-table/data-table.component';
+import { AuditLogComponent } from '../../../shared/components/audit-log/audit-log.component';
 import { FormFieldComponent } from '../../../shared/components/form-field/form-field.component';
 import { AppLabels } from '../../../shared/messages/app-messages';
 import { ApiEndpoints } from '../../../shared/messages/app-api';
@@ -27,7 +28,7 @@ import { Permissions } from '../../../shared/messages/app-permissions';
   imports: [
     CommonModule, FormsModule,
     DialogModule, InputTextModule, InputNumberModule, ButtonModule,
-    PageHeaderComponent, DataTableComponent, FormFieldComponent,
+    PageHeaderComponent, DataTableComponent, FormFieldComponent, AuditLogComponent,
   ],
   template: `
     <div class="p-6 space-y-6 max-w-7xl mx-auto">
@@ -75,12 +76,17 @@ import { Permissions } from '../../../shared/messages/app-permissions';
                   (onClick)="createDraft()" />
       </ng-template>
     </p-dialog>
+
+    <app-audit-log #auditPanel entityType="Invoice" [entityId]="auditEntityId()" />
   `
 })
 export class InvoicesComponent {
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
   private readonly toast = inject(MessageService);
+
+  @ViewChild('auditPanel') auditPanel!: AuditLogComponent;
+  protected readonly auditEntityId = signal<string | number | null>(null);
 
   protected readonly labels = AppLabels;
   protected readonly apiUrl = ApiEndpoints.billing.invoices;
@@ -98,8 +104,9 @@ export class InvoicesComponent {
   ];
 
   protected readonly rowActions: RowAction[] = [
-    { label: 'View',   icon: 'pi pi-eye',    severity: 'secondary' },
-    { label: 'Cancel', icon: 'pi pi-times',  severity: 'danger', permission: Permissions.billing.cancel },
+    { label: 'View',      icon: 'pi pi-eye',      severity: 'secondary' },
+    { label: 'Cancel',    icon: 'pi pi-times',    severity: 'danger',    permission: Permissions.billing.cancel },
+    { label: 'Audit Log', icon: 'pi pi-history',  severity: 'secondary', permission: Permissions.auditLog.view },
   ];
 
   protected readonly headerActions: PageAction[] = [
@@ -117,6 +124,9 @@ export class InvoicesComponent {
     const id = event.row['id'] as number;
     if (event.action === 'View') {
       this.router.navigate([AppRoutePaths.billing.invoiceDetail(id)]);
+    } else if (event.action === 'Audit Log') {
+      this.auditEntityId.set(id);
+      this.auditPanel.open();
     }
   }
 

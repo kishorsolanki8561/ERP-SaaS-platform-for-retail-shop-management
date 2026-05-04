@@ -48,6 +48,18 @@ public sealed class ReportBuilderService(
     public Task<IReadOnlyList<WalletStatementEntry>> GetWalletStatementAsync(long customerId, DateRangeParams p, CancellationToken ct = default)
         => queries.QueryWalletStatementAsync(tenant.ShopId, customerId, p, ct);
 
+    public Task<IReadOnlyList<PaymentSummaryRow>> GetPaymentSummaryAsync(DateRangeParams p, CancellationToken ct = default)
+        => queries.QueryPaymentSummaryAsync(tenant.ShopId, p, ct);
+
+    public Task<IReadOnlyList<FailedPaymentRow>> GetFailedPaymentsAsync(DateRangeParams p, CancellationToken ct = default)
+        => queries.QueryFailedPaymentsAsync(tenant.ShopId, p, ct);
+
+    public Task<IReadOnlyList<SettlementGapRow>> GetSettlementGapAsync(DateRangeParams p, CancellationToken ct = default)
+        => queries.QuerySettlementGapAsync(tenant.ShopId, p, ct);
+
+    public Task<IReadOnlyList<ReconciliationExceptionRow>> GetReconciliationExceptionsAsync(DateRangeParams p, CancellationToken ct = default)
+        => queries.QueryReconciliationExceptionsAsync(tenant.ShopId, p, ct);
+
     public async Task<Result<ReportFile>> ExportAsync(
         string reportCode, DateRangeParams p, ReportFormat format,
         long? accountId = null, CancellationToken ct = default)
@@ -196,6 +208,26 @@ public sealed class ReportBuilderService(
                 .Select(r => new[] { r.Date.ToString("dd/MM/yyyy"), r.TransactionType,
                     r.Particulars, r.Credit.ToString("F2"), r.Debit.ToString("F2"),
                     r.RunningBalance.ToString("F2") }).ToList(),
+            "PaymentSummary" => (await GetPaymentSummaryAsync(p, ct))
+                .Select(r => new[] { r.Date.ToString("dd/MM/yyyy"), r.GatewayCode, r.Method ?? "",
+                    r.TotalCount.ToString(), r.SuccessCount.ToString(), r.FailedCount.ToString(),
+                    r.TotalAmount.ToString("F2"), r.SuccessAmount.ToString("F2"),
+                    r.SuccessRatePct.ToString("F1") + "%" }).ToList(),
+            "FailedPayments" => (await GetFailedPaymentsAsync(p, ct))
+                .Select(r => new[] { r.InitiatedAtUtc.ToString("dd/MM/yyyy HH:mm"), r.GatewayCode,
+                    r.OurReferenceNumber, r.Amount.ToString("F2"),
+                    r.FailureCode ?? "", r.FailureMessage ?? "", r.Purpose }).ToList(),
+            "SettlementGap" => (await GetSettlementGapAsync(p, ct))
+                .Select(r => new[] { r.GatewayCode, r.GatewayTxnId, r.OurReferenceNumber,
+                    r.Amount.ToString("F2"), r.GatewayFee.ToString("F2"), r.NetSettled.ToString("F2"),
+                    r.CompletedAtUtc.ToString("dd/MM/yyyy"),
+                    r.SettledAtUtc?.ToString("dd/MM/yyyy") ?? "Pending",
+                    r.GapDays.HasValue ? r.GapDays.Value.ToString("F1") : "-" }).ToList(),
+            "ReconciliationExceptions" => (await GetReconciliationExceptionsAsync(p, ct))
+                .Select(r => new[] { r.DetectedAtUtc.ToString("dd/MM/yyyy"), r.GatewayCode,
+                    r.GatewayTxnId ?? "", r.ExceptionType, r.Status,
+                    r.OurAmount?.ToString("F2") ?? "", r.GatewayAmount?.ToString("F2") ?? "",
+                    r.AgeDays.ToString("F1"), r.ResolutionNotes ?? "" }).ToList(),
             _ => [],
         };
     }
@@ -212,7 +244,11 @@ public sealed class ReportBuilderService(
         "Gstr3b"          => ["Section", "Description", "Taxable", "CGST", "SGST", "IGST", "Total Tax"],
         "CashBook"        => ["Date", "Voucher No", "Particulars", "Receipts", "Payments", "Balance"],
         "BankBook"        => ["Date", "Voucher No", "Bank", "Particulars", "Deposits", "Withdrawals", "Balance"],
-        "WalletStatement" => ["Date", "Type", "Particulars", "Credit", "Debit", "Balance"],
+        "WalletStatement"          => ["Date", "Type", "Particulars", "Credit", "Debit", "Balance"],
+        "PaymentSummary"           => ["Date", "Gateway", "Method", "Total", "Success", "Failed", "Total Amt", "Success Amt", "Success %"],
+        "FailedPayments"           => ["Initiated At", "Gateway", "Reference", "Amount", "Failure Code", "Failure Message", "Purpose"],
+        "SettlementGap"            => ["Gateway", "Txn ID", "Reference", "Amount", "Gateway Fee", "Net Settled", "Completed", "Settled", "Gap (Days)"],
+        "ReconciliationExceptions" => ["Detected", "Gateway", "Txn ID", "Exception Type", "Status", "Our Amount", "Gateway Amount", "Age (Days)", "Notes"],
         _ => [],
     };
 }

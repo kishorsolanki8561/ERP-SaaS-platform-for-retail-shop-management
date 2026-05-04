@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal, viewChild } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { ThemeService } from '../../../core/theme/theme.service';
@@ -6,13 +6,15 @@ import { AuthService } from '../../../core/auth/auth.service';
 import { AppLabels, AppMessages } from '../../../shared/messages/app-messages';
 import { AppConstants } from '../../../shared/messages/app-constants';
 import { AppRoutePaths, AppRoutes } from '../../../shared/messages/app-routes';
+import { TurnstileComponent } from '../../../shared/components/turnstile/turnstile.component';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-login',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block' },
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, TurnstileComponent],
   template: `
     <div class="mb-7">
       <h2 class="text-2xl font-bold tracking-tight mb-1.5 text-slate-900 dark:text-white">
@@ -91,10 +93,17 @@ import { AppRoutePaths, AppRoutes } from '../../../shared/messages/app-routes';
         }
       </div>
 
+      <div class="flex justify-center">
+        <app-turnstile
+          [siteKey]="turnstileSiteKey"
+          [theme]="themeService.isDark() ? 'dark' : 'light'"
+          (resolved)="captchaToken.set($event)" />
+      </div>
+
       <button
         type="submit"
         data-testid="login-submit"
-        [disabled]="loading()"
+        [disabled]="loading() || !captchaToken()"
         class="w-full h-12 rounded-xl text-white font-semibold text-sm mt-1
                flex items-center justify-center gap-2 transition-all duration-200
                hover:brightness-110 active:scale-[0.99] disabled:opacity-55 disabled:cursor-not-allowed"
@@ -111,22 +120,25 @@ import { AppRoutePaths, AppRoutes } from '../../../shared/messages/app-routes';
   `
 })
 export class LoginComponent {
-  protected readonly themeService = inject(ThemeService);
-  protected readonly labels       = AppLabels;
-  protected readonly messages     = AppMessages;
-  protected readonly routes       = AppRoutes;
+  protected readonly themeService    = inject(ThemeService);
+  protected readonly labels          = AppLabels;
+  protected readonly messages        = AppMessages;
+  protected readonly routes          = AppRoutes;
+  protected readonly turnstileSiteKey = environment.turnstileSiteKey;
 
   protected readonly form = new FormGroup({
     identifier: new FormControl('', [Validators.required]),
     password:   new FormControl('', [Validators.required, Validators.minLength(AppConstants.password.minLength)]),
   });
 
-  protected readonly loading  = signal(false);
-  protected readonly error    = signal<string | null>(null);
-  protected readonly showPwd  = signal(false);
+  protected readonly loading      = signal(false);
+  protected readonly error        = signal<string | null>(null);
+  protected readonly showPwd      = signal(false);
+  protected readonly captchaToken = signal('');
 
-  private readonly auth   = inject(AuthService);
-  private readonly router = inject(Router);
+  private readonly auth      = inject(AuthService);
+  private readonly router    = inject(Router);
+  private readonly turnstile = viewChild(TurnstileComponent);
 
   protected isInvalid(field: string): boolean {
     const ctrl = this.form.get(field);
@@ -135,19 +147,22 @@ export class LoginComponent {
 
   protected async submit(): Promise<void> {
     this.form.markAllAsTouched();
-    if (this.form.invalid) return;
+    if (this.form.invalid || !this.captchaToken()) return;
     this.loading.set(true);
     this.error.set(null);
     try {
       await this.auth.login({
-        identifier: this.form.value.identifier!,
-        password:   this.form.value.password!,
+        identifier:   this.form.value.identifier!,
+        password:     this.form.value.password!,
+        captchaToken: this.captchaToken(),
       });
       await this.router.navigate([AppRoutePaths.dashboard]);
     } catch (err: unknown) {
       const msg = (err as { error?: { errors?: string[] } })?.error?.errors?.[0]
         ?? AppMessages.auth.loginFailed;
       this.error.set(msg);
+      this.captchaToken.set('');
+      this.turnstile()?.reset();
     } finally {
       this.loading.set(false);
     }

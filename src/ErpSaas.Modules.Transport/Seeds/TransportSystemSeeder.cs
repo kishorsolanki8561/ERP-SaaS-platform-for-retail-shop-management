@@ -2,6 +2,7 @@ using ErpSaas.Infrastructure.Data;
 using ErpSaas.Infrastructure.Data.Entities.Identity;
 using ErpSaas.Infrastructure.Data.Entities.Menu;
 using ErpSaas.Infrastructure.Data.Entities.Sequence;
+using ErpSaas.Infrastructure.Data.Entities.Subscription;
 using ErpSaas.Shared.Messages;
 using ErpSaas.Shared.Seeds;
 using Microsoft.EntityFrameworkCore;
@@ -21,6 +22,7 @@ public sealed class TransportSystemSeeder(
         await SeedPermissionsAsync(ct);
         await SeedMenuAsync(ct);
         await SeedSequencesAsync(ct);
+        await SeedFeaturesAsync(ct);
     }
 
     private async Task SeedPermissionsAsync(CancellationToken ct)
@@ -100,6 +102,41 @@ public sealed class TransportSystemSeeder(
         {
             await tx.RollbackAsync(ct);
             logger.LogError(ex, "TransportSystemSeeder.SeedMenuAsync failed");
+            throw;
+        }
+    }
+
+    private async Task SeedFeaturesAsync(CancellationToken ct)
+    {
+        await using var tx = await platformDb.Database.BeginTransactionAsync(ct);
+        try
+        {
+            const string featureCode = "Transport.VehicleTracking";
+            if (!await platformDb.SubscriptionPlanFeatures.AnyAsync(f => f.FeatureCode == featureCode, ct))
+            {
+                var plans = await platformDb.SubscriptionPlans
+                    .Where(p => p.Code == Constants.Plans.Growth || p.Code == Constants.Plans.Enterprise)
+                    .ToListAsync(ct);
+
+                foreach (var plan in plans)
+                {
+                    platformDb.SubscriptionPlanFeatures.Add(new SubscriptionPlanFeature
+                    {
+                        PlanId = plan.Id,
+                        FeatureCode = featureCode,
+                        CreatedAtUtc = DateTime.UtcNow,
+                    });
+                }
+                logger.LogInformation("Seeding feature flag: {Code}", featureCode);
+            }
+
+            await platformDb.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
+        }
+        catch (Exception ex)
+        {
+            await tx.RollbackAsync(ct);
+            logger.LogError(ex, "TransportSystemSeeder.SeedFeaturesAsync failed");
             throw;
         }
     }
