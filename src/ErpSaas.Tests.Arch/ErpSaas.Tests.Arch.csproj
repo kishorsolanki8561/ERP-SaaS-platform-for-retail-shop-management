@@ -57,6 +57,10 @@
     <ProjectReference Include="..\ErpSaas.Modules.Hardware\ErpSaas.Modules.Hardware.csproj" />
     <ProjectReference Include="..\ErpSaas.Modules.Hr\ErpSaas.Modules.Hr.csproj" />
     <ProjectReference Include="..\ErpSaas.Modules.Marketplace\ErpSaas.Modules.Marketplace.csproj" />
+    <ProjectReference Include="..\ErpSaas.Modules.Verticals\ErpSaas.Modules.Verticals.csproj" />
+    <ProjectReference Include="..\ErpSaas.Modules.ServiceJobs\ErpSaas.Modules.ServiceJobs.csproj" />
+    <ProjectReference Include="..\ErpSaas.Modules.Verticals.Medical\ErpSaas.Modules.Verticals.Medical.csproj" />
+    <ProjectReference Include="..\ErpSaas.Modules.Verticals.Grocery\ErpSaas.Modules.Verticals.Grocery.csproj" />
   </ItemGroup>
 
 </Project>

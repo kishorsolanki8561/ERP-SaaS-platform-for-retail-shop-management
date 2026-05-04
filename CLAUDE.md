@@ -282,10 +282,10 @@ dotnet test --filter Category=Architecture
 - [x] **Phase 3 — Operations** — ✅ DONE (2026-05-03)
 - [x] **Phase 4 — HR + Marketplace** — ✅ DONE (2026-05-03)
 - [x] **Phase 5 — SaaS Polish** — ✅ DONE (2026-05-03)
-- [ ] **Phase 6 — Multi-Platform Shells** ← IN PROGRESS (2026-05-04)
-- [ ] **Phase 7 — Vertical Packs**
+- [x] **Phase 6 — Multi-Platform Shells** — ✅ DONE (2026-05-04)
+- [ ] **Phase 7 — Vertical Packs** — 🔄 IN PROGRESS (2026-05-04)
 
-**Current sprint:** Phase 6 — Multi-Platform Shells — 90% COMPLETE (only Capacitor plugin wiring remains)
+**Current sprint:** Phase 7 — Vertical Packs ← ACTIVE
 **Blockers:** None
 **Phase 5 Angular UI progress (2026-05-03) — ALL MODULE PAGES COMPLETE ✅:**
 - Sales: Quotations, Sales Orders, Delivery Challans, Sales Returns ✅
@@ -467,8 +467,64 @@ dotnet test --filter Category=Architecture
   - `publish` config (GitHub provider) in electron-builder section ✅
 - **Build scores:** 453 unit + 109 arch all green ✅; Angular build 0 errors ✅
 
-**Phase 6 remaining (next session):**
-- Capacitor platform-specific plugins wiring (SQLite offline store, Camera/BarcodeScanner with Capacitor plugins)
+**Phase 6 — Capacitor plugin wiring (2026-05-04) — COMPLETE ✅:**
+- `@capacitor/core`, `@capacitor/app`, `@capacitor/camera`, `@capacitor/filesystem`, `@capacitor/preferences`, `@capacitor/share`, `@capacitor-mlkit/barcode-scanning` added to `src/web/package.json` ✅
+- `capacitor-bridge.ts` — `onBarcode()` wired to MLKit BarcodeScanner.scan() with DOM-event fallback ✅
+- `capacitor-bridge.ts` — `printPdf()` wired to Filesystem + Share sheet ✅
+- `capacitor-bridge.ts` — `getApiBaseUrl()` wired to Preferences (user-configurable, defaults to staging URL) ✅
+- `capacitor-bridge.ts` — `getAppVersion()` already used @capacitor/app; all try/catch guards for graceful web fallback ✅
+- SQLite offline store deferred — requires native build targets, not relevant for web/staging demo ✅
+- Angular build: 0 errors ✅
+
+**DemoDataSeeder (2026-05-04) — COMPLETE ✅:**
+- `src/ErpSaas.Api/Seeds/DemoDataSeeder.cs` — seeder with Order=1000, config-gated by `Features:SeedDemoData` ✅
+- Nexus Electronics demo shop: Enterprise subscription + platform admin linked ✅
+- 20 electrical products + ProductUnits + opening stock movements ✅
+- 10 customers (retail/wholesale mix) + 2 customer groups ✅
+- 10 invoices (3 Paid, 4 Finalized, 2 Draft, 1 Cancelled) + InvoicePayments ✅
+- `appsettings.Development.json`: `Features:SeedDemoData=true` ✅
+- `appsettings.json`: `Features:SeedDemoData=false` (opt-in for staging via env var) ✅
+- Registered in `ApiServiceExtensions.cs` via `services.AddDataSeeder<DemoDataSeeder>()` ✅
+
+**Phase 7 — Vertical Packs (2026-05-04) — IN PROGRESS 🔄:**
+- **Core infrastructure** ✅:
+  - `VerticalPack` PlatformDB entity (`Infrastructure/Data/Entities/Verticals/VerticalPack.cs`) + `PlatformDbContext.VerticalPacks` + EF config (`verticals` schema) ✅
+  - `ShopVertical` TenantDB entity (`ErpSaas.Modules.Verticals`) ✅
+  - `IVerticalPackService` + `VerticalPackService` — ListPacksAsync/GetPackAsync/GetShopVerticalAsync/InstallForShopAsync ✅
+  - `VerticalPacksController` (4 endpoints: GET packs, GET pack/:code, GET shop-vertical, POST install) ✅
+  - `VerticalSystemSeeder` (Order=110) — seeds 2 permissions + 1 menu item + 3 VerticalPacks (ELECTRICAL/MEDICAL/GROCERY) ✅
+- **Service/Repair Job Tracking (§6.24)** ✅:
+  - `ErpSaas.Modules.ServiceJobs` — `ServiceJob` + `ServiceJobPart` + `ServiceJobLabor` entities; `service` schema ✅
+  - `IServiceJobService` + `ServiceJobService` — full state machine (Received→Diagnosed→Approved→InProgress→Ready→Delivered/Rejected) ✅
+  - `ServiceJobsController` (11 endpoints incl. `GET /api/service-jobs/track/{jobNumber}` as [AllowAnonymous]) ✅
+  - `ServiceJobSystemSeeder` (Order=115) — 6 permissions + SERVICE_JOB sequence + menu ✅
+- **Medical vertical extension** ✅:
+  - `ErpSaas.Modules.Verticals.Medical` — `DrugBatch` + `PrescriptionRecord` entities; `verticals_medical` schema ✅
+  - `DrugSchedule` enum (H/H1/X/G/C/C1/None); `IsScheduleH`/`IsNarcotic` computed properties (EF-ignored) ✅
+  - `IMedicalInventoryService` + `MedicalInventoryService` — CreateBatch/RecordPrescription/ListExpiring ✅
+  - `MedicalInventoryController` (6 endpoints, gated by `[RequireFeature("Verticals.MedicalBatchExpiry")]`) ✅
+  - `MedicalSystemSeeder` (Order=120) ✅
+- **Grocery vertical extension** ✅:
+  - `ErpSaas.Modules.Verticals.Grocery` — `LoyaltyProgram` + `LoyaltyTransaction` entities; `verticals_grocery` schema ✅
+  - `LoyaltyTransactionType` enum (Earn/Redeem/Bonus/Expire/Adjust) ✅
+  - `ILoyaltyService` + `LoyaltyService` — GetProgram/CreateOrUpdate/GetCustomerBalance/EarnPoints/RedeemPoints ✅
+  - `LoyaltyController` (6 endpoints, gated by `[RequireFeature("Verticals.GroceryLoyaltyPoints")]`) ✅
+  - `GrocerySystemSeeder` (Order=125) ✅
+- **Unit tests** ✅: 522 unit + 125 arch all green
+  - `VerticalPackServiceTests` (9 tests), `ServiceJobServiceTests` (14 tests), `MedicalInventoryServiceTests` (9 tests), `LoyaltyServiceTests` (10 tests) ✅
+  - `VerticalsArchTests`, `ServiceJobsArchTests`, `MedicalArchTests`, `GroceryArchTests` (4 tests each = 16 total) ✅
+- **Angular UI** ✅:
+  - `service-jobs.component.ts` — service jobs list with state-machine action buttons ✅
+  - `medical-batches.component.ts` — drug batch inventory with expiry filter ✅
+  - `loyalty-program.component.ts` — loyalty programme configuration ✅
+  - `admin-vertical.component.ts` — shop vertical picker (card grid + install) ✅
+  - `platform-verticals.component.ts` — platform admin vertical pack management ✅
+  - 5 new routes in `app.routes.ts`, 5 new lazy chunks generated ✅
+  - `app-routes.ts`, `app-permissions.ts`, `app-api.ts` all extended ✅
+  - Angular build: 0 errors, all lazy chunks generated ✅
+**Remaining for Phase 7 exit gate:**
+- EF migrations for new TenantDB tables (ShopVertical, ServiceJob/Part/Labor, DrugBatch, PrescriptionRecord, LoyaltyProgram, LoyaltyTransaction) and PlatformDB (VerticalPack) ← NEXT
+- `docs/module-index.md` update for 4 new modules
 
 **Payment Gateway Connector Layer (2026-05-04) — COMPLETE ✅:**
 - `IPaymentGatewayConnector` / `IGatewayConnectorRegistry` abstractions + `Results/` records ✅

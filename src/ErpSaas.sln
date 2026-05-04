@@ -61,6 +61,14 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ErpSaas.Modules.ApiAccess",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ErpSaas.Modules.Sync", "ErpSaas.Modules.Sync\ErpSaas.Modules.Sync.csproj", "{934508D6-B476-4923-B880-65293DA8A0B8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ErpSaas.Modules.Verticals", "ErpSaas.Modules.Verticals\ErpSaas.Modules.Verticals.csproj", "{3C4D5E6F-7A8B-9012-CDEF-012345678902}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ErpSaas.Modules.ServiceJobs", "ErpSaas.Modules.ServiceJobs\ErpSaas.Modules.ServiceJobs.csproj", "{4D5E6F7A-8B9C-0123-DEF0-123456789013}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ErpSaas.Modules.Verticals.Medical", "ErpSaas.Modules.Verticals.Medical\ErpSaas.Modules.Verticals.Medical.csproj", "{5E6F7A8B-9C0D-1234-EF01-234567890124}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ErpSaas.Modules.Verticals.Grocery", "ErpSaas.Modules.Verticals.Grocery\ErpSaas.Modules.Verticals.Grocery.csproj", "{6F7A8B9C-0D1E-2345-F012-345678901235}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -186,5 +194,21 @@ Global
 		{934508D6-B476-4923-B880-65293DA8A0B8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{934508D6-B476-4923-B880-65293DA8A0B8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{934508D6-B476-4923-B880-65293DA8A0B8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3C4D5E6F-7A8B-9012-CDEF-012345678902}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3C4D5E6F-7A8B-9012-CDEF-012345678902}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3C4D5E6F-7A8B-9012-CDEF-012345678902}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3C4D5E6F-7A8B-9012-CDEF-012345678902}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4D5E6F7A-8B9C-0123-DEF0-123456789013}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4D5E6F7A-8B9C-0123-DEF0-123456789013}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4D5E6F7A-8B9C-0123-DEF0-123456789013}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4D5E6F7A-8B9C-0123-DEF0-123456789013}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5E6F7A8B-9C0D-1234-EF01-234567890124}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5E6F7A8B-9C0D-1234-EF01-234567890124}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5E6F7A8B-9C0D-1234-EF01-234567890124}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5E6F7A8B-9C0D-1234-EF01-234567890124}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6F7A8B9C-0D1E-2345-F012-345678901235}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6F7A8B9C-0D1E-2345-F012-345678901235}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6F7A8B9C-0D1E-2345-F012-345678901235}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6F7A8B9C-0D1E-2345-F012-345678901235}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

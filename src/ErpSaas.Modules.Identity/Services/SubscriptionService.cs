@@ -18,7 +18,7 @@ public sealed class SubscriptionService(
 {
     public async Task<IReadOnlyList<SubscriptionPlanDto>> ListPlansAsync(CancellationToken ct = default)
     {
-        var plans = await db.SubscriptionPlans
+        var plans = await _db.SubscriptionPlans
             .Where(p => p.IsActive)
             .Include(p => p.Features)
             .ToListAsync(ct);
@@ -28,7 +28,7 @@ public sealed class SubscriptionService(
 
     public async Task<CurrentSubscriptionDto?> GetCurrentAsync(CancellationToken ct = default)
     {
-        var sub = await db.ShopSubscriptions
+        var sub = await _db.ShopSubscriptions
             .Where(s => s.ShopId == tenant.ShopId && s.IsActive)
             .Include(s => s.Plan)
             .ThenInclude(p => p.Features)
@@ -59,13 +59,13 @@ public sealed class SubscriptionService(
             if (!Enum.TryParse<BillingCycle>(dto.BillingCycle, ignoreCase: true, out var cycle))
                 return Result<bool>.Failure(Errors.Subscription.InvalidBillingCycle);
 
-            var newPlan = await db.SubscriptionPlans
+            var newPlan = await _db.SubscriptionPlans
                 .FirstOrDefaultAsync(p => p.Code == dto.PlanCode && p.IsActive, ct);
             if (newPlan is null)
                 return Result<bool>.NotFound(Errors.Subscription.PlanNotFound);
 
             // Deactivate existing active subscription
-            var current = await db.ShopSubscriptions
+            var current = await _db.ShopSubscriptions
                 .Where(s => s.ShopId == tenant.ShopId && s.IsActive)
                 .FirstOrDefaultAsync(ct);
 
@@ -78,7 +78,7 @@ public sealed class SubscriptionService(
                 current.EndsAtUtc = DateTime.UtcNow;
             }
 
-            db.ShopSubscriptions.Add(new ShopSubscription
+            _db.ShopSubscriptions.Add(new ShopSubscription
             {
                 ShopId       = tenant.ShopId,
                 PlanId       = newPlan.Id,
@@ -88,7 +88,7 @@ public sealed class SubscriptionService(
                 CreatedAtUtc = DateTime.UtcNow,
             });
 
-            await db.SaveChangesAsync(ct);
+            await _db.SaveChangesAsync(ct);
 
             logger.LogInformation(
                 "Shop {ShopId} changed subscription to plan {PlanCode} ({Cycle})",
@@ -100,7 +100,7 @@ public sealed class SubscriptionService(
     public async Task<Result<bool>> CancelAsync(CancellationToken ct = default)
         => await ExecuteAsync<bool>("Subscription.Cancel", async () =>
         {
-            var sub = await db.ShopSubscriptions
+            var sub = await _db.ShopSubscriptions
                 .Include(s => s.Plan)
                 .Where(s => s.ShopId == tenant.ShopId && s.IsActive)
                 .FirstOrDefaultAsync(ct);
@@ -114,7 +114,7 @@ public sealed class SubscriptionService(
             sub.IsActive = false;
             sub.EndsAtUtc = DateTime.UtcNow;
 
-            await db.SaveChangesAsync(ct);
+            await _db.SaveChangesAsync(ct);
 
             logger.LogInformation(
                 "Shop {ShopId} cancelled subscription (plan {PlanCode})",

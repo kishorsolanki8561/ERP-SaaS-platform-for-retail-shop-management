@@ -6,6 +6,7 @@ using ErpSaas.Infrastructure.Data.Entities.Files;
 using ErpSaas.Infrastructure.Data.Entities.Portal;
 using ErpSaas.Infrastructure.Data.Entities.Replication;
 using ErpSaas.Infrastructure.Data.Entities.Subscription;
+using ErpSaas.Infrastructure.Data.Entities.Verticals;
 using ErpSaas.Infrastructure.Data.Interceptors;
 using Microsoft.EntityFrameworkCore;
 
@@ -66,6 +67,9 @@ public class PlatformDbContext(
     public DbSet<ConflictArchive> ConflictArchives => Set<ConflictArchive>();
     public DbSet<ChangeTrackingLog> ChangeTrackingLogs => Set<ChangeTrackingLog>();
 
+    // Vertical packs
+    public DbSet<VerticalPack> VerticalPacks => Set<VerticalPack>();
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         => optionsBuilder.AddInterceptors(auditInterceptor);
 
@@ -79,6 +83,7 @@ public class PlatformDbContext(
         ConfigureFiles(modelBuilder);
         ConfigureMarketing(modelBuilder);
         ConfigureReplication(modelBuilder);
+        ConfigureVerticals(modelBuilder);
     }
 
     private static void ConfigureMasters(ModelBuilder b)
@@ -482,6 +487,22 @@ public class PlatformDbContext(
             e.Property(x => x.OriginDeploymentId).HasMaxLength(100);
             e.HasIndex(x => new { x.ShopId, x.EntityName, x.EntityId });
             e.HasIndex(x => x.VersionNumber);
+        });
+    }
+
+    private static void ConfigureVerticals(ModelBuilder b)
+    {
+        b.Entity<VerticalPack>(e =>
+        {
+            e.ToTable("VerticalPack", schema: "verticals");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Code).HasMaxLength(50).IsRequired();
+            e.HasIndex(x => x.Code).IsUnique();
+            e.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            e.Property(x => x.Description).HasMaxLength(1000);
+            e.Property(x => x.FeatureFlagsCsv).HasMaxLength(2000).IsRequired();
+            e.Property(x => x.DefaultInvoiceTemplateCode).HasMaxLength(100);
+            e.Property(x => x.IconClass).HasMaxLength(100);
         });
     }
 }

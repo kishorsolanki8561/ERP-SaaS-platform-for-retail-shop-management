@@ -6,6 +6,7 @@ namespace ErpSaas.Tests.Integration.Modules.CustomerPortal;
 [Trait("Category", "Integration")]
 public class CustomerPortalSubscriptionGateTests(IntegrationTestFixture fixture)
 {
+    private readonly IntegrationTestFixture _fixture = fixture;
     [Fact(Skip = "TODO: Testcontainers gate — feature off → 402, feature on → 200")]
     public async Task ListOnlineOrders_OnlineFlagOff_Returns402()
     {

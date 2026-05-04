@@ -34,6 +34,10 @@ public static class Constants
         public const string SalaryComponent          = "SALARY_COMPONENT";
         public const string Marketplace              = "MARKETPLACE";
         public const string MarketplaceOrderStatus   = "MARKETPLACE_ORDER_STATUS";
+        public const string ServiceJobStatus         = "SERVICE_JOB_STATUS";
+        public const string VerticalPackCode         = "VERTICAL_PACK";
+        public const string DrugSchedule             = "DRUG_SCHEDULE";
+        public const string LoyaltyTransactionType   = "LOYALTY_TRANSACTION_TYPE";
     }
 
     public static class SequenceCodes
@@ -63,6 +67,8 @@ public static class Constants
         public const string Employee           = "EMPLOYEE";
         public const string OnlineOrder        = "ONLINE_ORDER";
         public const string CustomerInquiry    = "CUSTOMER_INQUIRY";
+        public const string ServiceJob         = "SERVICE_JOB";
+        public const string DrugBatch          = "DRUG_BATCH";
     }
 
     public static class SequencePrefixes
@@ -91,6 +97,8 @@ public static class Constants
         public const string Employee           = "EMP";
         public const string OnlineOrder        = "ORD";
         public const string CustomerInquiry    = "INQ";
+        public const string ServiceJob         = "SJ";
+        public const string DrugBatch          = "BATCH";
     }
 
     public static class Pagination

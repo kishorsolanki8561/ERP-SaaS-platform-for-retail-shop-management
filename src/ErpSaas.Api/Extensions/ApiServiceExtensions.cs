@@ -23,6 +23,10 @@ using ErpSaas.Modules.Inventory.Extensions;
 using ErpSaas.Modules.Masters.Extensions;
 using ErpSaas.Modules.Shift.Extensions;
 using ErpSaas.Modules.Wallet.Extensions;
+using ErpSaas.Modules.Verticals.Extensions;
+using ErpSaas.Modules.ServiceJobs.Extensions;
+using ErpSaas.Modules.Verticals.Medical.Extensions;
+using ErpSaas.Modules.Verticals.Grocery.Extensions;
 using Hangfire;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -75,7 +79,11 @@ public static class ApiServiceExtensions
             .AddApplicationPart(typeof(Modules.Marketplace.Controllers.MarketplaceController).Assembly)
             .AddApplicationPart(typeof(Modules.CustomerPortal.Controllers.PortalAuthController).Assembly)
             .AddApplicationPart(typeof(Modules.ApiAccess.Controllers.ShopApiKeysController).Assembly)
-            .AddApplicationPart(typeof(Modules.Sync.Controllers.DevicesController).Assembly);
+            .AddApplicationPart(typeof(Modules.Sync.Controllers.DevicesController).Assembly)
+            .AddApplicationPart(typeof(Modules.Verticals.Controllers.VerticalPacksController).Assembly)
+            .AddApplicationPart(typeof(Modules.ServiceJobs.Controllers.ServiceJobsController).Assembly)
+            .AddApplicationPart(typeof(Modules.Verticals.Medical.Controllers.MedicalInventoryController).Assembly)
+            .AddApplicationPart(typeof(Modules.Verticals.Grocery.Controllers.LoyaltyController).Assembly);
 
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen(c =>
@@ -103,6 +111,10 @@ public static class ApiServiceExtensions
         services.AddCustomerPortalModule();
         services.AddApiAccessModule();
         services.AddSyncModule();
+        services.AddVerticalsModule();
+        services.AddServiceJobsModule();
+        services.AddMedicalModule();
+        services.AddGroceryModule();
 
         // Demo data seeder — only active when Features:SeedDemoData = true
         services.AddDataSeeder<DemoDataSeeder>();

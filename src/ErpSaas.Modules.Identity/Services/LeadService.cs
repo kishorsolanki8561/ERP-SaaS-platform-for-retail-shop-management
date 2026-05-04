@@ -39,8 +39,8 @@ public sealed class LeadService(
                 CreatedAtUtc     = DateTime.UtcNow,
             };
 
-            db.Leads.Add(lead);
-            await db.SaveChangesAsync(ct);
+            _db.Leads.Add(lead);
+            await _db.SaveChangesAsync(ct);
 
             logger.LogInformation("Lead submitted: {Email} from {Source}", dto.Email, source);
 
@@ -50,7 +50,7 @@ public sealed class LeadService(
     public async Task<(IReadOnlyList<LeadSummaryDto> Items, int TotalCount)> ListAsync(
         int page, int pageSize, LeadStatus? status, CancellationToken ct = default)
     {
-        var query = db.Leads.AsNoTracking();
+        var query = _db.Leads.AsNoTracking();
 
         if (status.HasValue)
             query = query.Where(l => l.Status == status.Value);
@@ -74,7 +74,7 @@ public sealed class LeadService(
                            .Select(l => l.AssignedUserId!.Value).Distinct().ToList();
 
         var userNames = userIds.Any()
-            ? await db.Users.AsNoTracking()
+            ? await _db.Users.AsNoTracking()
                 .Where(u => userIds.Contains(u.Id))
                 .ToDictionaryAsync(u => u.Id, u => u.DisplayName, ct)
             : new Dictionary<long, string>();
@@ -91,7 +91,7 @@ public sealed class LeadService(
 
     public async Task<LeadDetailDto?> GetAsync(long id, CancellationToken ct = default)
     {
-        var lead = await db.Leads.AsNoTracking()
+        var lead = await _db.Leads.AsNoTracking()
             .FirstOrDefaultAsync(l => l.Id == id, ct);
 
         if (lead is null) return null;
@@ -102,14 +102,14 @@ public sealed class LeadService(
     public async Task<Result<bool>> AssignAsync(long leadId, long userId, CancellationToken ct = default)
         => await ExecuteAsync<bool>("Lead.Assign", async () =>
         {
-            var lead = await db.Leads.FirstOrDefaultAsync(l => l.Id == leadId, ct);
+            var lead = await _db.Leads.FirstOrDefaultAsync(l => l.Id == leadId, ct);
             if (lead is null) return Result<bool>.NotFound(Errors.Lead.NotFound);
 
-            var userExists = await db.Users.AnyAsync(u => u.Id == userId && u.IsActive, ct);
+            var userExists = await _db.Users.AnyAsync(u => u.Id == userId && u.IsActive, ct);
             if (!userExists) return Result<bool>.NotFound(Errors.Lead.UserNotFound);
 
             lead.AssignedUserId = userId;
-            await db.SaveChangesAsync(ct);
+            await _db.SaveChangesAsync(ct);
 
             return Result<bool>.Success(true);
         }, ct);
@@ -120,7 +120,7 @@ public sealed class LeadService(
             if (!Enum.TryParse<LeadStatus>(dto.Status, ignoreCase: true, out var newStatus))
                 return Result<bool>.Failure(Errors.Lead.InvalidStatus);
 
-            var lead = await db.Leads.FirstOrDefaultAsync(l => l.Id == leadId, ct);
+            var lead = await _db.Leads.FirstOrDefaultAsync(l => l.Id == leadId, ct);
             if (lead is null) return Result<bool>.NotFound(Errors.Lead.NotFound);
 
             if (newStatus == LeadStatus.Converted && !lead.ConvertedShopId.HasValue)
@@ -133,7 +133,7 @@ public sealed class LeadService(
             if (newStatus == LeadStatus.Contacted)
                 lead.LastContactedAtUtc = DateTime.UtcNow;
 
-            await db.SaveChangesAsync(ct);
+            await _db.SaveChangesAsync(ct);
 
             return Result<bool>.Success(true);
         }, ct);
@@ -141,7 +141,7 @@ public sealed class LeadService(
     public async Task<Result<long>> ConvertAsync(long leadId, CancellationToken ct = default)
         => await ExecuteAsync<long>("Lead.Convert", async () =>
         {
-            var lead = await db.Leads.FirstOrDefaultAsync(l => l.Id == leadId, ct);
+            var lead = await _db.Leads.FirstOrDefaultAsync(l => l.Id == leadId, ct);
             if (lead is null) return Result<long>.NotFound(Errors.Lead.NotFound);
 
             if (lead.Status == LeadStatus.Converted)
@@ -159,12 +159,12 @@ public sealed class LeadService(
                 CreatedAtUtc = DateTime.UtcNow,
             };
 
-            db.Shops.Add(shop);
-            await db.SaveChangesAsync(ct);
+            _db.Shops.Add(shop);
+            await _db.SaveChangesAsync(ct);
 
             lead.Status          = LeadStatus.Converted;
             lead.ConvertedShopId = shop.Id;
-            await db.SaveChangesAsync(ct);
+            await _db.SaveChangesAsync(ct);
 
             logger.LogInformation("Lead {LeadId} converted to shop {ShopId}", leadId, shop.Id);
 

@@ -45,6 +45,10 @@
     <ProjectReference Include="..\ErpSaas.Modules.CustomerPortal\ErpSaas.Modules.CustomerPortal.csproj" />
     <ProjectReference Include="..\ErpSaas.Modules.ApiAccess\ErpSaas.Modules.ApiAccess.csproj" />
     <ProjectReference Include="..\ErpSaas.Modules.Sync\ErpSaas.Modules.Sync.csproj" />
+    <ProjectReference Include="..\ErpSaas.Modules.Verticals\ErpSaas.Modules.Verticals.csproj" />
+    <ProjectReference Include="..\ErpSaas.Modules.ServiceJobs\ErpSaas.Modules.ServiceJobs.csproj" />
+    <ProjectReference Include="..\ErpSaas.Modules.Verticals.Medical\ErpSaas.Modules.Verticals.Medical.csproj" />
+    <ProjectReference Include="..\ErpSaas.Modules.Verticals.Grocery\ErpSaas.Modules.Verticals.Grocery.csproj" />
   </ItemGroup>
 
   <Target Name="PreBuild" BeforeTargets="PreBuildEvent">

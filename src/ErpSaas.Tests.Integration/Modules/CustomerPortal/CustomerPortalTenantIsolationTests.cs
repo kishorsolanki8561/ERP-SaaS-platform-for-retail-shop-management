@@ -6,6 +6,7 @@ namespace ErpSaas.Tests.Integration.Modules.CustomerPortal;
 [Trait("Category", "Integration")]
 public class CustomerPortalTenantIsolationTests(IntegrationTestFixture fixture)
 {
+    private readonly IntegrationTestFixture _fixture = fixture;
     [Fact(Skip = "TODO: Testcontainers gate — seed two shops, assert zero cross-shop leakage")]
     public async Task ListOnlineOrders_ShopA_CannotSeeShopBOrders()
     {

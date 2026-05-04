@@ -89,6 +89,22 @@ export const AppRoutes = {
     transactions: 'payment/transactions',
     exceptions:   'payment/exceptions',
   },
+  serviceJobs: {
+    list:   'service/jobs',
+    track:  'service/track',
+  },
+  medical: {
+    batches:  'medical/batches',
+    expiring: 'medical/expiring',
+  },
+  loyalty: {
+    program:   'loyalty/program',
+    customers: 'loyalty/customers',
+  },
+  verticals: {
+    picker:   'admin/vertical',
+    platform: 'platform/verticals',
+  },
 } as const;
 
 export const AppRoutePaths = {
@@ -181,5 +197,21 @@ export const AppRoutePaths = {
     gateways:     `/${AppRoutes.payment.gateways}`,
     transactions: `/${AppRoutes.payment.transactions}`,
     exceptions:   `/${AppRoutes.payment.exceptions}`,
+  },
+  serviceJobs: {
+    list:   `/${AppRoutes.serviceJobs.list}`,
+    track:  `/${AppRoutes.serviceJobs.track}`,
+  },
+  medical: {
+    batches:  `/${AppRoutes.medical.batches}`,
+    expiring: `/${AppRoutes.medical.expiring}`,
+  },
+  loyalty: {
+    program:   `/${AppRoutes.loyalty.program}`,
+    customers: `/${AppRoutes.loyalty.customers}`,
+  },
+  verticals: {
+    picker:   `/${AppRoutes.verticals.picker}`,
+    platform: `/${AppRoutes.verticals.platform}`,
   },
 } as const;

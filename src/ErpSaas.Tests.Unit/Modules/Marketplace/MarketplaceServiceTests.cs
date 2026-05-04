@@ -358,7 +358,7 @@ public class MarketplaceSyncServiceTests : IDisposable
     {
         var result = await _sut.SyncOrdersAsync();
         result.IsSuccess.Should().BeTrue();
-        result.Value.AccountsProcessed.Should().Be(0);
+        result.Value!.AccountsProcessed.Should().Be(0);
     }
 
     [Fact]
@@ -366,7 +366,7 @@ public class MarketplaceSyncServiceTests : IDisposable
     {
         var result = await _sut.SyncInventoryAsync();
         result.IsSuccess.Should().BeTrue();
-        result.Value.AccountsProcessed.Should().Be(0);
+        result.Value!.AccountsProcessed.Should().Be(0);
     }
 
     [Fact]
@@ -374,7 +374,7 @@ public class MarketplaceSyncServiceTests : IDisposable
     {
         var result = await _sut.SyncPricesAsync();
         result.IsSuccess.Should().BeTrue();
-        result.Value.AccountsProcessed.Should().Be(0);
+        result.Value!.AccountsProcessed.Should().Be(0);
     }
 
     private async Task SeedAccount()

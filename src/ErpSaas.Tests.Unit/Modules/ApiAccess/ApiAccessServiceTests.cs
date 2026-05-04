@@ -123,9 +123,9 @@ public sealed class ApiAccessServiceTests : IDisposable
     public async Task RotateAsync_RevokedKey_ReturnsConflict()
     {
         var created = await _sut.CreateAsync(new CreateApiKeyDto("Key", null, null), 1);
-        await _sut.RevokeAsync(created.Value.Id, new RevokeApiKeyDto(null), 1);
+        await _sut.RevokeAsync(created.Value!.Id, new RevokeApiKeyDto(null), 1);
 
-        var result = await _sut.RotateAsync(created.Value.Id, 1);
+        var result = await _sut.RotateAsync(created.Value!.Id, 1);
         Assert.False(result.IsSuccess);
         Assert.Equal(Errors.ApiAccess.KeyAlreadyRevoked, result.Errors[0]);
     }

@@ -22,7 +22,7 @@ public sealed class OnPremDeploymentService(
     {
         return await ExecuteAsync("OnPrem.Register", async () =>
         {
-            var existing = await db.OnPremDeployments
+            var existing = await _db.OnPremDeployments
                 .FirstOrDefaultAsync(d => d.ShopId == tenant.ShopId && d.DeploymentId == dto.DeploymentId, ct);
 
             if (existing is not null)
@@ -31,7 +31,7 @@ public sealed class OnPremDeploymentService(
                 existing.SoftwareVersion = dto.SoftwareVersion;
                 existing.Mode = dto.Mode;
                 existing.Status = OnPremDeploymentStatus.Active;
-                await db.SaveChangesAsync(ct);
+                await _db.SaveChangesAsync(ct);
                 return Result<OnPremDeploymentDto>.Success(Map(existing));
             }
 
@@ -49,8 +49,8 @@ public sealed class OnPremDeploymentService(
                 CreatedAtUtc = DateTime.UtcNow,
             };
 
-            db.OnPremDeployments.Add(deployment);
-            await db.SaveChangesAsync(ct);
+            _db.OnPremDeployments.Add(deployment);
+            await _db.SaveChangesAsync(ct);
             logger.LogInformation("Registered on-prem deployment {DeploymentId} for shop {ShopId}",
                 dto.DeploymentId, tenant.ShopId);
 
@@ -60,7 +60,7 @@ public sealed class OnPremDeploymentService(
 
     public async Task<IReadOnlyList<OnPremDeploymentDto>> ListAsync(CancellationToken ct = default)
     {
-        var items = await db.OnPremDeployments
+        var items = await _db.OnPremDeployments
             .AsNoTracking()
             .Where(d => d.ShopId == tenant.ShopId)
             .OrderByDescending(d => d.LastReplicationAtUtc)
@@ -71,7 +71,7 @@ public sealed class OnPremDeploymentService(
 
     public async Task<Result<OnPremDeploymentDto>> GetAsync(long id, CancellationToken ct = default)
     {
-        var deployment = await db.OnPremDeployments
+        var deployment = await _db.OnPremDeployments
             .AsNoTracking()
             .FirstOrDefaultAsync(d => d.Id == id && d.ShopId == tenant.ShopId, ct);
 
@@ -85,14 +85,14 @@ public sealed class OnPremDeploymentService(
     {
         return await ExecuteAsync("OnPrem.UpdateStatus", async () =>
         {
-            var deployment = await db.OnPremDeployments
+            var deployment = await _db.OnPremDeployments
                 .FirstOrDefaultAsync(d => d.Id == id && d.ShopId == tenant.ShopId, ct);
 
             if (deployment is null)
                 return Result<bool>.NotFound(Errors.OnPrem.NotFound);
 
             deployment.Status = status;
-            await db.SaveChangesAsync(ct);
+            await _db.SaveChangesAsync(ct);
             return Result<bool>.Success(true);
         }, ct);
     }
@@ -102,14 +102,14 @@ public sealed class OnPremDeploymentService(
     {
         return await ExecuteAsync("OnPrem.UpdateMode", async () =>
         {
-            var deployment = await db.OnPremDeployments
+            var deployment = await _db.OnPremDeployments
                 .FirstOrDefaultAsync(d => d.Id == id && d.ShopId == tenant.ShopId, ct);
 
             if (deployment is null)
                 return Result<bool>.NotFound(Errors.OnPrem.NotFound);
 
             deployment.Mode = mode;
-            await db.SaveChangesAsync(ct);
+            await _db.SaveChangesAsync(ct);
             return Result<bool>.Success(true);
         }, ct);
     }
@@ -117,13 +117,13 @@ public sealed class OnPremDeploymentService(
     public async Task<IReadOnlyList<ReplicationLogDto>> ListLogsAsync(
         long deploymentId, int page, int pageSize, CancellationToken ct = default)
     {
-        var deployment = await db.OnPremDeployments
+        var deployment = await _db.OnPremDeployments
             .AsNoTracking()
             .FirstOrDefaultAsync(d => d.Id == deploymentId && d.ShopId == tenant.ShopId, ct);
 
         if (deployment is null) return [];
 
-        var conn = db.Database.GetDbConnection();
+        var conn = _db.Database.GetDbConnection();
         if (conn.State == System.Data.ConnectionState.Closed)
             await conn.OpenAsync(ct);
 
@@ -144,13 +144,13 @@ public sealed class OnPremDeploymentService(
     public async Task<(IReadOnlyList<ConflictArchiveDto> Items, int TotalCount)> ListConflictsAsync(
         long? deploymentId, ConflictResolutionOutcome? outcome, int page, int pageSize, CancellationToken ct = default)
     {
-        var query = db.ConflictArchives.AsNoTracking().Where(c => c.ShopId == tenant.ShopId);
+        var query = _db.ConflictArchives.AsNoTracking().Where(c => c.ShopId == tenant.ShopId);
 
         if (outcome.HasValue) query = query.Where(c => c.Outcome == outcome.Value);
 
         if (deploymentId.HasValue)
         {
-            var deployment = await db.OnPremDeployments
+            var deployment = await _db.OnPremDeployments
                 .AsNoTracking()
                 .FirstOrDefaultAsync(d => d.Id == deploymentId.Value && d.ShopId == tenant.ShopId, ct);
             if (deployment is not null)
@@ -172,7 +172,7 @@ public sealed class OnPremDeploymentService(
     {
         return await ExecuteAsync("OnPrem.ResolveConflict", async () =>
         {
-            var conflict = await db.ConflictArchives
+            var conflict = await _db.ConflictArchives
                 .FirstOrDefaultAsync(c => c.Id == conflictId && c.ShopId == tenant.ShopId, ct);
 
             if (conflict is null)
@@ -185,7 +185,7 @@ public sealed class OnPremDeploymentService(
             conflict.ResolutionNote = dto.ResolutionNote;
             conflict.ResolvedByUserId = tenant.CurrentUserId;
             conflict.ResolvedAtUtc = DateTime.UtcNow;
-            await db.SaveChangesAsync(ct);
+            await _db.SaveChangesAsync(ct);
             return Result<bool>.Success(true);
         }, ct, useTransaction: true);
     }

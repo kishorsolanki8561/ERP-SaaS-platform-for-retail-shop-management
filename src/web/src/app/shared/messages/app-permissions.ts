@@ -182,4 +182,31 @@ export const Permissions = {
     manageExpenses: 'Accounting.ManageExpenses',
     manageCheques:  'Accounting.ManageCheques',
   },
+  // Vertical packs
+  verticals: {
+    view:   'Vertical.View',
+    manage: 'Vertical.Manage',
+  },
+  // Service jobs
+  serviceJobs: {
+    view:     'ServiceJob.View',
+    create:   'ServiceJob.Create',
+    diagnose: 'ServiceJob.Diagnose',
+    approve:  'ServiceJob.Approve',
+    progress: 'ServiceJob.Progress',
+    deliver:  'ServiceJob.Deliver',
+  },
+  // Medical (drug batch / prescription)
+  medical: {
+    view:   'Medical.View',
+    manage: 'Medical.Manage',
+    dispense: 'Medical.Dispense',
+  },
+  // Grocery loyalty
+  loyalty: {
+    view:   'Loyalty.View',
+    manage: 'Loyalty.Manage',
+    earn:   'Loyalty.Earn',
+    redeem: 'Loyalty.Redeem',
+  },
 } as const;

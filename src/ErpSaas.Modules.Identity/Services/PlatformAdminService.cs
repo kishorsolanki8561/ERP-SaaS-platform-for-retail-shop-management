@@ -21,7 +21,7 @@ public sealed class PlatformAdminService(
     public async Task<(IReadOnlyList<ShopSummaryDto> Items, int TotalCount)> ListShopsAsync(
         int pageNumber, int pageSize, string? search, CancellationToken ct = default)
     {
-        var query = platformDb.Shops.AsNoTracking();
+        var query = _db.Shops.AsNoTracking();
 
         if (!string.IsNullOrWhiteSpace(search))
             query = query.Where(s => s.LegalName.Contains(search) || s.ShopCode.Contains(search));
@@ -58,7 +58,7 @@ public sealed class PlatformAdminService(
 
     public async Task<ShopDetailDto?> GetShopDetailAsync(long shopId, CancellationToken ct = default)
     {
-        var shop = await platformDb.Shops
+        var shop = await _db.Shops
             .AsNoTracking()
             .Where(s => s.Id == shopId)
             .Select(s => new
@@ -108,7 +108,7 @@ public sealed class PlatformAdminService(
 
     public async Task<IReadOnlyList<ShopUserDto>> ListShopUsersAsync(long shopId, CancellationToken ct = default)
     {
-        var users = await platformDb.UserShops
+        var users = await _db.UserShops
             .AsNoTracking()
             .Where(us => us.ShopId == shopId)
             .Select(us => new ShopUserDto(
@@ -131,7 +131,7 @@ public sealed class PlatformAdminService(
         var monthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
         var nextWeek = now.AddDays(7);
 
-        var subscriptions = await platformDb.ShopSubscriptions
+        var subscriptions = await _db.ShopSubscriptions
             .AsNoTracking()
             .Include(s => s.Plan)
             .ToListAsync(ct);
@@ -150,7 +150,7 @@ public sealed class PlatformAdminService(
             .Count(s => s.IsActive || (s.EndsAtUtc.HasValue && s.EndsAtUtc >= monthStart.AddMonths(-1)));
         var churnRate = totalLastMonth > 0 ? (decimal)expired / totalLastMonth * 100m : 0m;
 
-        var upcoming = await platformDb.ShopSubscriptions
+        var upcoming = await _db.ShopSubscriptions
             .AsNoTracking()
             .Include(s => s.Plan)
             .Include(s => s.Shop)
@@ -179,7 +179,7 @@ public sealed class PlatformAdminService(
         var dbOk = false;
         try
         {
-            await platformDb.Database.ExecuteSqlRawAsync("SELECT 1", ct);
+            await _db.Database.ExecuteSqlRawAsync("SELECT 1", ct);
             dbOk = true;
         }
         catch { /* db unhealthy */ }
@@ -211,7 +211,7 @@ public sealed class PlatformAdminService(
 
     public async Task<IReadOnlyList<PlatformSubscriptionPlanDto>> ListPlansAsync(CancellationToken ct = default)
     {
-        var plans = await platformDb.SubscriptionPlans
+        var plans = await _db.SubscriptionPlans
             .AsNoTracking()
             .Include(p => p.Features)
             .OrderBy(p => p.MonthlyPrice)
@@ -223,7 +223,7 @@ public sealed class PlatformAdminService(
     public async Task<Result<long>> CreatePlanAsync(CreatePlanDto dto, CancellationToken ct = default)
         => await ExecuteAsync<long>("Platform.CreatePlan", async () =>
         {
-            var exists = await platformDb.SubscriptionPlans
+            var exists = await _db.SubscriptionPlans
                 .AnyAsync(p => p.Code == dto.Code, ct);
             if (exists) return Result<long>.Conflict(Errors.PlatformAdmin.PlanCodeExists);
 
@@ -252,8 +252,8 @@ public sealed class PlatformAdminService(
                 });
             }
 
-            platformDb.SubscriptionPlans.Add(plan);
-            await platformDb.SaveChangesAsync(ct);
+            _db.SubscriptionPlans.Add(plan);
+            await _db.SaveChangesAsync(ct);
 
             logger.LogInformation("Created subscription plan: {Code}", dto.Code);
 
@@ -263,7 +263,7 @@ public sealed class PlatformAdminService(
     public async Task<Result<bool>> UpdatePlanAsync(long planId, UpdatePlanDto dto, CancellationToken ct = default)
         => await ExecuteAsync<bool>("Platform.UpdatePlan", async () =>
         {
-            var plan = await platformDb.SubscriptionPlans
+            var plan = await _db.SubscriptionPlans
                 .Include(p => p.Features)
                 .FirstOrDefaultAsync(p => p.Id == planId, ct);
 
@@ -283,17 +283,17 @@ public sealed class PlatformAdminService(
 
             if (dto.Features is not null)
             {
-                platformDb.Set<SubscriptionPlanFeature>().RemoveRange(plan.Features);
+                _db.Set<SubscriptionPlanFeature>().RemoveRange(plan.Features);
                 foreach (var code in dto.Features)
                 {
-                    platformDb.Set<SubscriptionPlanFeature>().Add(new SubscriptionPlanFeature
+                    _db.Set<SubscriptionPlanFeature>().Add(new SubscriptionPlanFeature
                     {
                         PlanId = plan.Id, FeatureCode = code, CreatedAtUtc = DateTime.UtcNow,
                     });
                 }
             }
 
-            await platformDb.SaveChangesAsync(ct);
+            await _db.SaveChangesAsync(ct);
 
             return Result<bool>.Success(true);
         }, ct, useTransaction: true);
@@ -303,15 +303,15 @@ public sealed class PlatformAdminService(
     public async Task<Result<bool>> ToggleShopFeatureAsync(long shopId, ToggleFeatureDto dto, CancellationToken ct = default)
         => await ExecuteAsync<bool>("Platform.ToggleShopFeature", async () =>
         {
-            var shopExists = await platformDb.Shops.AnyAsync(s => s.Id == shopId, ct);
+            var shopExists = await _db.Shops.AnyAsync(s => s.Id == shopId, ct);
             if (!shopExists) return Result<bool>.NotFound(Errors.PlatformAdmin.ShopNotFound);
 
-            var existing = await platformDb.ShopFeatureOverrides
+            var existing = await _db.ShopFeatureOverrides
                 .FirstOrDefaultAsync(f => f.ShopId == shopId && f.FeatureCode == dto.FeatureCode, ct);
 
             if (existing is null)
             {
-                platformDb.ShopFeatureOverrides.Add(new ShopFeatureOverride
+                _db.ShopFeatureOverrides.Add(new ShopFeatureOverride
                 {
                     ShopId = shopId, FeatureCode = dto.FeatureCode,
                     IsEnabled = dto.Enabled, CreatedAtUtc = DateTime.UtcNow,
@@ -323,7 +323,7 @@ public sealed class PlatformAdminService(
                 existing.UpdatedAtUtc = DateTime.UtcNow;
             }
 
-            await platformDb.SaveChangesAsync(ct);
+            await _db.SaveChangesAsync(ct);
 
             logger.LogInformation("Shop {ShopId} feature {Feature} toggled to {Enabled}",
                 shopId, dto.FeatureCode, dto.Enabled);
@@ -334,13 +334,13 @@ public sealed class PlatformAdminService(
     public async Task<Result<bool>> SuspendShopAsync(long shopId, SuspendShopDto dto, CancellationToken ct = default)
         => await ExecuteAsync<bool>("Platform.SuspendShop", async () =>
         {
-            var shop = await platformDb.Shops.FirstOrDefaultAsync(s => s.Id == shopId, ct);
+            var shop = await _db.Shops.FirstOrDefaultAsync(s => s.Id == shopId, ct);
             if (shop is null) return Result<bool>.NotFound(Errors.PlatformAdmin.ShopNotFound);
             if (!shop.IsActive) return Result<bool>.Conflict(Errors.PlatformAdmin.ShopAlreadySuspended);
 
             shop.IsActive     = false;
             shop.UpdatedAtUtc = DateTime.UtcNow;
-            await platformDb.SaveChangesAsync(ct);
+            await _db.SaveChangesAsync(ct);
 
             logger.LogWarning("Shop {ShopId} suspended. Reason: {Reason}", shopId, dto.Reason);
 
@@ -350,13 +350,13 @@ public sealed class PlatformAdminService(
     public async Task<Result<bool>> ActivateShopAsync(long shopId, CancellationToken ct = default)
         => await ExecuteAsync<bool>("Platform.ActivateShop", async () =>
         {
-            var shop = await platformDb.Shops.FirstOrDefaultAsync(s => s.Id == shopId, ct);
+            var shop = await _db.Shops.FirstOrDefaultAsync(s => s.Id == shopId, ct);
             if (shop is null) return Result<bool>.NotFound(Errors.PlatformAdmin.ShopNotFound);
             if (shop.IsActive) return Result<bool>.Conflict(Errors.PlatformAdmin.ShopAlreadyActive);
 
             shop.IsActive     = true;
             shop.UpdatedAtUtc = DateTime.UtcNow;
-            await platformDb.SaveChangesAsync(ct);
+            await _db.SaveChangesAsync(ct);
 
             logger.LogInformation("Shop {ShopId} activated", shopId);
 

@@ -332,6 +332,46 @@ export const routes: Routes = [
         canActivate: [permissionGuard(Permissions.integration.manageWebhooks)],
       },
 
+      // ── Service Jobs ─────────────────────────────────────────────────────────
+      {
+        path: AppRoutes.serviceJobs.list,
+        loadComponent: () =>
+          import('./features/service-jobs/service-jobs.component').then(m => m.ServiceJobsComponent),
+        canActivate: [permissionGuard(Permissions.serviceJobs.view)],
+      },
+
+      // ── Medical — Drug Batches ─────────────────────────────────────────────
+      {
+        path: AppRoutes.medical.batches,
+        loadComponent: () =>
+          import('./features/medical/medical-batches.component').then(m => m.MedicalBatchesComponent),
+        canActivate: [permissionGuard(Permissions.medical.view)],
+      },
+
+      // ── Grocery — Loyalty Programme ───────────────────────────────────────
+      {
+        path: AppRoutes.loyalty.program,
+        loadComponent: () =>
+          import('./features/loyalty/loyalty-program.component').then(m => m.LoyaltyProgramComponent),
+        canActivate: [permissionGuard(Permissions.loyalty.view)],
+      },
+
+      // ── Shop Vertical Picker ──────────────────────────────────────────────
+      {
+        path: AppRoutes.verticals.picker,
+        loadComponent: () =>
+          import('./features/admin/vertical/admin-vertical.component').then(m => m.AdminVerticalComponent),
+        canActivate: [permissionGuard(Permissions.verticals.view)],
+      },
+
+      // ── Platform — Vertical Packs ─────────────────────────────────────────
+      {
+        path: AppRoutes.verticals.platform,
+        loadComponent: () =>
+          import('./features/platform/verticals/platform-verticals.component').then(m => m.PlatformVerticalsComponent),
+        canActivate: [permissionGuard(Permissions.platform.shopsView)],
+      },
+
       // POS / Shifts
       {
         path: AppRoutes.pos.shifts,

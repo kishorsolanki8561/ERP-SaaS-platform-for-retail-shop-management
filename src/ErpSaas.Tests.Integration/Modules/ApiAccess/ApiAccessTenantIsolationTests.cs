@@ -6,6 +6,7 @@ namespace ErpSaas.Tests.Integration.Modules.ApiAccess;
 [Trait("Category", "Integration")]
 public sealed class ApiAccessTenantIsolationTests(IntegrationTestFixture fixture)
 {
+    private readonly IntegrationTestFixture _fixture = fixture;
     [Fact(Skip = "Testcontainers gate pending")]
     public async Task ListApiKeys_ShopA_CannotSeeShopBKeys()
     {

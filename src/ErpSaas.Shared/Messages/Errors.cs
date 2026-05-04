@@ -310,4 +310,31 @@ public static class Errors
         public const string ConflictNotFound = "ONPREM_002";
         public const string AlreadyResolved  = "ONPREM_003";
     }
+
+    public static class Verticals
+    {
+        public const string PackNotFound      = "VERT_001";
+        public const string PackInactive      = "VERT_002";
+    }
+
+    public static class ServiceJobs
+    {
+        public const string NotFound                = "SJ_001";
+        public const string InvalidStatusTransition = "SJ_002";
+        public const string AlreadyDelivered        = "SJ_003";
+        public const string PartProductNotFound     = "SJ_004";
+    }
+
+    public static class Medical
+    {
+        public const string BatchNotFound     = "MED_001";
+        public const string BatchExpired      = "MED_002";
+        public const string BatchNumberExists = "MED_003";
+    }
+
+    public static class Grocery
+    {
+        public const string ProgramNotFound    = "GRC_001";
+        public const string InsufficientPoints = "GRC_002";
+    }
 }
