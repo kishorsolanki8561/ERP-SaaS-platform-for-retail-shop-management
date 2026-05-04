@@ -15,17 +15,26 @@ jobs:
     name: Backend (.NET)
     runs-on: ubuntu-latest
 
-    # No SQL Server service container here — integration tests use Testcontainers
-    # which spins up its own isolated container per collection fixture. Running two
-    # SQL Server instances on a 7 GB runner caused resource contention and connection
-    # failures — ICollectionFixture keeps it to one container.
-    # IntegrationTestFixture.InitializeAsync() sets ConnectionStrings__* env vars
-    # BEFORE CreateClient() fires, so AddDbContext lambdas see the Testcontainers
-    # address at the IConfiguration level (env vars beat appsettings.json).
-    # After CreateClient() the fixture also calls MigrateAsync() on all DbContexts
-    # from a ConfigureTestServices-backed scope — guarantees databases exist even if
-    # Program.cs startup swallowed a migration exception.
+    # SQL Server service container: GitHub Actions health-checks it with sqlcmd
+    # before any step runs, so the integration tests find a ready database on
+    # localhost:1433.  IntegrationTestFixture detects INTEGRATION_MSSQL_HOST and
+    # skips Testcontainers in CI — Testcontainers is kept for local dev only.
     # JWT settings are in appsettings.Testing.json (loaded via UseEnvironment("Testing")).
+    services:
+      mssql:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          SA_PASSWORD: "Test@1234!StrongPass"
+          ACCEPT_EULA: "Y"
+          MSSQL_PID: Express
+        ports:
+          - 1433:1433
+        options: >-
+          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P Test@1234!StrongPass -Q 'SELECT 1' -b -No -C"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 15
+          --health-start-period 30s
 
     steps:
       - uses: actions/checkout@v4
@@ -101,6 +110,9 @@ jobs:
         run: dotnet test src/ErpSaas.Tests.Arch --configuration Release --no-build --logger "trx;LogFileName=arch-results.trx"
 
       - name: Integration tests
+        env:
+          INTEGRATION_MSSQL_HOST: localhost
+          INTEGRATION_MSSQL_PORT: "1433"
         run: dotnet test src/ErpSaas.sln --configuration Release --no-build --filter "Category=Integration" --logger "trx;LogFileName=integration-results.trx"
 
       - name: Upload test results

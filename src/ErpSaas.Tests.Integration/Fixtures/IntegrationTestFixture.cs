@@ -51,10 +51,14 @@ namespace ErpSaas.Tests.Integration.Fixtures;
 /// </summary>
 public sealed class IntegrationTestFixture : WebApplicationFactory<Program>, IAsyncLifetime
 {
+    // Only started when INTEGRATION_MSSQL_HOST is not set (local dev).
+    // In CI the GitHub Actions service container provides SQL Server instead.
     private readonly MsSqlContainer _container = new MsSqlBuilder(
             "mcr.microsoft.com/mssql/server:2022-latest")
         .WithPassword("Test@1234!StrongPass")
         .Build();
+
+    private bool _usingContainer;
 
     // Deterministic JWT secret for tests — never a real secret
     private const string TestJwtSecret = "TestOnly_SuperSecretKey_AtLeast32Chars_DoNotUse";
@@ -149,16 +153,30 @@ public sealed class IntegrationTestFixture : WebApplicationFactory<Program>, IAs
 
     async Task IAsyncLifetime.InitializeAsync()
     {
-        await _container.StartAsync();
-
-        var host = _container.Hostname;
-        var port = _container.GetMappedPublicPort(1433);
         const string pass = "Test@1234!StrongPass";
+        string host;
+        int port;
 
-        // Testcontainers 4.x only waits for the TCP port to open, not for SQL Server
-        // to finish its internal startup sequence.  Probe with SELECT 1 on master so
-        // that every MigrateAsync() call below is guaranteed to find a ready server.
-        await WaitForSqlServerReadyAsync(host, port, pass);
+        var ciHost = Environment.GetEnvironmentVariable("INTEGRATION_MSSQL_HOST");
+        if (!string.IsNullOrEmpty(ciHost))
+        {
+            // CI path — GitHub Actions service container is already health-checked
+            // (sqlcmd SELECT 1 must pass before the step runs), so we just read the
+            // address from env vars that the workflow sets in the integration-tests step.
+            host = ciHost;
+            port = int.TryParse(Environment.GetEnvironmentVariable("INTEGRATION_MSSQL_PORT"), out var p) ? p : 1433;
+            _usingContainer = false;
+        }
+        else
+        {
+            // Local dev path — spin up Testcontainers and wait for SQL Server to be
+            // ready (Testcontainers 4.x only waits for TCP; we probe with SELECT 1).
+            await _container.StartAsync();
+            host = _container.Hostname;
+            port = _container.GetMappedPublicPort(1433);
+            await WaitForSqlServerReadyAsync(host, port, pass);
+            _usingContainer = true;
+        }
 
         string Cs(string db) =>
             $"Server={host},{port};Database={db};User Id=sa;Password={pass};" +
@@ -252,7 +270,8 @@ public sealed class IntegrationTestFixture : WebApplicationFactory<Program>, IAs
         // WebApplicationFactory.Dispose() is idempotent so xUnit's own
         // IDisposable.Dispose() call after this is safe.
         Dispose();
-        await _container.DisposeAsync();
+        if (_usingContainer)
+            await _container.DisposeAsync();
 
         // Remove env vars so they do not leak into any subsequent test process.
         foreach (var key in new[]
