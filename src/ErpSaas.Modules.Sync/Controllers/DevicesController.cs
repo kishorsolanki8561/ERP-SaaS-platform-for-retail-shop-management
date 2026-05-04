@@ -12,6 +12,7 @@ public sealed class DevicesController(IDeviceService deviceService) : BaseContro
 {
     [HttpPost("register")]
     [RequirePermission("Device.Register")]
+    [RequireFeature("offline_mode")]
     public async Task<IActionResult> Register([FromBody] RegisterDeviceDto dto, CancellationToken ct)
     {
         var result = await deviceService.RegisterAsync(dto, ct);
@@ -20,6 +21,7 @@ public sealed class DevicesController(IDeviceService deviceService) : BaseContro
 
     [HttpPost("{deviceId:long}/heartbeat")]
     [RequirePermission("Device.Register")]
+    [RequireFeature("offline_mode")]
     public async Task<IActionResult> Heartbeat(long deviceId, [FromBody] HeartbeatDto dto, CancellationToken ct)
     {
         var result = await deviceService.HeartbeatAsync(deviceId, dto, ct);

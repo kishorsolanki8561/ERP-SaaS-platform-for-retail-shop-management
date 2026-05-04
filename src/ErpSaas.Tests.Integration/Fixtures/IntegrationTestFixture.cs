@@ -287,7 +287,10 @@ public sealed class IntegrationTestFixture : WebApplicationFactory<Program>, IAs
             "Files.View", "Files.Upload",
             "ShopProfile.View", "ShopProfile.Edit",
             "Users.View", "Users.Manage",
-            "Hardware.CashDrawer", "Device.Configure",
+            "Hardware.CashDrawer", "Device.Configure", "Device.Register", "Device.Manage",
+            "Integration.ManageApiKeys", "Integration.ManageWebhooks", "Integration.ViewDeliveries",
+            "OnlineOrder.View", "OnlineOrder.Manage",
+            "Sync.View", "Sync.ResolveException",
         };
         var token = GenerateJwtWithPermsClaim(shopId, allPerms, []);
         var client = CreateClient();

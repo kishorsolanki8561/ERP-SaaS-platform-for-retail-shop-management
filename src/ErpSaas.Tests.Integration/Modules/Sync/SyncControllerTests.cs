@@ -22,7 +22,9 @@ public sealed class SyncControllerTests(IntegrationTestFixture fixture)
     [Fact]
     public async Task RegisterDevice_Authenticated_Returns200()
     {
-        var client = fixture.CreateAuthenticatedClient(permissions: ["Device.Register"]);
+        var client = fixture.CreateAuthenticatedClient(
+            permissions: ["Device.Register"],
+            features: ["offline_mode"]);
         var response = await client.PostAsJsonAsync("/api/devices/register", new
         {
             deviceId = "INT-DEV-001",
