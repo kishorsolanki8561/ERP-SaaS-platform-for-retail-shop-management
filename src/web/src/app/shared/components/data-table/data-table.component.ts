@@ -267,6 +267,8 @@ export class DataTableComponent<T extends Record<string, unknown>> implements On
 
   ngOnInit(): void { this.fetch(0, this.pageSize()); }
 
+  reload(): void { this.fetch(0, this.pageSize()); }
+
   protected getStatusClass(col: TableColumn, value: unknown): string {
     const v   = String(value ?? '');
     const map = col.statusMap ?? STATUS_BADGE;

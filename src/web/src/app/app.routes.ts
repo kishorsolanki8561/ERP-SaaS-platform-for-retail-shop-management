@@ -264,6 +264,23 @@ export const routes: Routes = [
         canActivate: [permissionGuard(Permissions.onPrem.view)],
       },
 
+      // ── Module Access Management ──────────────────────────────────────────────
+      {
+        path: AppRoutes.admin2.moduleAccess,
+        loadComponent: () =>
+          import('./features/admin/module-access/module-access.component').then(m => m.ModuleAccessComponent),
+        canActivate: [permissionGuard(Permissions.admin.manageAccess)],
+      },
+
+      // ── Platform — Shop Registrations ────────────────────────────────────────
+      {
+        path: AppRoutes.platform2.registrations,
+        loadComponent: () =>
+          import('./features/platform/registrations/platform-registrations.component')
+            .then(m => m.PlatformRegistrationsComponent),
+        canActivate: [permissionGuard(Permissions.platform.registrationsView)],
+      },
+
       // ── Platform Admin ────────────────────────────────────────────────────────
       {
         path: AppRoutes.platform.shops,
@@ -417,6 +434,11 @@ export const routes: Routes = [
         path: AppRoutes.acceptInvite,
         loadComponent: () =>
           import('./features/auth/accept-invite/accept-invite.component').then(m => m.AcceptInviteComponent),
+      },
+      {
+        path: AppRoutes.register,
+        loadComponent: () =>
+          import('./features/auth/register/shop-register.component').then(m => m.ShopRegisterComponent),
       },
     ],
   },

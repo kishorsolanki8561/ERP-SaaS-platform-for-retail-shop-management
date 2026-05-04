@@ -117,6 +117,11 @@ import { environment } from '../../../../environments/environment';
     <p class="text-center text-xs mt-7 text-slate-400 dark:text-slate-600">
       Need access? Contact your shop administrator.
     </p>
+    <p class="text-center text-xs mt-2 text-slate-400 dark:text-slate-600">
+      New business?
+      <a [routerLink]="'/' + routes.register"
+         class="text-indigo-600 dark:text-indigo-400 font-medium hover:underline">Register your shop →</a>
+    </p>
   `
 })
 export class LoginComponent {

@@ -9,7 +9,7 @@ namespace ErpSaas.Tests.Integration.Modules.Sync;
 [Trait("Category", "Integration")]
 public sealed class SyncSubscriptionGateTests(IntegrationTestFixture fixture)
 {
-    [Fact(Skip = "Testcontainers gate pending")]
+    [Fact]
     public async Task RegisterDevice_FeatureDisabled_Returns402()
     {
         var client = fixture.CreateAuthenticatedClient(
@@ -25,7 +25,7 @@ public sealed class SyncSubscriptionGateTests(IntegrationTestFixture fixture)
         response.StatusCode.Should().Be(HttpStatusCode.PaymentRequired);
     }
 
-    [Fact(Skip = "Testcontainers gate pending")]
+    [Fact]
     public async Task RegisterDevice_FeatureEnabled_Returns200()
     {
         var client = fixture.CreateAuthenticatedClient(
@@ -41,3 +41,4 @@ public sealed class SyncSubscriptionGateTests(IntegrationTestFixture fixture)
         response.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 }
+

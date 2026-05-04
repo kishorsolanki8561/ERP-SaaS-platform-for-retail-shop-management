@@ -87,4 +87,69 @@ public sealed class ShopOnboardingService(
             return Result<long>.Success(shop.Id);
         }, ct, useTransaction: true);
     }
+
+    public async Task<Result<long>> OnboardFromApprovedRequestAsync(
+        ShopRegistrationRequest request, CancellationToken ct = default)
+    {
+        return await ExecuteAsync<long>("Identity.OnboardShopFromRegistration", async () =>
+        {
+            if (await db.Shops.AnyAsync(s => s.ShopCode == request.ShopCode, ct))
+                return Result<long>.Conflict(Errors.Shop.CodeConflict(request.ShopCode));
+
+            var starterPlan = await db.SubscriptionPlans
+                .FirstOrDefaultAsync(p => p.Code == Constants.Plans.Starter && p.IsActive, ct);
+
+            if (starterPlan is null)
+                return Result<long>.Failure(Errors.Shop.StarterPlanMissing);
+
+            var shop = new Shop
+            {
+                ShopCode     = request.ShopCode,
+                LegalName    = request.LegalName,
+                TradeName    = request.TradeName,
+                GstNumber    = request.GstNumber,
+                CreatedAtUtc = DateTime.UtcNow,
+            };
+            db.Shops.Add(shop);
+            await db.SaveChangesAsync(ct);
+
+            var user = new User
+            {
+                Email            = request.AdminEmail,
+                DisplayName      = request.AdminDisplayName,
+                PasswordHash     = request.PasswordHashSnapshot,
+                IsActive         = true,
+                CreatedAtUtc     = DateTime.UtcNow,
+            };
+            db.Users.Add(user);
+            await db.SaveChangesAsync(ct);
+
+            db.UserShops.Add(new UserShop
+            {
+                UserId = user.Id, ShopId = shop.Id, IsActive = true, CreatedAtUtc = DateTime.UtcNow,
+            });
+
+            var shopAdminRole = await db.Roles
+                .FirstOrDefaultAsync(r => r.Code == Constants.Roles.ShopAdmin, ct);
+            if (shopAdminRole is not null)
+                db.UserRoles.Add(new UserRole
+                {
+                    UserId = user.Id, ShopId = shop.Id, RoleId = shopAdminRole.Id,
+                    CreatedAtUtc = DateTime.UtcNow,
+                });
+
+            db.ShopSubscriptions.Add(new ShopSubscription
+            {
+                ShopId        = shop.Id,
+                PlanId        = starterPlan.Id,
+                StartsAtUtc   = DateTime.UtcNow,
+                IsActive      = true,
+                BillingCycle  = BillingCycle.Monthly,
+                CreatedAtUtc  = DateTime.UtcNow,
+            });
+
+            await db.SaveChangesAsync(ct);
+            return Result<long>.Success(shop.Id);
+        }, ct, useTransaction: true);
+    }
 }

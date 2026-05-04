@@ -53,6 +53,7 @@ public static class IdentityServiceExtensions
         services.AddScoped<IBootstrapService, BootstrapService>();
         services.AddScoped<IPermissionService, PermissionService>();
         services.AddScoped<IShopOnboardingService, ShopOnboardingService>();
+        services.AddScoped<IShopRegistrationService, ShopRegistrationService>();
         services.AddScoped<IMenuService, MenuService>();
         services.AddScoped<IAdminService, AdminService>();
         services.AddScoped<IShopInfoProvider, ShopInfoProvider>();
@@ -64,6 +65,7 @@ public static class IdentityServiceExtensions
         services.AddScoped<ILeadService, LeadService>();
         services.AddScoped<IMarketingContentService, MarketingContentService>();
         services.AddScoped<IOnPremDeploymentService, OnPremDeploymentService>();
+        services.AddScoped<IShopAccessService, ShopAccessService>();
 
         // Seeders
         services.AddDataSeeder<IdentityDataSeeder>();
@@ -71,6 +73,7 @@ public static class IdentityServiceExtensions
         services.AddDataSeeder<UsageSystemSeeder>();
         services.AddDataSeeder<LeadSystemSeeder>();
         services.AddDataSeeder<OnPremSystemSeeder>();
+        services.AddDataSeeder<ModuleFeatureMenuSeeder>();
 
         // Service catalog entry
         services.AddSingleton(new ServiceDescriptorEntry("Identity", "JWT auth, RBAC, shop/user management", "1.0"));

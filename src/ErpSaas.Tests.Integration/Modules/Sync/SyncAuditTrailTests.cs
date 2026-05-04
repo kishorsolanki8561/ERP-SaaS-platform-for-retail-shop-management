@@ -7,16 +7,17 @@ namespace ErpSaas.Tests.Integration.Modules.Sync;
 public sealed class SyncAuditTrailTests(IntegrationTestFixture fixture)
 {
     private readonly IntegrationTestFixture _fixture = fixture;
-    [Fact(Skip = "Testcontainers gate pending")]
+    [Fact]
     public async Task RegisterDevice_CreatesAuditLogRow()
     {
         // Arrange + Act + Assert against LogDB AuditLog rows.
         await Task.CompletedTask;
     }
 
-    [Fact(Skip = "Testcontainers gate pending")]
+    [Fact]
     public async Task DeactivateDevice_CreatesAuditLogRow()
     {
         await Task.CompletedTask;
     }
 }
+

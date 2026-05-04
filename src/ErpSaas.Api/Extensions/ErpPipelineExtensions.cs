@@ -18,6 +18,7 @@ public static class ErpPipelineExtensions
         }
 
         app.UseCors();
+        app.UseRateLimiter();
         app.UseSerilogRequestLogging();
         app.UseAuthentication();
         app.UseTenantContext();

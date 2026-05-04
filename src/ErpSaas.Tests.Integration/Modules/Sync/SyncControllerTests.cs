@@ -11,7 +11,7 @@ public sealed class SyncControllerTests(IntegrationTestFixture fixture)
 {
     // ── POST /api/devices/register ────────────────────────────────────────────
 
-    [Fact(Skip = "Testcontainers gate pending")]
+    [Fact]
     public async Task RegisterDevice_WithoutAuth_Returns401()
     {
         var client = fixture.CreateUnauthenticatedClient();
@@ -19,7 +19,7 @@ public sealed class SyncControllerTests(IntegrationTestFixture fixture)
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
-    [Fact(Skip = "Testcontainers gate pending")]
+    [Fact]
     public async Task RegisterDevice_Authenticated_Returns200()
     {
         var client = fixture.CreateAuthenticatedClient(permissions: ["Device.Register"]);
@@ -37,7 +37,7 @@ public sealed class SyncControllerTests(IntegrationTestFixture fixture)
 
     // ── GET /api/devices ──────────────────────────────────────────────────────
 
-    [Fact(Skip = "Testcontainers gate pending")]
+    [Fact]
     public async Task ListDevices_WithoutPermission_Returns403()
     {
         var client = fixture.CreateAuthenticatedClient(permissions: []);
@@ -47,7 +47,7 @@ public sealed class SyncControllerTests(IntegrationTestFixture fixture)
 
     // ── POST /api/sync/commands ───────────────────────────────────────────────
 
-    [Fact(Skip = "Testcontainers gate pending")]
+    [Fact]
     public async Task ProcessCommands_ValidBatch_Returns200()
     {
         var client = fixture.CreateAuthenticatedClient(permissions: ["Device.Register"]);
@@ -63,7 +63,7 @@ public sealed class SyncControllerTests(IntegrationTestFixture fixture)
 
     // ── POST /api/invoice-ranges/allocate ─────────────────────────────────────
 
-    [Fact(Skip = "Testcontainers gate pending")]
+    [Fact]
     public async Task AllocateRange_Authenticated_Returns200()
     {
         var client = fixture.CreateAuthenticatedClient(permissions: ["Device.Register"]);
@@ -76,3 +76,4 @@ public sealed class SyncControllerTests(IntegrationTestFixture fixture)
         response.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 }
+

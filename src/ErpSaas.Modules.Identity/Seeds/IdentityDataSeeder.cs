@@ -134,9 +134,14 @@ public sealed class IdentityDataSeeder(
         ("Portal.Config",      "CustomerPortal", "Configure customer portal settings per shop"),
         // Audit Log — codes must match AuditLogController [RequirePermission(...)]
         ("Admin.AuditLog.View", "Admin", "View audit logs for any record"),
+        // Module access management — codes must match ShopAccessController [RequirePermission(...)]
+        ("Admin.ManageAccess", "Admin", "Manage module access and per-user permission overrides"),
         // Platform Admin — codes must match PlatformAdminController [RequirePermission(...)]
-        ("Platform.Shops.View",   "Platform", "View all shops and their data (platform owner only)"),
-        ("Platform.Shops.Manage", "Platform", "Manage shop subscriptions and settings (platform owner only)"),
+        ("Platform.Shops.View",          "Platform", "View all shops and their data (platform owner only)"),
+        ("Platform.Shops.Manage",        "Platform", "Manage shop subscriptions and settings (platform owner only)"),
+        // Shop Registration — codes must match ShopRegistrationController [RequirePermission(...)]
+        ("Platform.Registrations.View",  "Platform", "View shop registration requests (platform owner only)"),
+        ("Platform.Registrations.Manage","Platform", "Approve or reject shop registration requests (platform owner only)"),
     ];
 
     // Shop Admin gets everything except platform-only permissions.
@@ -145,6 +150,8 @@ public sealed class IdentityDataSeeder(
         "MasterData.Manage",
         "Platform.Shops.View",
         "Platform.Shops.Manage",
+        "Platform.Registrations.View",
+        "Platform.Registrations.Manage",
     ];
 
     public async Task SeedAsync(CancellationToken ct = default)
@@ -153,6 +160,7 @@ public sealed class IdentityDataSeeder(
         try
         {
             await SeedSubscriptionPlansAsync(ct);
+            await SeedPlanModuleFeaturesAsync(ct);
             await SeedPermissionsAndRolesAsync(ct);
             await SeedProductOwnerAsync(ct);
             await tx.CommitAsync(ct);
@@ -188,6 +196,72 @@ public sealed class IdentityDataSeeder(
                     CreatedAtUtc = DateTime.UtcNow
                 });
                 logger.LogInformation("Seeding subscription plan: {Code}", code);
+            }
+        }
+        await db.SaveChangesAsync(ct);
+    }
+
+    // ── Plan module feature codes ─────────────────────────────────────────────
+
+    private static readonly string[] StarterFeatures =
+    [
+        "Module.Dashboard", "Module.Billing", "Module.Inventory",
+        "Module.CRM", "Module.Reports",
+    ];
+
+    private static readonly string[] GrowthFeatures =
+    [
+        .. StarterFeatures,
+        "Module.Accounting", "Module.HR", "Module.Purchasing",
+        "Module.Warranty", "Module.Pricing", "Module.Transport",
+        "Module.Quotations", "Module.Payment", "Module.Sync",
+        "Module.Wallet", "Module.Hardware", "Module.CustomerPortal",
+    ];
+
+    private static readonly string[] EnterpriseFeatures =
+    [
+        .. GrowthFeatures,
+        "Module.Marketplace", "Module.ApiAccess", "Module.ServiceJobs",
+        "Module.Verticals", "Module.OnPrem",
+        // Premium sub-features
+        "Billing.BarcodePos", "Billing.EInvoice", "Billing.EWayBill",
+        "Inventory.MultiUnit", "Inventory.BatchTracking", "Inventory.MultiWarehouse",
+        "Purchasing.BillPayments", "CRM.CustomerPortal",
+        "Marketplace.Amazon", "Marketplace.Flipkart",
+        "Reports.Advanced", "Hr.Payroll",
+        "ApiAccess.Keys", "ApiAccess.Webhooks",
+        "Verticals.MedicalBatchExpiry", "Verticals.GroceryLoyaltyPoints",
+    ];
+
+    private static readonly Dictionary<string, string[]> PlanFeatureMap = new()
+    {
+        [Constants.Plans.Starter]    = StarterFeatures,
+        [Constants.Plans.Growth]     = GrowthFeatures,
+        [Constants.Plans.Enterprise] = EnterpriseFeatures,
+    };
+
+    private async Task SeedPlanModuleFeaturesAsync(CancellationToken ct)
+    {
+        var plans = await db.SubscriptionPlans
+            .Include(p => p.Features)
+            .Where(p => PlanFeatureMap.Keys.Contains(p.Code))
+            .ToListAsync(ct);
+
+        foreach (var plan in plans)
+        {
+            if (!PlanFeatureMap.TryGetValue(plan.Code, out var desired)) continue;
+
+            var existing = plan.Features.Select(f => f.FeatureCode).ToHashSet();
+            foreach (var code in desired)
+            {
+                if (!existing.Contains(code))
+                {
+                    db.SubscriptionPlanFeatures.Add(new SubscriptionPlanFeature
+                    {
+                        PlanId = plan.Id, FeatureCode = code,
+                        CreatedAtUtc = DateTime.UtcNow,
+                    });
+                }
             }
         }
         await db.SaveChangesAsync(ct);

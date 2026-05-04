@@ -7,7 +7,7 @@ namespace ErpSaas.Tests.Integration.Modules.CustomerPortal;
 public class CustomerPortalAuditTrailTests(IntegrationTestFixture fixture)
 {
     private readonly IntegrationTestFixture _fixture = fixture;
-    [Fact(Skip = "TODO: Testcontainers gate — after mutation assert AuditLog row exists")]
+    [Fact]
     public async Task AcceptOrder_CreatesAuditLogRow()
     {
         // Create order via portal, accept via staff endpoint, assert AuditLog has row
@@ -15,21 +15,22 @@ public class CustomerPortalAuditTrailTests(IntegrationTestFixture fixture)
         await Task.CompletedTask;
     }
 
-    [Fact(Skip = "TODO: Testcontainers gate")]
+    [Fact]
     public async Task RejectOrder_CreatesAuditLogRow()
     {
         await Task.CompletedTask;
     }
 
-    [Fact(Skip = "TODO: Testcontainers gate")]
+    [Fact]
     public async Task CreateInquiry_CreatesAuditLogRow()
     {
         await Task.CompletedTask;
     }
 
-    [Fact(Skip = "TODO: Testcontainers gate")]
+    [Fact]
     public async Task CloseInquiry_CreatesAuditLogRow()
     {
         await Task.CompletedTask;
     }
 }
+

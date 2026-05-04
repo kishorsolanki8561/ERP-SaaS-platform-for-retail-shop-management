@@ -16,12 +16,20 @@ public sealed class PermissionService(PlatformDbContext db, IMemoryCache cache) 
         {
             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5);
 
-            var codes = await db.UserRoles
+            var baseCodes = await db.UserRoles
                 .Where(ur => ur.UserId == userId && ur.ShopId == shopId)
                 .SelectMany(ur => ur.Role.RolePermissions)
                 .Select(rp => rp.Permission.Code)
                 .Distinct()
                 .ToListAsync(ct);
+
+            var overrides = await db.UserPermissionOverrides
+                .Where(o => o.UserId == userId && o.ShopId == shopId)
+                .ToListAsync(ct);
+
+            var granted  = overrides.Where(o => o.IsGranted).Select(o => o.PermissionCode);
+            var revoked  = overrides.Where(o => !o.IsGranted).Select(o => o.PermissionCode).ToHashSet();
+            var codes    = baseCodes.Union(granted).Where(c => !revoked.Contains(c)).Distinct().ToList();
 
             return (IReadOnlyList<string>)codes;
         }) ?? [];
@@ -34,14 +42,27 @@ public sealed class PermissionService(PlatformDbContext db, IMemoryCache cache) 
         {
             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5);
 
-            var codes = await db.ShopSubscriptions
+            var planCodes = await db.ShopSubscriptions
                 .Where(ss => ss.ShopId == shopId && ss.IsActive)
                 .SelectMany(ss => ss.Plan.Features)
                 .Select(f => f.FeatureCode)
-                .Distinct()
                 .ToListAsync(ct);
+
+            var overrides = await db.ShopFeatureOverrides
+                .Where(o => o.ShopId == shopId)
+                .ToListAsync(ct);
+
+            var enabled  = overrides.Where(o => o.IsEnabled).Select(o => o.FeatureCode);
+            var disabled = overrides.Where(o => !o.IsEnabled).Select(o => o.FeatureCode).ToHashSet();
+            var codes    = planCodes.Union(enabled).Where(c => !disabled.Contains(c)).Distinct().ToList();
 
             return (IReadOnlyList<string>)codes;
         }) ?? [];
     }
+
+    public void InvalidateShopFeatureCache(long shopId) =>
+        cache.Remove(FeatKey(shopId));
+
+    public void InvalidateUserPermissionCache(long userId, long shopId) =>
+        cache.Remove(PermKey(userId, shopId));
 }

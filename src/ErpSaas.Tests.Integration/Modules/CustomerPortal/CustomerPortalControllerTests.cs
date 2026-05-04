@@ -11,7 +11,7 @@ public class CustomerPortalControllerTests(IntegrationTestFixture fixture)
 {
     // ── Portal Auth ───────────────────────────────────────────────────────────
 
-    [Fact(Skip = "TODO: Testcontainers gate — wire full integration")]
+    [Fact]
     public async Task RequestOtp_ValidPhone_Returns200WithChallenge()
     {
         var client = fixture.CreateClient();
@@ -20,7 +20,7 @@ public class CustomerPortalControllerTests(IntegrationTestFixture fixture)
         response.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
-    [Fact(Skip = "TODO: Testcontainers gate")]
+    [Fact]
     public async Task VerifyOtp_InvalidOtp_Returns401()
     {
         var client = fixture.CreateClient();
@@ -31,7 +31,7 @@ public class CustomerPortalControllerTests(IntegrationTestFixture fixture)
 
     // ── Portal endpoints require CustomerAuth ─────────────────────────────────
 
-    [Fact(Skip = "TODO: Testcontainers gate")]
+    [Fact]
     public async Task GetMe_WithoutToken_Returns401()
     {
         var client = fixture.CreateClient();
@@ -39,7 +39,7 @@ public class CustomerPortalControllerTests(IntegrationTestFixture fixture)
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
-    [Fact(Skip = "TODO: Testcontainers gate")]
+    [Fact]
     public async Task GetMe_WithStaffToken_Returns403()
     {
         var client = fixture.CreateAuthenticatedClient();
@@ -49,7 +49,7 @@ public class CustomerPortalControllerTests(IntegrationTestFixture fixture)
 
     // ── Online orders staff endpoints ─────────────────────────────────────────
 
-    [Fact(Skip = "TODO: Testcontainers gate")]
+    [Fact]
     public async Task ListOnlineOrders_WithPermission_Returns200()
     {
         var client = fixture.CreateAuthenticatedClient();
@@ -57,7 +57,7 @@ public class CustomerPortalControllerTests(IntegrationTestFixture fixture)
         response.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
-    [Fact(Skip = "TODO: Testcontainers gate")]
+    [Fact]
     public async Task ListOnlineOrders_WithoutPermission_Returns403()
     {
         var client = fixture.CreateAuthenticatedClient(permissions: []);
@@ -65,7 +65,7 @@ public class CustomerPortalControllerTests(IntegrationTestFixture fixture)
         response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
-    [Fact(Skip = "TODO: Testcontainers gate")]
+    [Fact]
     public async Task AcceptOrder_NonExistentOrder_Returns404()
     {
         var client = fixture.CreateAuthenticatedClient();
@@ -73,7 +73,7 @@ public class CustomerPortalControllerTests(IntegrationTestFixture fixture)
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
-    [Fact(Skip = "TODO: Testcontainers gate")]
+    [Fact]
     public async Task RejectOrder_NonExistentOrder_Returns404()
     {
         var client = fixture.CreateAuthenticatedClient();
@@ -82,3 +82,4 @@ public class CustomerPortalControllerTests(IntegrationTestFixture fixture)
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 }
+

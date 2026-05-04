@@ -72,6 +72,7 @@ export const AppRoutes = {
     syncDevices:   'admin/sync/devices',
     syncExceptions:'admin/sync/exceptions',
     onPrem:        'admin/on-prem',
+    moduleAccess:  'admin/module-access',
   },
   platform: {
     shops:                  'platform/shops',
@@ -104,6 +105,10 @@ export const AppRoutes = {
   verticals: {
     picker:   'admin/vertical',
     platform: 'platform/verticals',
+  },
+  register: 'register',
+  platform2: {
+    registrations: 'platform/registrations',
   },
 } as const;
 
@@ -181,6 +186,7 @@ export const AppRoutePaths = {
     syncDevices:   `/${AppRoutes.admin2.syncDevices}`,
     syncExceptions:`/${AppRoutes.admin2.syncExceptions}`,
     onPrem:        `/${AppRoutes.admin2.onPrem}`,
+    moduleAccess:  `/${AppRoutes.admin2.moduleAccess}`,
   },
   platform: {
     shops:                 `/${AppRoutes.platform.shops}`,
@@ -213,5 +219,9 @@ export const AppRoutePaths = {
   verticals: {
     picker:   `/${AppRoutes.verticals.picker}`,
     platform: `/${AppRoutes.verticals.platform}`,
+  },
+  register: `/${AppRoutes.register}`,
+  platform2: {
+    registrations: `/${AppRoutes.platform2.registrations}`,
   },
 } as const;

@@ -67,6 +67,10 @@ public sealed class PortalController(
         CancellationToken ct = default)
         => Ok(await portalService.ListLinkedShopsAsync(CurrentPortalCustomerId, page, pageSize, ct));
 
+    [HttpGet("shops/{shopId:long}/features")]
+    public async Task<IActionResult> GetShopFeatures(long shopId, CancellationToken ct)
+        => Ok(await portalService.GetShopFeaturesAsync(shopId, ct));
+
     // ── Online orders (customer-side) ──────────────────────────────────────
 
     [HttpGet("me/orders")]

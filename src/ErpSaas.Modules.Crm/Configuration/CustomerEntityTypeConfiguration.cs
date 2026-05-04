@@ -14,7 +14,7 @@ public sealed class CustomerGroupEntityTypeConfiguration : IEntityTypeConfigurat
         b.HasIndex(e => new { e.ShopId, e.Code }).IsUnique();
         b.Property(e => e.Name).HasMaxLength(200).IsRequired();
         b.Property(e => e.DiscountPercent).HasPrecision(5, 2);
-        b.Property(e => e.RowVersion).IsRowVersion();
+        b.Property(e => e.RowVersion).IsConcurrencyToken();
     }
 }
 
@@ -37,7 +37,7 @@ public sealed class CustomerEntityTypeConfiguration : IEntityTypeConfiguration<C
             .WithMany(g => g.Customers)
             .HasForeignKey(e => e.CustomerGroupId)
             .OnDelete(DeleteBehavior.SetNull);
-        b.Property(e => e.RowVersion).IsRowVersion();
+        b.Property(e => e.RowVersion).IsConcurrencyToken();
     }
 }
 
@@ -57,6 +57,6 @@ public sealed class CustomerAddressEntityTypeConfiguration : IEntityTypeConfigur
             .WithMany(c => c.Addresses)
             .HasForeignKey(e => e.CustomerId)
             .OnDelete(DeleteBehavior.Cascade);
-        b.Property(e => e.RowVersion).IsRowVersion();
+        b.Property(e => e.RowVersion).IsConcurrencyToken();
     }
 }

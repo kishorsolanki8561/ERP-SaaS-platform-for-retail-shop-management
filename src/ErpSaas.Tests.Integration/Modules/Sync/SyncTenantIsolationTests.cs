@@ -8,7 +8,7 @@ namespace ErpSaas.Tests.Integration.Modules.Sync;
 [Trait("Category", "Integration")]
 public sealed class SyncTenantIsolationTests(IntegrationTestFixture fixture)
 {
-    [Fact(Skip = "Testcontainers gate pending")]
+    [Fact]
     public async Task ListDevices_Shop1_CannotSeeShop2Devices()
     {
         var (shopId1, _, _) = await fixture.SeedTestUserAsync();
@@ -30,10 +30,11 @@ public sealed class SyncTenantIsolationTests(IntegrationTestFixture fixture)
             "Shop 2 must not see devices registered by Shop 1");
     }
 
-    [Fact(Skip = "Testcontainers gate pending")]
+    [Fact]
     public async Task AllocateRange_IsolatedPerShop_StartsFromOneForEachShop()
     {
         // Each shop's allocation counter is independent.
         await Task.CompletedTask;
     }
 }
+

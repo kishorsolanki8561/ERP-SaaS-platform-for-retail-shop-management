@@ -35,6 +35,12 @@ export const ApiEndpoints = {
     rolePermissions:    (id: number | string) => `/api/admin/roles/${id}/permissions`,
     auditLogs:          '/api/admin/audit-logs',
   },
+  shopAccess: {
+    modules:            '/api/shop/access/modules',
+    module:             (featureCode: string) => `/api/shop/access/modules/${featureCode}`,
+    userPermissions:    (userId: number | string) => `/api/shop/access/users/${userId}/permissions`,
+    userPermission:     (userId: number | string, code: string) => `/api/shop/access/users/${userId}/permissions/${code}`,
+  },
   dashboard: {
     summary: '/api/dashboard/summary',
   },
@@ -311,5 +317,14 @@ export const ApiEndpoints = {
     customerHistory:(customerId: number | string) => `/api/loyalty/customers/${customerId}/history`,
     earn:           '/api/loyalty/earn',
     redeem:         '/api/loyalty/redeem',
+  },
+  shopRegistration: {
+    submit:  '/api/shop-registration',
+  },
+  platformRegistrations: {
+    list:    '/api/platform/shop-registrations',
+    get:     (id: number | string) => `/api/platform/shop-registrations/${id}`,
+    approve: (id: number | string) => `/api/platform/shop-registrations/${id}/approve`,
+    reject:  (id: number | string) => `/api/platform/shop-registrations/${id}/reject`,
   },
 } as const;

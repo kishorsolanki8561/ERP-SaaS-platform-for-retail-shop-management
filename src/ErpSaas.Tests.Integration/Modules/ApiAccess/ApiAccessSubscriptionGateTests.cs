@@ -9,21 +9,22 @@ namespace ErpSaas.Tests.Integration.Modules.ApiAccess;
 [Trait("Category", "Integration")]
 public sealed class ApiAccessSubscriptionGateTests(IntegrationTestFixture fixture)
 {
-    [Fact(Skip = "Testcontainers gate pending")]
+    [Fact]
     public async Task CreateApiKey_StarterPlan_Returns402()
     {
-        var client = fixture.CreateAuthenticatedClient();
+        var client = fixture.CreateNoFeatureClient();
         var response = await client.PostAsJsonAsync("/api/shop-api-keys",
             new { name = "Key", scopesCsv = (string?)null, expiresAtUtc = (DateTime?)null });
         response.StatusCode.Should().Be(HttpStatusCode.PaymentRequired);
     }
 
-    [Fact(Skip = "Testcontainers gate pending")]
+    [Fact]
     public async Task RegisterEndpoint_StarterPlan_Returns402()
     {
-        var client = fixture.CreateAuthenticatedClient();
+        var client = fixture.CreateNoFeatureClient();
         var response = await client.PostAsJsonAsync("/api/webhooks/endpoints",
             new { name = "Test", url = "https://example.com/hook", eventsCsv = "invoice.finalized" });
         response.StatusCode.Should().Be(HttpStatusCode.PaymentRequired);
     }
 }
+

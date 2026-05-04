@@ -14,6 +14,7 @@ public sealed class PlatformAdminService(
     PlatformDbContext platformDb,
     TenantDbContext tenantDb,
     LogDbContext logDb,
+    IPermissionService permissionService,
     IErrorLogger errorLogger,
     ILogger<PlatformAdminService> logger)
     : BaseService<PlatformDbContext>(platformDb, errorLogger), IPlatformAdminService
@@ -324,6 +325,8 @@ public sealed class PlatformAdminService(
             }
 
             await _db.SaveChangesAsync(ct);
+
+            permissionService.InvalidateShopFeatureCache(shopId);
 
             logger.LogInformation("Shop {ShopId} feature {Feature} toggled to {Enabled}",
                 shopId, dto.FeatureCode, dto.Enabled);

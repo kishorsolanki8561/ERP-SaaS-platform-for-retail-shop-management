@@ -80,6 +80,15 @@ public static class InfrastructureServiceExtensions
         {
             client.Timeout = TimeSpan.FromSeconds(5);
         });
+        services.AddHttpClient("sendgrid", client =>
+        {
+            client.BaseAddress = new Uri("https://api.sendgrid.com/");
+            client.Timeout = TimeSpan.FromSeconds(15);
+        });
+        services.AddHttpClient("twilio", client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(15);
+        });
 
         // ── Cross-cutting services ─────────────────────────────────────────────
         services.AddMemoryCache();
@@ -110,6 +119,8 @@ public static class InfrastructureServiceExtensions
 
         // ── Messaging ──────────────────────────────────────────────────────────
         services.AddScoped<INotificationService, NotificationService>();
+        services.AddScoped<IEmailProvider, SendGridEmailProvider>();
+        services.AddScoped<ISmsProvider, TwilioSmsProvider>();
         services.AddScoped<NotificationDrainJob>();
 
         // ── Metering ───────────────────────────────────────────────────────────

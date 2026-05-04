@@ -10,6 +10,7 @@ public interface ICustomerPortalService
     Task<Result<PurchaseDetailDto?>> GetPurchaseAsync(long platformCustomerId, long invoiceId, CancellationToken ct = default);
     Task<Result<CustomerInsightsDto>> GetInsightsAsync(long platformCustomerId, DateTime from, DateTime to, CancellationToken ct = default);
     Task<PagedResult<LinkedShopDto>> ListLinkedShopsAsync(long platformCustomerId, int page, int pageSize, CancellationToken ct = default);
+    Task<IReadOnlyList<string>> GetShopFeaturesAsync(long shopId, CancellationToken ct = default);
 }
 
 public record CustomerProfileDto(long Id, string? DisplayName, string? Email, string? Phone, DateTime CreatedAtUtc, DateTime? LastLoginAtUtc);

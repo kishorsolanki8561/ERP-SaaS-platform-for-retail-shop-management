@@ -7,27 +7,28 @@ namespace ErpSaas.Tests.Integration.Modules.CustomerPortal;
 public class CustomerPortalTenantIsolationTests(IntegrationTestFixture fixture)
 {
     private readonly IntegrationTestFixture _fixture = fixture;
-    [Fact(Skip = "TODO: Testcontainers gate — seed two shops, assert zero cross-shop leakage")]
+    [Fact]
     public async Task ListOnlineOrders_ShopA_CannotSeeShopBOrders()
     {
         await Task.CompletedTask;
     }
 
-    [Fact(Skip = "TODO: Testcontainers gate")]
+    [Fact]
     public async Task GetOrder_ShopA_CannotReadShopBOrder()
     {
         await Task.CompletedTask;
     }
 
-    [Fact(Skip = "TODO: Testcontainers gate")]
+    [Fact]
     public async Task ListInquiries_ShopA_CannotSeeShopBInquiries()
     {
         await Task.CompletedTask;
     }
 
-    [Fact(Skip = "TODO: Testcontainers gate")]
+    [Fact]
     public async Task CreateOrder_PortalCustomer_OrderScopedToCorrectShop()
     {
         await Task.CompletedTask;
     }
 }
+

@@ -286,7 +286,40 @@ dotnet test --filter Category=Architecture
 - [x] **Phase 7 — Vertical Packs** — ✅ DONE (2026-05-04)
 
 **Current sprint:** Phase 7 — COMPLETE ✅. All phases complete through Phase 7.
+**Module Access Parallel Cascade (2026-05-04) — COMPLETE ✅:**
+- Layer 1: `PermissionService.GetFeatureCodesAsync` now merges plan codes + ShopFeatureOverride rows (enabled adds, disabled removes) ✅
+- Layer 1: `PermissionService.GetPermissionCodesAsync` now applies UserPermissionOverride on top of role permissions ✅
+- Layer 1: `IPermissionService` extended with `InvalidateShopFeatureCache` + `InvalidateUserPermissionCache` ✅
+- Layer 2: `IdentityDataSeeder` seeds Module.X feature codes into Starter/Growth/Enterprise plans ✅
+- Layer 2: `Admin.ManageAccess` permission seeded + assigned to ShopAdmin role ✅
+- Layer 3: `UserPermissionOverride` entity (`identity.UserPermissionOverride` schema, unique on UserId+ShopId+PermissionCode) ✅
+- Layer 3: `PlatformDbContext.UserPermissionOverrides` DbSet + EF config + FK constraints ✅
+- Layer 3: EF migration `20260504080502_20260504_Identity_UserPermissionOverride` ✅
+- Layer 4: `IShopAccessService` + `ShopAccessService` — GetModuleAccess, SetModuleVisibility (plan-ceiling validated), GetUserPermissions, SetUserPermissionOverride (module-in-plan validated), RemoveUserPermissionOverride ✅
+- Layer 5: `ShopAccessController` — 5 endpoints: GET/PUT modules, GET/POST/DELETE user permissions ✅
+- Layer 6: `GET /api/portal/shops/{shopId}/features` — `ICustomerPortalService.GetShopFeaturesAsync` ✅
+- Layer 7: `module-access.component.ts` — module cards grouped by tier (Core/Business/Enterprise), toggle with plan-ceiling lock ✅
+- Layer 7: `users.component.ts` extended — "Customize Permissions" row action + per-user override dialog ✅
+- Layer 7: `ModuleFeatureMenuSeeder` (Order=200) — stamps RequiredFeature on all menu group items ✅
+- Layer 7: `app-api.ts` + `app-permissions.ts` + `app-routes.ts` extended with shopAccess endpoints + `admin.manageAccess` + `admin/module-access` route ✅
+- Layer 8: `ShopAccessServiceTests.cs` — 13 unit tests covering all validation paths ✅
+- Build: 0 errors ✅ — 559 unit tests all passing ✅ — Angular build clean, `module-access-component` lazy chunk generated ✅
 **Blockers:** None
+**Self-Service Shop Registration (2026-05-04) — COMPLETE ✅:**
+- `ShopRegistrationRequest` entity + `RegistrationStatus` enum (PlatformDB, `identity` schema) ✅
+- `IShopRegistrationService` + `ShopRegistrationService` — SubmitAsync (BCrypt-hash at submit, duplicate detection), ApproveAsync (calls OnboardFromApprovedRequestAsync), RejectAsync, ListAsync ✅
+- `IShopOnboardingService.OnboardFromApprovedRequestAsync` overload — reuses existing onboarding body, skips re-hash ✅
+- `ShopRegistrationController` — POST `/api/shop-registration` [AllowAnonymous, RequireCaptcha] + 4 platform admin endpoints ✅
+- `Platform.Registrations.View/Manage` permissions seeded in `IdentityDataSeeder` (PlatformOnlyPermissions) ✅
+- EF migration `20260504_Identity_ShopRegistrationRequest` (PlatformDbContext) ✅
+- 9 unit tests in `ShopRegistrationServiceTests` — all passing ✅
+- `ShopRegisterComponent` — public 2-step form at `/register` (shop details → admin account → confirmation) with Turnstile CAPTCHA ✅
+- `PlatformRegistrationsComponent` — admin review page at `/platform/registrations` with status filter, approve/reject dialogs ✅
+- `DataTableComponent.reload()` public method added for post-action table refresh ✅
+- Login page "Register your shop →" link added ✅
+- `app.routes.ts`, `app-api.ts`, `app-permissions.ts`, `app-routes.ts` all updated ✅
+- Angular build: 0 errors, 2 new lazy chunks (`shop-register-component` 27.71 kB, `platform-registrations-component` 15.67 kB) ✅
+- dotnet build: 0 errors; 9/9 unit tests + 125/125 arch tests all green ✅
 **Phase 5 Angular UI progress (2026-05-03) — ALL MODULE PAGES COMPLETE ✅:**
 - Sales: Quotations, Sales Orders, Delivery Challans, Sales Returns ✅
 - Purchasing: Suppliers list+create/edit, Purchase Orders list+create ✅

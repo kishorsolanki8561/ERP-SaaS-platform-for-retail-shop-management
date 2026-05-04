@@ -119,6 +119,10 @@ export const Permissions = {
   auditLog: {
     view: 'Admin.AuditLog.View',
   },
+  // Module access + per-user permission overrides
+  admin: {
+    manageAccess: 'Admin.ManageAccess',
+  },
   // Usage metering
   usage: {
     view:        'Usage.View',
@@ -151,8 +155,10 @@ export const Permissions = {
   },
   // Platform admin (platform owner only)
   platform: {
-    shopsView:   'Platform.Shops.View',
-    shopsManage: 'Platform.Shops.Manage',
+    shopsView:             'Platform.Shops.View',
+    shopsManage:           'Platform.Shops.Manage',
+    registrationsView:     'Platform.Registrations.View',
+    registrationsManage:   'Platform.Registrations.Manage',
   },
   // Integration — API Keys + Webhooks
   integration: {

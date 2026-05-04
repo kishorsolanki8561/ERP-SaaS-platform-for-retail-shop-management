@@ -11,7 +11,7 @@ public sealed class ApiAccessControllerTests(IntegrationTestFixture fixture)
 {
     // ── GET /api/shop-api-keys ────────────────────────────────────────────────
 
-    [Fact(Skip = "Testcontainers gate pending")]
+    [Fact]
     public async Task ListApiKeys_WithoutAuth_Returns401()
     {
         var client = fixture.CreateUnauthenticatedClient();
@@ -19,7 +19,7 @@ public sealed class ApiAccessControllerTests(IntegrationTestFixture fixture)
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
-    [Fact(Skip = "Testcontainers gate pending")]
+    [Fact]
     public async Task ListApiKeys_Authenticated_Returns200()
     {
         var client = fixture.CreateAuthenticatedClient();
@@ -29,7 +29,7 @@ public sealed class ApiAccessControllerTests(IntegrationTestFixture fixture)
 
     // ── POST /api/shop-api-keys ───────────────────────────────────────────────
 
-    [Fact(Skip = "Testcontainers gate pending")]
+    [Fact]
     public async Task CreateApiKey_ValidBody_Returns200WithRawKey()
     {
         var client = fixture.CreateAuthenticatedClient();
@@ -40,7 +40,7 @@ public sealed class ApiAccessControllerTests(IntegrationTestFixture fixture)
 
     // ── POST /api/webhooks/endpoints ─────────────────────────────────────────
 
-    [Fact(Skip = "Testcontainers gate pending")]
+    [Fact]
     public async Task RegisterEndpoint_WithoutAuth_Returns401()
     {
         var client = fixture.CreateUnauthenticatedClient();
@@ -49,7 +49,7 @@ public sealed class ApiAccessControllerTests(IntegrationTestFixture fixture)
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
-    [Fact(Skip = "Testcontainers gate pending")]
+    [Fact]
     public async Task RegisterEndpoint_HttpUrl_Returns400()
     {
         var client = fixture.CreateAuthenticatedClient();
@@ -60,7 +60,7 @@ public sealed class ApiAccessControllerTests(IntegrationTestFixture fixture)
 
     // ── GET /api/webhooks/events ──────────────────────────────────────────────
 
-    [Fact(Skip = "Testcontainers gate pending")]
+    [Fact]
     public async Task GetEventCatalog_Authenticated_ReturnsList()
     {
         var client = fixture.CreateAuthenticatedClient();
@@ -68,3 +68,4 @@ public sealed class ApiAccessControllerTests(IntegrationTestFixture fixture)
         response.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 }
+

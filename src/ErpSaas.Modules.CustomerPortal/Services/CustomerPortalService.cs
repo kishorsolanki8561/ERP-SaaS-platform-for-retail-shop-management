@@ -177,4 +177,22 @@ public sealed class CustomerPortalService(
         var results = links.Select(l => new LinkedShopDto(l.ShopId, $"Shop {l.ShopId}", false, false, 0m, l.LinkedAtUtc)).ToList();
         return new PagedResult<LinkedShopDto>(results, total, page, pageSize);
     }
+
+    public async Task<IReadOnlyList<string>> GetShopFeaturesAsync(long shopId, CancellationToken ct = default)
+    {
+        var planCodes = await platformDb.ShopSubscriptions
+            .Where(ss => ss.ShopId == shopId && ss.IsActive)
+            .SelectMany(ss => ss.Plan.Features)
+            .Select(f => f.FeatureCode)
+            .ToListAsync(ct);
+
+        var overrides = await platformDb.ShopFeatureOverrides
+            .Where(o => o.ShopId == shopId)
+            .ToListAsync(ct);
+
+        var enabled  = overrides.Where(o => o.IsEnabled).Select(o => o.FeatureCode);
+        var disabled = overrides.Where(o => !o.IsEnabled).Select(o => o.FeatureCode).ToHashSet();
+
+        return planCodes.Union(enabled).Where(c => !disabled.Contains(c)).Distinct().ToList();
+    }
 }

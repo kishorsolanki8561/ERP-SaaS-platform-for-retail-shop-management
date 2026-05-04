@@ -37,8 +37,9 @@ public class PlatformDbContext(
     public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
     public DbSet<UserRole> UserRoles => Set<UserRole>();
 
-    // Shop feature overrides
+    // Shop feature overrides + per-user permission overrides
     public DbSet<ShopFeatureOverride> ShopFeatureOverrides => Set<ShopFeatureOverride>();
+    public DbSet<UserPermissionOverride> UserPermissionOverrides => Set<UserPermissionOverride>();
 
     // Subscription
     public DbSet<SubscriptionPlan> SubscriptionPlans => Set<SubscriptionPlan>();
@@ -70,6 +71,9 @@ public class PlatformDbContext(
     // Vertical packs
     public DbSet<VerticalPack> VerticalPacks => Set<VerticalPack>();
 
+    // Shop registration requests
+    public DbSet<ShopRegistrationRequest> ShopRegistrationRequests => Set<ShopRegistrationRequest>();
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         => optionsBuilder.AddInterceptors(auditInterceptor);
 
@@ -84,6 +88,7 @@ public class PlatformDbContext(
         ConfigureMarketing(modelBuilder);
         ConfigureReplication(modelBuilder);
         ConfigureVerticals(modelBuilder);
+        ConfigureRegistration(modelBuilder);
     }
 
     private static void ConfigureMasters(ModelBuilder b)
@@ -281,6 +286,16 @@ public class PlatformDbContext(
             e.HasKey(x => x.Id);
             e.Property(x => x.FeatureCode).HasMaxLength(100).IsRequired();
             e.HasIndex(x => new { x.ShopId, x.FeatureCode }).IsUnique();
+            e.HasOne(x => x.Shop).WithMany().HasForeignKey(x => x.ShopId);
+        });
+
+        b.Entity<UserPermissionOverride>(e =>
+        {
+            e.ToTable("UserPermissionOverride", schema: "identity");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.PermissionCode).HasMaxLength(100).IsRequired();
+            e.HasIndex(x => new { x.UserId, x.ShopId, x.PermissionCode }).IsUnique();
+            e.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId);
             e.HasOne(x => x.Shop).WithMany().HasForeignKey(x => x.ShopId);
         });
     }
@@ -487,6 +502,29 @@ public class PlatformDbContext(
             e.Property(x => x.OriginDeploymentId).HasMaxLength(100);
             e.HasIndex(x => new { x.ShopId, x.EntityName, x.EntityId });
             e.HasIndex(x => x.VersionNumber);
+        });
+    }
+
+    private static void ConfigureRegistration(ModelBuilder b)
+    {
+        b.Entity<ShopRegistrationRequest>(e =>
+        {
+            e.ToTable("ShopRegistrationRequest", schema: "identity");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.ShopCode).HasMaxLength(20).IsRequired();
+            e.HasIndex(x => x.ShopCode);
+            e.Property(x => x.LegalName).HasMaxLength(200).IsRequired();
+            e.Property(x => x.TradeName).HasMaxLength(200);
+            e.Property(x => x.GstNumber).HasMaxLength(15);
+            e.Property(x => x.AdminEmail).HasMaxLength(256).IsRequired();
+            e.HasIndex(x => x.AdminEmail);
+            e.Property(x => x.AdminDisplayName).HasMaxLength(200).IsRequired();
+            e.Property(x => x.PasswordHashSnapshot).HasMaxLength(72).IsRequired();
+            e.Property(x => x.ContactPhone).HasMaxLength(20);
+            e.Property(x => x.Notes).HasMaxLength(2000);
+            e.Property(x => x.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
+            e.HasIndex(x => x.Status);
+            e.Property(x => x.RejectionReason).HasMaxLength(1000);
         });
     }
 

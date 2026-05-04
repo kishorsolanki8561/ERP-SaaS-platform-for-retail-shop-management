@@ -337,4 +337,26 @@ public static class Errors
         public const string ProgramNotFound    = "GRC_001";
         public const string InsufficientPoints = "GRC_002";
     }
+
+    public static class Registration
+    {
+        public const string ShopCodeExists    = "REG_001";
+        public const string EmailExists       = "REG_002";
+        public const string RequestNotFound   = "REG_003";
+        public const string NotPending        = "REG_004";
+        public const string OnboardFailed     = "REG_005";
+
+        public static string ShopCodeConflict(string code) => $"{ShopCodeExists}:{code}";
+        public static string EmailConflict(string email)   => $"{EmailExists}:{email}";
+        public static string NotFound(long id)             => $"{RequestNotFound}:{id}";
+    }
+
+    public static class ShopAccess
+    {
+        public const string FeatureNotModuleLevel     = "ACCESS_001";
+        public const string FeatureNotInPlan          = "ACCESS_002";
+        public const string UserNotInShop             = "ACCESS_003";
+        public const string PermissionModuleNotInPlan = "ACCESS_004";
+        public const string OverrideNotFound          = "ACCESS_005";
+    }
 }

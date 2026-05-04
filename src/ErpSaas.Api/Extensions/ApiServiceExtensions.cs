@@ -27,9 +27,13 @@ using ErpSaas.Modules.Verticals.Extensions;
 using ErpSaas.Modules.ServiceJobs.Extensions;
 using ErpSaas.Modules.Verticals.Medical.Extensions;
 using ErpSaas.Modules.Verticals.Grocery.Extensions;
+using ErpSaas.Shared.Authorization;
 using Hangfire;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using System.Threading.RateLimiting;
 
 namespace ErpSaas.Api.Extensions;
 
@@ -51,6 +55,45 @@ public static class ApiServiceExtensions
                       .AllowAnyHeader()
                       .AllowAnyMethod()
                       .AllowCredentials()));
+
+        // ── Rate limiting ──────────────────────────────────────────────────────
+        services.AddRateLimiter(opts =>
+        {
+            opts.OnRejected = async (ctx, ct) =>
+            {
+                ctx.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+                ctx.HttpContext.Response.Headers["Retry-After"] = "60";
+                await ctx.HttpContext.Response.WriteAsJsonAsync(
+                    new { error = "TOO_MANY_REQUESTS", message = "Rate limit exceeded. Please try again later." }, ct);
+            };
+
+            // Auth endpoints — 5 requests / minute / IP
+            opts.AddFixedWindowLimiter(RateLimitPolicies.Auth, o =>
+            {
+                o.Window            = TimeSpan.FromMinutes(1);
+                o.PermitLimit       = 5;
+                o.QueueLimit        = 0;
+                o.AutoReplenishment = true;
+            });
+
+            // OTP / signup endpoints — 3 requests / hour / IP
+            opts.AddFixedWindowLimiter(RateLimitPolicies.Otp, o =>
+            {
+                o.Window            = TimeSpan.FromHours(1);
+                o.PermitLimit       = 3;
+                o.QueueLimit        = 0;
+                o.AutoReplenishment = true;
+            });
+
+            // General public / authenticated API — 100 requests / minute / IP
+            opts.AddFixedWindowLimiter(RateLimitPolicies.Api, o =>
+            {
+                o.Window            = TimeSpan.FromMinutes(1);
+                o.PermitLimit       = 100;
+                o.QueueLimit        = 0;
+                o.AutoReplenishment = true;
+            });
+        });
 
         services.AddControllers(opts => opts.Filters.AddService<CaptchaValidationFilter>())
             .AddJsonOptions(opts =>

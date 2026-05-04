@@ -7,7 +7,6 @@ using ErpSaas.Shared.Data;
 using ErpSaas.Shared.Messages;
 using ErpSaas.Shared.Services;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 
 namespace ErpSaas.Modules.Accounting.Services;
 
@@ -15,8 +14,7 @@ public sealed class AccountingService(
     TenantDbContext db,
     IErrorLogger errorLogger,
     ISequenceService sequence,
-    ITenantContext tenant,
-    ILogger<AccountingService> logger)
+    ITenantContext tenant)
     : BaseService<TenantDbContext>(db, errorLogger), IAccountingService, IAutoVoucherService
 {
     // ── Account Groups ────────────────────────────────────────────────────────
@@ -361,70 +359,139 @@ public sealed class AccountingService(
         long shopId, long invoiceId, string invoiceNumber, decimal saleAmount,
         decimal taxAmount, CancellationToken ct = default)
     {
-        // TODO: resolve actual account IDs from Chart of Accounts (Cash/Sales/GST Payable).
-        // Placeholder implementation until COA seeder wires up system account IDs.
-        logger.LogInformation(
-            "Auto-voucher: Sale {InvoiceNumber} amount {Amount} tax {Tax} — COA accounts pending",
-            invoiceNumber, saleAmount, taxAmount);
-        return await Task.FromResult(Result<long>.Success(0L));
+        var cashId  = await GetSystemAccountIdAsync("1010", ct);
+        var salesId = await GetSystemAccountIdAsync("4000", ct);
+        var total   = saleAmount + taxAmount;
+
+        var entries = new List<VoucherEntryDto>
+        {
+            new(cashId,  DebitCredit.Debit,  total,      invoiceNumber),
+            new(salesId, DebitCredit.Credit, saleAmount, invoiceNumber),
+        };
+
+        if (taxAmount > 0)
+        {
+            var cgstId = await GetSystemAccountIdAsync("2200", ct);
+            var sgstId = await GetSystemAccountIdAsync("2201", ct);
+            var half   = Math.Round(taxAmount / 2, 2);
+            entries.Add(new(cgstId, DebitCredit.Credit, half,            invoiceNumber));
+            entries.Add(new(sgstId, DebitCredit.Credit, taxAmount - half, invoiceNumber));
+        }
+
+        return await CreateVoucherAsync(new CreateVoucherDto(
+            DateTime.UtcNow.Date, VoucherType.Receipt,
+            $"Sale — {invoiceNumber}", "Invoice", invoiceId, entries), ct);
     }
 
     public async Task<Result<long>> PostPaymentReceivedVoucherAsync(
         long shopId, long invoiceId, string invoiceNumber, decimal amount,
         string paymentMode, CancellationToken ct = default)
     {
-        logger.LogInformation(
-            "Auto-voucher: Payment received for {InvoiceNumber} amount {Amount} mode {Mode}",
-            invoiceNumber, amount, paymentMode);
-        return await Task.FromResult(Result<long>.Success(0L));
+        var isBank  = paymentMode.Equals("Card",  StringComparison.OrdinalIgnoreCase)
+                   || paymentMode.Equals("Bank",  StringComparison.OrdinalIgnoreCase)
+                   || paymentMode.Equals("Cheque", StringComparison.OrdinalIgnoreCase);
+        var debitId = await GetSystemAccountIdAsync(isBank ? "1020" : "1010", ct);
+        var arId    = await GetSystemAccountIdAsync("1100", ct);
+
+        return await CreateVoucherAsync(new CreateVoucherDto(
+            DateTime.UtcNow.Date, VoucherType.Receipt,
+            $"Payment received — {invoiceNumber} ({paymentMode})", "Invoice", invoiceId,
+            [
+                new(debitId, DebitCredit.Debit,  amount, invoiceNumber),
+                new(arId,    DebitCredit.Credit, amount, invoiceNumber),
+            ]), ct);
     }
 
     public async Task<Result<long>> PostExpenseVoucherAsync(
         long shopId, long expenseId, long expenseAccountId, long cashAccountId,
         decimal amount, string narration, CancellationToken ct = default)
     {
-        var dto = new CreateVoucherDto(
-            VoucherDate: DateTime.UtcNow.Date,
-            VoucherType: VoucherType.Journal,
-            Narration: narration,
-            SourceDocumentType: "Expense",
-            SourceDocumentId: expenseId,
-            Entries:
+        return await CreateVoucherAsync(new CreateVoucherDto(
+            DateTime.UtcNow.Date, VoucherType.Journal, narration,
+            "Expense", expenseId,
             [
-                new(expenseAccountId, DebitCredit.Debit, amount, narration),
-                new(cashAccountId, DebitCredit.Credit, amount, narration),
-            ]);
-        return await CreateVoucherAsync(dto, ct);
+                new(expenseAccountId, DebitCredit.Debit,  amount, narration),
+                new(cashAccountId,    DebitCredit.Credit, amount, narration),
+            ]), ct);
     }
 
     public async Task<Result<long>> PostShiftVarianceVoucherAsync(
         long shopId, long shiftId, decimal variance, CancellationToken ct = default)
     {
-        logger.LogInformation(
-            "Auto-voucher: Shift {ShiftId} variance {Variance} — COA accounts pending",
-            shiftId, variance);
-        return await Task.FromResult(Result<long>.Success(0L));
+        if (variance == 0) return Result<long>.Success(0L);
+
+        var cashId  = await GetSystemAccountIdAsync("1010", ct);
+        var narration = $"Shift #{shiftId} variance";
+
+        List<VoucherEntryDto> entries;
+        if (variance > 0)
+        {
+            var overId = await GetSystemAccountIdAsync("4810", ct);
+            entries =
+            [
+                new(cashId,  DebitCredit.Debit,  variance, narration),
+                new(overId,  DebitCredit.Credit, variance, narration),
+            ];
+        }
+        else
+        {
+            var shortId = await GetSystemAccountIdAsync("5810", ct);
+            var abs = Math.Abs(variance);
+            entries =
+            [
+                new(shortId, DebitCredit.Debit,  abs, narration),
+                new(cashId,  DebitCredit.Credit, abs, narration),
+            ];
+        }
+
+        return await CreateVoucherAsync(new CreateVoucherDto(
+            DateTime.UtcNow.Date, VoucherType.Journal,
+            narration, "Shift", shiftId, entries), ct);
     }
 
     public async Task<Result<long>> PostPurchaseBillVoucherAsync(
         long shopId, long billId, string billNumber, decimal totalAmount, CancellationToken ct = default)
     {
-        logger.LogInformation(
-            "Auto-voucher: Purchase bill {BillNumber} amount {Amount} — AP entry pending COA",
-            billNumber, totalAmount);
-        return await Task.FromResult(Result<long>.Success(0L));
+        var inventoryId = await GetSystemAccountIdAsync("1200", ct);
+        var apId        = await GetSystemAccountIdAsync("2100", ct);
+
+        return await CreateVoucherAsync(new CreateVoucherDto(
+            DateTime.UtcNow.Date, VoucherType.Journal,
+            $"Purchase bill — {billNumber}", "Bill", billId,
+            [
+                new(inventoryId, DebitCredit.Debit,  totalAmount, billNumber),
+                new(apId,        DebitCredit.Credit, totalAmount, billNumber),
+            ]), ct);
     }
 
     public async Task<Result<long>> PostSalesReturnVoucherAsync(
         long shopId, long salesReturnId, string returnNumber, decimal totalRefundAmount, CancellationToken ct = default)
     {
-        logger.LogInformation(
-            "Auto-voucher: Sales return {ReturnNumber} refund {Amount} — reversal entry pending COA",
-            returnNumber, totalRefundAmount);
-        return await Task.FromResult(Result<long>.Success(0L));
+        var returnsId = await GetSystemAccountIdAsync("4010", ct);
+        var cashId    = await GetSystemAccountIdAsync("1010", ct);
+
+        return await CreateVoucherAsync(new CreateVoucherDto(
+            DateTime.UtcNow.Date, VoucherType.Journal,
+            $"Sales return — {returnNumber}", "SalesReturn", salesReturnId,
+            [
+                new(returnsId, DebitCredit.Debit,  totalRefundAmount, returnNumber),
+                new(cashId,    DebitCredit.Credit, totalRefundAmount, returnNumber),
+            ]), ct);
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────
+
+    private async Task<long> GetSystemAccountIdAsync(string code, CancellationToken ct)
+    {
+        var id = await _db.Set<Account>()
+            .Where(a => a.Code == code && !a.IsDeleted && a.IsActive)
+            .Select(a => (long?)a.Id)
+            .FirstOrDefaultAsync(ct);
+        if (id is null or 0)
+            throw new InvalidOperationException(
+                $"System COA account '{code}' not found — ensure AccountingTenantSeeder has run for this shop.");
+        return id.Value;
+    }
 
     private static string SequenceCodeFor(VoucherType type) => type switch
     {

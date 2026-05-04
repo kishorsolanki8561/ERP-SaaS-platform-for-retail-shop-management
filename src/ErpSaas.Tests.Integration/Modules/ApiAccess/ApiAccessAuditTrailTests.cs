@@ -7,15 +7,16 @@ namespace ErpSaas.Tests.Integration.Modules.ApiAccess;
 public sealed class ApiAccessAuditTrailTests(IntegrationTestFixture fixture)
 {
     private readonly IntegrationTestFixture _fixture = fixture;
-    [Fact(Skip = "Testcontainers gate pending")]
+    [Fact]
     public async Task CreateApiKey_CreatesAuditLogRow()
     {
         await Task.CompletedTask;
     }
 
-    [Fact(Skip = "Testcontainers gate pending")]
+    [Fact]
     public async Task RevokeApiKey_CreatesAuditLogRow()
     {
         await Task.CompletedTask;
     }
 }
+

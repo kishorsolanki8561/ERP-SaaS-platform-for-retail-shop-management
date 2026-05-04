@@ -1,4 +1,5 @@
 using ErpSaas.Infrastructure.Data;
+using ErpSaas.Infrastructure.Data.Entities.Messaging;
 using ErpSaas.Infrastructure.Data.Entities.Messaging.Enums;
 using ErpSaas.Shared.Messages;
 using Microsoft.EntityFrameworkCore;
@@ -12,6 +13,8 @@ namespace ErpSaas.Infrastructure.Messaging;
 /// </summary>
 public sealed class NotificationDrainJob(
     NotificationsDbContext db,
+    IEmailProvider emailProvider,
+    ISmsProvider smsProvider,
     ILogger<NotificationDrainJob> logger)
 {
     private static int BatchSize   => Constants.Pagination.NotificationBatch;
@@ -31,29 +34,51 @@ public sealed class NotificationDrainJob(
         {
             try
             {
+                item.Status = NotificationStatus.Sending;
+                await db.SaveChangesAsync(ct);
+
                 await DispatchAsync(item, ct);
-                item.Status = NotificationStatus.Sent;
+
+                item.Status    = NotificationStatus.Sent;
                 item.SentAtUtc = DateTime.UtcNow;
             }
             catch (Exception ex)
             {
                 item.AttemptCount++;
-                item.ErrorMessage = ex.Message;
-                item.NextRetryAtUtc = DateTime.UtcNow.AddMinutes(Math.Pow(2, item.AttemptCount));
-                if (item.AttemptCount >= MaxAttempts)
-                    item.Status = NotificationStatus.Failed;
-                logger.LogWarning(ex, "Notification dispatch failed for queue item {Id}", item.Id);
+                item.ErrorMessage    = ex.Message[..Math.Min(ex.Message.Length, 1000)];
+                item.NextRetryAtUtc  = DateTime.UtcNow.AddMinutes(Math.Pow(2, item.AttemptCount));
+                item.Status          = item.AttemptCount >= MaxAttempts
+                    ? NotificationStatus.Failed
+                    : NotificationStatus.Pending;
+                logger.LogWarning(ex, "Notification dispatch failed for queue item {Id} (attempt {N})",
+                    item.Id, item.AttemptCount);
             }
-        }
 
-        if (pending.Count > 0)
             await db.SaveChangesAsync(ct);
+        }
     }
 
-    private static Task DispatchAsync(Data.Entities.Messaging.NotificationQueue item, CancellationToken ct)
+    private async Task DispatchAsync(NotificationQueue item, CancellationToken ct)
     {
-        // TODO Phase 3: wire real providers (SendGrid, Twilio, Firebase, WhatsApp Business API)
-        // For Phase 0: stub — log only
-        return Task.CompletedTask;
+        switch (item.Channel)
+        {
+            case NotificationChannel.Email:
+                await emailProvider.SendAsync(item.Recipient, item.Subject, item.Body, ct);
+                break;
+
+            case NotificationChannel.Sms:
+            case NotificationChannel.WhatsApp:
+                await smsProvider.SendAsync(item.Recipient, item.Body, ct);
+                break;
+
+            case NotificationChannel.Push:
+                logger.LogInformation(
+                    "Push notification to {Recipient} — Firebase not yet configured, skipping",
+                    item.Recipient);
+                break;
+
+            default:
+                throw new NotSupportedException($"Channel {item.Channel} is not supported.");
+        }
     }
 }

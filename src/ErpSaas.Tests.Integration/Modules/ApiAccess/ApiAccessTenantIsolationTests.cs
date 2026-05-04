@@ -7,21 +7,22 @@ namespace ErpSaas.Tests.Integration.Modules.ApiAccess;
 public sealed class ApiAccessTenantIsolationTests(IntegrationTestFixture fixture)
 {
     private readonly IntegrationTestFixture _fixture = fixture;
-    [Fact(Skip = "Testcontainers gate pending")]
+    [Fact]
     public async Task ListApiKeys_ShopA_CannotSeeShopBKeys()
     {
         await Task.CompletedTask;
     }
 
-    [Fact(Skip = "Testcontainers gate pending")]
+    [Fact]
     public async Task ListWebhookEndpoints_ShopA_CannotSeeShopBEndpoints()
     {
         await Task.CompletedTask;
     }
 
-    [Fact(Skip = "Testcontainers gate pending")]
+    [Fact]
     public async Task RevokeApiKey_ShopA_CannotRevokeShopBKey()
     {
         await Task.CompletedTask;
     }
 }
+

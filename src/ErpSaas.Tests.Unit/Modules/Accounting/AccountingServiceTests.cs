@@ -60,8 +60,7 @@ public class AccountingServiceTests : IDisposable
         _sequence.NextAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>())
             .Returns(_ => Task.FromResult($"VJ-2526-{++_seqCounter:000000}"));
 
-        _sut = new AccountingService(_db, _errorLogger, _sequence, _tenant,
-            Substitute.For<ILogger<AccountingService>>());
+        _sut = new AccountingService(_db, _errorLogger, _sequence, _tenant);
     }
 
     public void Dispose()
