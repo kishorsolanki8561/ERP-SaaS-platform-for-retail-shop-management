@@ -10,7 +10,7 @@ using Microsoft.Extensions.Logging;
 
 namespace ErpSaas.Modules.CustomerPortal.Services;
 
-#pragma warning disable CS9107
+#pragma warning disable CS9107, CS9113
 public sealed class CustomerInquiryService(
     TenantDbContext db,
     IErrorLogger errorLogger,

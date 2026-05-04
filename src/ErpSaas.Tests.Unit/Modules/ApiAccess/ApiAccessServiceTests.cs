@@ -60,8 +60,8 @@ public sealed class ApiAccessServiceTests : IDisposable
         var dto = new CreateApiKeyDto("My Integration", null, null);
         var result = await _sut.CreateAsync(dto, createdByUserId: 1);
         Assert.True(result.IsSuccess);
-        Assert.StartsWith("sk_live_", result.Value.RawKey);
-        Assert.Equal(12, result.Value.KeyPrefix.Length);
+        Assert.StartsWith("sk_live_", result.Value!.RawKey);
+        Assert.Equal(12, result.Value!.KeyPrefix.Length);
     }
 
     [Fact]
@@ -72,27 +72,27 @@ public sealed class ApiAccessServiceTests : IDisposable
 
         var result = await _sut.ListAsync();
         Assert.True(result.IsSuccess);
-        Assert.Equal(2, result.Value.Count);
+        Assert.Equal(2, result.Value!.Count);
     }
 
     [Fact]
     public async Task RevokeAsync_ActiveKey_SetsInactive()
     {
         var created = await _sut.CreateAsync(new CreateApiKeyDto("Key", null, null), 1);
-        var result = await _sut.RevokeAsync(created.Value.Id, new RevokeApiKeyDto("Test"), 1);
+        var result = await _sut.RevokeAsync(created.Value!.Id, new RevokeApiKeyDto("Test"), 1);
         Assert.True(result.IsSuccess);
 
         var list = await _sut.ListAsync();
-        Assert.False(list.Value[0].IsActive);
+        Assert.False(list.Value![0].IsActive);
     }
 
     [Fact]
     public async Task RevokeAsync_AlreadyRevoked_ReturnsConflict()
     {
         var created = await _sut.CreateAsync(new CreateApiKeyDto("Key", null, null), 1);
-        await _sut.RevokeAsync(created.Value.Id, new RevokeApiKeyDto(null), 1);
+        await _sut.RevokeAsync(created.Value!.Id, new RevokeApiKeyDto(null), 1);
 
-        var result = await _sut.RevokeAsync(created.Value.Id, new RevokeApiKeyDto(null), 1);
+        var result = await _sut.RevokeAsync(created.Value!.Id, new RevokeApiKeyDto(null), 1);
         Assert.False(result.IsSuccess);
         Assert.Equal(Errors.ApiAccess.KeyAlreadyRevoked, result.Errors[0]);
     }
@@ -109,13 +109,13 @@ public sealed class ApiAccessServiceTests : IDisposable
     public async Task RotateAsync_ActiveKey_RevokesOldIssuesNew()
     {
         var created = await _sut.CreateAsync(new CreateApiKeyDto("Key", null, null), 1);
-        var rotated = await _sut.RotateAsync(created.Value.Id, 1);
+        var rotated = await _sut.RotateAsync(created.Value!.Id, 1);
 
         Assert.True(rotated.IsSuccess);
-        Assert.NotEqual(created.Value.RawKey, rotated.Value.RawKey);
+        Assert.NotEqual(created.Value!.RawKey, rotated.Value!.RawKey);
 
         var list = await _sut.ListAsync();
-        var active = list.Value.Where(k => k.IsActive).ToList();
+        var active = list.Value!.Where(k => k.IsActive).ToList();
         Assert.Single(active);
     }
 
