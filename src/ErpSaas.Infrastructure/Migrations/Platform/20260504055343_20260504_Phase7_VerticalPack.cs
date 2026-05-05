@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using System;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
@@ -10,135 +11,52 @@ namespace ErpSaas.Infrastructure.Migrations.Platform
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AlterColumn<byte[]>(
-                name: "RowVersion",
-                schema: "verticals",
-                table: "VerticalPack",
-                type: "varbinary(max)",
-                nullable: false,
-                oldClrType: typeof(byte[]),
-                oldType: "rowversion",
-                oldRowVersion: true);
+            migrationBuilder.EnsureSchema(name: "verticals");
 
-            migrationBuilder.AlterColumn<string>(
-                name: "Name",
+            migrationBuilder.CreateTable(
+                name: "VerticalPack",
                 schema: "verticals",
-                table: "VerticalPack",
-                type: "nvarchar(200)",
-                maxLength: 200,
-                nullable: false,
-                oldClrType: typeof(string),
-                oldType: "nvarchar(max)");
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Code = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
+                    IconClass = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    SortOrder = table.Column<int>(type: "int", nullable: false),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false),
+                    FeatureFlagsCsv = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: false),
+                    SeedManifestJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    DefaultInvoiceTemplateCode = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    CreatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatedByUserId = table.Column<long>(type: "bigint", nullable: true),
+                    UpdatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    UpdatedByUserId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false),
+                    DeletedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    DeletedByUserId = table.Column<long>(type: "bigint", nullable: true),
+                    RowVersion = table.Column<byte[]>(type: "varbinary(max)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_VerticalPack", x => x.Id);
+                });
 
-            migrationBuilder.AlterColumn<string>(
-                name: "IconClass",
+            migrationBuilder.CreateIndex(
+                name: "IX_VerticalPack_Code",
                 schema: "verticals",
                 table: "VerticalPack",
-                type: "nvarchar(100)",
-                maxLength: 100,
-                nullable: true,
-                oldClrType: typeof(string),
-                oldType: "nvarchar(max)",
-                oldNullable: true);
-
-            migrationBuilder.AlterColumn<string>(
-                name: "FeatureFlagsCsv",
-                schema: "verticals",
-                table: "VerticalPack",
-                type: "nvarchar(2000)",
-                maxLength: 2000,
-                nullable: false,
-                oldClrType: typeof(string),
-                oldType: "nvarchar(max)");
-
-            migrationBuilder.AlterColumn<string>(
-                name: "Description",
-                schema: "verticals",
-                table: "VerticalPack",
-                type: "nvarchar(1000)",
-                maxLength: 1000,
-                nullable: true,
-                oldClrType: typeof(string),
-                oldType: "nvarchar(max)",
-                oldNullable: true);
-
-            migrationBuilder.AlterColumn<string>(
-                name: "DefaultInvoiceTemplateCode",
-                schema: "verticals",
-                table: "VerticalPack",
-                type: "nvarchar(100)",
-                maxLength: 100,
-                nullable: true,
-                oldClrType: typeof(string),
-                oldType: "nvarchar(max)",
-                oldNullable: true);
+                column: "Code",
+                unique: true);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AlterColumn<byte[]>(
-                name: "RowVersion",
-                schema: "verticals",
-                table: "VerticalPack",
-                type: "rowversion",
-                rowVersion: true,
-                nullable: false,
-                oldClrType: typeof(byte[]),
-                oldType: "varbinary(max)");
-
-            migrationBuilder.AlterColumn<string>(
-                name: "Name",
-                schema: "verticals",
-                table: "VerticalPack",
-                type: "nvarchar(max)",
-                nullable: false,
-                oldClrType: typeof(string),
-                oldType: "nvarchar(200)",
-                oldMaxLength: 200);
-
-            migrationBuilder.AlterColumn<string>(
-                name: "IconClass",
-                schema: "verticals",
-                table: "VerticalPack",
-                type: "nvarchar(max)",
-                nullable: true,
-                oldClrType: typeof(string),
-                oldType: "nvarchar(100)",
-                oldMaxLength: 100,
-                oldNullable: true);
-
-            migrationBuilder.AlterColumn<string>(
-                name: "FeatureFlagsCsv",
-                schema: "verticals",
-                table: "VerticalPack",
-                type: "nvarchar(max)",
-                nullable: false,
-                oldClrType: typeof(string),
-                oldType: "nvarchar(2000)",
-                oldMaxLength: 2000);
-
-            migrationBuilder.AlterColumn<string>(
-                name: "Description",
-                schema: "verticals",
-                table: "VerticalPack",
-                type: "nvarchar(max)",
-                nullable: true,
-                oldClrType: typeof(string),
-                oldType: "nvarchar(1000)",
-                oldMaxLength: 1000,
-                oldNullable: true);
-
-            migrationBuilder.AlterColumn<string>(
-                name: "DefaultInvoiceTemplateCode",
-                schema: "verticals",
-                table: "VerticalPack",
-                type: "nvarchar(max)",
-                nullable: true,
-                oldClrType: typeof(string),
-                oldType: "nvarchar(100)",
-                oldMaxLength: 100,
-                oldNullable: true);
+            migrationBuilder.DropTable(
+                name: "VerticalPack",
+                schema: "verticals");
         }
     }
 }
