@@ -274,15 +274,6 @@ jobs:
           echo "Health check failed after 210s. Deployment may be broken."
           exit 1
 
-      - name: Purge Cloudflare cache (API)
-        run: |
-          DOMAIN="${{ steps.cfg.outputs.api_domain }}"
-          curl -sf -X POST \
-            "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/purge_cache" \
-            -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
-            -H "Content-Type: application/json" \
-            --data "{\"files\":[\"https://${DOMAIN}/health\",\"https://${DOMAIN}/api/services\"]}" \
-          || echo "Cloudflare purge skipped (secret not configured)"
 
   # ── Deploy Staff App ──────────────────────────────────────────────────────────
   deploy-staff-app:
@@ -323,16 +314,6 @@ jobs:
           rm -rf /tmp/erp-${ENV}-web-deploy
           REMOTE
 
-      - name: Purge Cloudflare cache (staff app)
-        run: |
-          ENV="${{ github.event.inputs.environment }}"
-          APP_HOST=$([ "${ENV}" = "production" ] && echo "erp-app.preptm.com" || echo "erp-app-staging.preptm.com")
-          curl -sf -X POST \
-            "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/purge_cache" \
-            -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
-            -H "Content-Type: application/json" \
-            --data "{\"files\":[\"https://${APP_HOST}/\",\"https://${APP_HOST}/index.html\"]}" \
-          || echo "Cloudflare purge skipped (secret not configured)"
 
   # ── Deploy Customer Portal ────────────────────────────────────────────────────
   deploy-portal:
@@ -373,13 +354,3 @@ jobs:
           rm -rf /tmp/erp-${ENV}-portal-deploy
           REMOTE
 
-      - name: Purge Cloudflare cache (portal)
-        run: |
-          ENV="${{ github.event.inputs.environment }}"
-          PORTAL_HOST=$([ "${ENV}" = "production" ] && echo "erp-portal.preptm.com" || echo "erp-portal-staging.preptm.com")
-          curl -sf -X POST \
-            "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/purge_cache" \
-            -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
-            -H "Content-Type: application/json" \
-            --data "{\"files\":[\"https://${PORTAL_HOST}/\",\"https://${PORTAL_HOST}/index.html\"]}" \
-          || echo "Cloudflare purge skipped (secret not configured)"

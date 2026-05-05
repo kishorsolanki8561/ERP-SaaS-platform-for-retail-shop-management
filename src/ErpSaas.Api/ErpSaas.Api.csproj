@@ -51,7 +51,7 @@
     <ProjectReference Include="..\ErpSaas.Modules.Verticals.Grocery\ErpSaas.Modules.Verticals.Grocery.csproj" />
   </ItemGroup>
 
-  <Target Name="PreBuild" BeforeTargets="PreBuildEvent" Condition="'$(GITHUB_ACTIONS)' != 'true'">
+  <Target Name="PreBuild" BeforeTargets="PreBuildEvent" Condition="'$(SkipDockerCompose)' != 'true'">
     <Exec Command="docker compose -f &quot;$(MSBuildProjectDirectory)\..\..\ops\docker-compose.yml&quot; up -d" ContinueOnError="WarnAndContinue" />
   </Target>
 

@@ -48,7 +48,7 @@ jobs:
         run: dotnet restore src/ErpSaas.sln
 
       - name: Build (Release)
-        run: dotnet build src/ErpSaas.sln --configuration Release --no-restore --warnaserror
+        run: dotnet build src/ErpSaas.sln --configuration Release --no-restore --warnaserror -p:SkipDockerCompose=true
 
       - name: Install dotnet-ef tool
         run: dotnet tool install --global dotnet-ef --version 8.*
