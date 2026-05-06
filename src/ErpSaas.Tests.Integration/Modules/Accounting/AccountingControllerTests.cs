@@ -407,7 +407,7 @@ public class AccountingControllerTests(IntegrationTestFixture fixture)
     }
 
     [Fact]
-    public async Task CloseFinancialYear_FeatureOff_Returns403()
+    public async Task CloseFinancialYear_FeatureOff_Returns402()
     {
         // No feature claims → feature gate should block
         var client = fixture.CreateNoFeatureClient(shopId: 1);
@@ -425,6 +425,6 @@ public class AccountingControllerTests(IntegrationTestFixture fixture)
         // Now try to close without the feature flag
         var response = await client.PostAsync($"/api/accounting/financial-years/{yearId}/close", null);
 
-        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        response.StatusCode.Should().Be(HttpStatusCode.PaymentRequired);
     }
 }

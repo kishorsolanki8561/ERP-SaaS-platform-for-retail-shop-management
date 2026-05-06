@@ -17,7 +17,7 @@ public class AccountingSubscriptionGateTests(IntegrationTestFixture fixture)
     // ── POST /api/accounting/financial-years/{id}/close  [RequireFeature("Accounting.Basic")] ──
 
     [Fact]
-    public async Task CloseFinancialYear_FeatureOff_Returns403()
+    public async Task CloseFinancialYear_FeatureOff_Returns402()
     {
         // Arrange: client has all permissions but NO feature flags
         var noFeatClient = fixture.CreateNoFeatureClient(shopId: 1);
@@ -36,7 +36,7 @@ public class AccountingSubscriptionGateTests(IntegrationTestFixture fixture)
         var response = await noFeatClient.PostAsync(
             $"/api/accounting/financial-years/{yearId}/close", null);
 
-        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        response.StatusCode.Should().Be(HttpStatusCode.PaymentRequired);
     }
 
     [Fact]
@@ -65,14 +65,14 @@ public class AccountingSubscriptionGateTests(IntegrationTestFixture fixture)
     // ── GET /api/accounting/bank-statements  [RequireFeature("Accounting.Advanced")] ──
 
     [Fact]
-    public async Task BankReconciliation_FeatureOff_Returns403()
+    public async Task BankReconciliation_FeatureOff_Returns402()
     {
         // Arrange: no feature claims
         var noFeatClient = fixture.CreateNoFeatureClient(shopId: 1);
 
         var response = await noFeatClient.GetAsync("/api/accounting/bank-statements");
 
-        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        response.StatusCode.Should().Be(HttpStatusCode.PaymentRequired);
     }
 
     [Fact]

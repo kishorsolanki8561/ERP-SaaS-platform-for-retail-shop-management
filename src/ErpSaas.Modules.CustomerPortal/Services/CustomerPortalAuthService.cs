@@ -78,7 +78,7 @@ public sealed class CustomerPortalAuthService(
                 .FirstOrDefaultAsync(c => c.Phone == identifier || c.Email == identifier, ct);
 
             if (customer is null || !customer.IsActive)
-                return Result<CustomerTokenResult>.NotFound(Shared.Messages.Errors.Auth.UserNotFound);
+                return Result<CustomerTokenResult>.Unauthorized(Shared.Messages.Errors.Auth.InvalidCredentials);
 
             var hash = HashToken(otp);
             var session = await db.CustomerLoginSessions
@@ -90,7 +90,7 @@ public sealed class CustomerPortalAuthService(
                 .FirstOrDefaultAsync(ct);
 
             if (session is null)
-                return Result<CustomerTokenResult>.Failure(Shared.Messages.Errors.Auth.InvalidCredentials);
+                return Result<CustomerTokenResult>.Unauthorized(Shared.Messages.Errors.Auth.InvalidCredentials);
 
             session.ConsumedAtUtc = DateTime.UtcNow;
             customer.LastLoginAtUtc = DateTime.UtcNow;

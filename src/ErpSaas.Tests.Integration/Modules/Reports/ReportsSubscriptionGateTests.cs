@@ -12,12 +12,12 @@ public sealed class ReportsSubscriptionGateTests(IntegrationTestFixture fixture)
         $"?from={DateTime.UtcNow.AddDays(-30):yyyy-MM-dd}&to={DateTime.UtcNow:yyyy-MM-dd}";
 
     [Fact]
-    public async Task Reports_FeatureOff_Returns403_ForGstr3bOnly()
+    public async Task Reports_FeatureOff_Returns402_ForGstr3bOnly()
     {
         // Only gstr3b has [RequireFeature("Accounting.GstReturns")] — other reports are ungated
         var client = fixture.CreateNoFeatureClient();
         var response = await client.GetAsync($"/api/reports/gstr3b{DateRange}");
-        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        response.StatusCode.Should().Be(HttpStatusCode.PaymentRequired);
     }
 
     [Fact]

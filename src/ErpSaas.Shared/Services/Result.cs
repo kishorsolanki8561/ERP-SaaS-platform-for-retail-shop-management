@@ -23,6 +23,9 @@ public class Result
     public static Result Forbidden(string? message = null) =>
         new() { IsSuccess = false, StatusCode = HttpStatusCode.Forbidden, Errors = [message ?? "Access denied."] };
 
+    public static Result Unauthorized(string? message = null) =>
+        new() { IsSuccess = false, StatusCode = HttpStatusCode.Unauthorized, Errors = [message ?? "Authentication failed."] };
+
     public static Result Cancelled() =>
         new() { IsSuccess = false, StatusCode = HttpStatusCode.Gone, Errors = ["Operation was cancelled."] };
 
@@ -48,6 +51,9 @@ public sealed class Result<T> : Result
 
     public new static Result<T> Forbidden(string? message = null) =>
         new() { IsSuccess = false, StatusCode = HttpStatusCode.Forbidden, Errors = [message ?? "Access denied."] };
+
+    public new static Result<T> Unauthorized(string? message = null) =>
+        new() { IsSuccess = false, StatusCode = HttpStatusCode.Unauthorized, Errors = [message ?? "Authentication failed."] };
 
     public new static Result<T> Cancelled() =>
         new() { IsSuccess = false, StatusCode = HttpStatusCode.Gone, Errors = ["Operation was cancelled."] };

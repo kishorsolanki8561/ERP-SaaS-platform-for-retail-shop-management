@@ -57,6 +57,9 @@ public static class ApiServiceExtensions
                       .AllowCredentials()));
 
         // ── Rate limiting ──────────────────────────────────────────────────────
+        // RateLimit:Disabled=true (set by integration tests) raises permit limits
+        // to int.MaxValue so concurrent test requests never trip 429 inside a run.
+        var rateLimitDisabled = configuration.GetValue<bool>("RateLimit:Disabled");
         services.AddRateLimiter(opts =>
         {
             opts.OnRejected = async (ctx, ct) =>
@@ -71,7 +74,7 @@ public static class ApiServiceExtensions
             opts.AddFixedWindowLimiter(RateLimitPolicies.Auth, o =>
             {
                 o.Window            = TimeSpan.FromMinutes(1);
-                o.PermitLimit       = 5;
+                o.PermitLimit       = rateLimitDisabled ? int.MaxValue : 5;
                 o.QueueLimit        = 0;
                 o.AutoReplenishment = true;
             });
@@ -80,7 +83,7 @@ public static class ApiServiceExtensions
             opts.AddFixedWindowLimiter(RateLimitPolicies.Otp, o =>
             {
                 o.Window            = TimeSpan.FromHours(1);
-                o.PermitLimit       = 3;
+                o.PermitLimit       = rateLimitDisabled ? int.MaxValue : 3;
                 o.QueueLimit        = 0;
                 o.AutoReplenishment = true;
             });
@@ -89,7 +92,7 @@ public static class ApiServiceExtensions
             opts.AddFixedWindowLimiter(RateLimitPolicies.Api, o =>
             {
                 o.Window            = TimeSpan.FromMinutes(1);
-                o.PermitLimit       = 100;
+                o.PermitLimit       = rateLimitDisabled ? int.MaxValue : 100;
                 o.QueueLimit        = 0;
                 o.AutoReplenishment = true;
             });

@@ -193,6 +193,10 @@ public class PurchasingControllerTests(IntegrationTestFixture fixture)
     [Fact]
     public async Task ApproveBill_ValidBill_Returns200()
     {
+        // Approval auto-posts a voucher via IAutoVoucherService, which looks up
+        // the COA accounts seeded by AccountingTenantSeeder. Seed before approving.
+        await fixture.SeedTenantDataAsync(shopId: 1);
+
         var client = fixture.CreateAuthenticatedClient(shopId: 1);
         var supplierId = await CreateSupplierAsync(client);
         var billId = await CreateBillAsync(client, supplierId);

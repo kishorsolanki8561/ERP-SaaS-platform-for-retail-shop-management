@@ -88,11 +88,11 @@ public sealed class ReportsControllerTests(IntegrationTestFixture fixture)
     // ── GET /api/reports/gstr3b (ViewGst + Accounting.GstReturns feature) ────
 
     [Fact]
-    public async Task Gstr3b_FeatureOff_Returns403()
+    public async Task Gstr3b_FeatureOff_Returns402()
     {
         var client = fixture.CreateNoFeatureClient();
         var response = await client.GetAsync($"/api/reports/gstr3b{DateRange}");
-        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        response.StatusCode.Should().Be(HttpStatusCode.PaymentRequired);
     }
 
     [Fact]

@@ -26,7 +26,7 @@ public class CustomerPortalControllerTests(IntegrationTestFixture fixture)
         var client = fixture.CreateClient();
         var response = await client.PostAsJsonAsync("/api/portal/auth/verify-otp",
             new { Identifier = "+919876543210", Otp = "000000", DeviceFingerprint = (string?)null });
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
     // ── Portal endpoints require CustomerAuth ─────────────────────────────────

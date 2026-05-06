@@ -52,7 +52,7 @@ public sealed class SyncControllerTests(IntegrationTestFixture fixture)
     [Fact]
     public async Task ProcessCommands_ValidBatch_Returns200()
     {
-        var client = fixture.CreateAuthenticatedClient(permissions: ["Device.Register"]);
+        var client = fixture.CreateAuthenticatedClient(permissions: ["Sync.View"]);
         var response = await client.PostAsJsonAsync("/api/sync/commands", new
         {
             commands = new[] {
@@ -63,13 +63,13 @@ public sealed class SyncControllerTests(IntegrationTestFixture fixture)
         response.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
-    // ── POST /api/invoice-ranges/allocate ─────────────────────────────────────
+    // ── POST /api/invoice-ranges ──────────────────────────────────────────────
 
     [Fact]
     public async Task AllocateRange_Authenticated_Returns200()
     {
         var client = fixture.CreateAuthenticatedClient(permissions: ["Device.Register"]);
-        var response = await client.PostAsJsonAsync("/api/invoice-ranges/allocate", new
+        var response = await client.PostAsJsonAsync("/api/invoice-ranges", new
         {
             deviceId = "DEV-001",
             branchId = 1,

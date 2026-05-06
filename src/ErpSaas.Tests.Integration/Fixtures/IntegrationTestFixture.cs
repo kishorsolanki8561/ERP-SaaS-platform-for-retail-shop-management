@@ -96,6 +96,8 @@ public sealed class IntegrationTestFixture : WebApplicationFactory<Program>, IAs
                 ["ConnectionStrings:NotificationsDb"]     = _notifsCs,
                 ["ConnectionStrings:MarketplaceEventsDb"] = _marketplaceCs,
                 ["ConnectionStrings:SyncDb"]              = _syncCs,
+                // Disable rate limits so 9 Identity tests in one run don't trip the 5/min/IP Auth bucket.
+                ["RateLimit:Disabled"]                    = "true",
             });
         });
 
@@ -205,6 +207,12 @@ public sealed class IntegrationTestFixture : WebApplicationFactory<Program>, IAs
         Environment.SetEnvironmentVariable("ConnectionStrings__MarketplaceEventsDb", _marketplaceCs);
         Environment.SetEnvironmentVariable("ConnectionStrings__SyncDb",              _syncCs);
 
+        // Disable rate limits — multiple Login/Refresh tests in one collection run
+        // would otherwise exhaust the 5 req/min/IP Auth bucket and hit 429.
+        // Read via env var (not in-memory provider) because AddApiServices evaluates
+        // RateLimit:Disabled at service-registration time, before ConfigureAppConfiguration runs.
+        Environment.SetEnvironmentVariable("RateLimit__Disabled", "true");
+
         // Warm up: triggers ConfigureWebHost → Program.cs startup →
         // migrations and seeds — all against the Testcontainers SQL Server.
         _ = CreateClient();
@@ -283,6 +291,7 @@ public sealed class IntegrationTestFixture : WebApplicationFactory<Program>, IAs
             "ConnectionStrings__NotificationsDb",
             "ConnectionStrings__MarketplaceEventsDb",
             "ConnectionStrings__SyncDb",
+            "RateLimit__Disabled",
         })
             Environment.SetEnvironmentVariable(key, null);
     }

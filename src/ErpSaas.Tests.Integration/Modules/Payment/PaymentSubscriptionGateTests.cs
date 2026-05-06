@@ -14,11 +14,11 @@ public class PaymentSubscriptionGateTests(IntegrationTestFixture fixture)
     //   POST /api/payment/transactions (initiate)
 
     [Fact]
-    public async Task ListGateways_FeatureDisabled_Returns403()
+    public async Task ListGateways_FeatureDisabled_Returns402()
     {
         var client = fixture.CreateNoFeatureClient();
         var response = await client.GetAsync("/api/payment/gateways");
-        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        response.StatusCode.Should().Be(HttpStatusCode.PaymentRequired);
     }
 
     [Fact]
@@ -30,7 +30,7 @@ public class PaymentSubscriptionGateTests(IntegrationTestFixture fixture)
     }
 
     [Fact]
-    public async Task InitiatePayment_FeatureDisabled_Returns403()
+    public async Task InitiatePayment_FeatureDisabled_Returns402()
     {
         var client = fixture.CreateNoFeatureClient();
         var payload = new
@@ -46,7 +46,7 @@ public class PaymentSubscriptionGateTests(IntegrationTestFixture fixture)
             ReturnUrl = "https://test.com/return"
         };
         var response = await client.PostAsJsonAsync("/api/payment/transactions", payload);
-        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        response.StatusCode.Should().Be(HttpStatusCode.PaymentRequired);
     }
 
     [Fact]

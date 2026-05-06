@@ -57,11 +57,11 @@ public class PaymentControllerTests(IntegrationTestFixture fixture)
     }
 
     [Fact]
-    public async Task ListGatewayAccounts_FeatureDisabled_Returns403()
+    public async Task ListGatewayAccounts_FeatureDisabled_Returns402()
     {
         var client = fixture.CreateNoFeatureClient();
         var response = await client.GetAsync("/api/payment/gateways");
-        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        response.StatusCode.Should().Be(HttpStatusCode.PaymentRequired);
     }
 
     // ── POST /api/payment/transactions (requires Payment.OnlineGateway) ───────
